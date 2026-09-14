@@ -2,35 +2,23 @@
 // There is intentionally no "forgot password" reset; without the current
 // password encrypted files cannot be recovered.
 
-import { ChangeEncryptionPassword } from '../../../wailsjs/go/main/App';
+import { changeEncryptionPassword } from '../../api';
 import { state } from '../../state';
 import { loadEncryptionStatus } from '../encryption';
 import { notify } from '../notifications';
-import EncryptionSettingsModal from '../../ui/modals/EncryptionSettingsModal.svelte';
+import { humanizeBackendError } from '../errors';
 import { encryptionSettingsModal } from '../../ui/modals/encryption-settings-modal-store';
-import { mountSvelte, type SvelteMountHandle } from '../../ui/mount';
-
-let encryptionSettingsModalHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
-
-export function setupEncryptionSettingsModal() {
-    const modal = document.getElementById('encryption-settings-modal');
-    if (!modal || encryptionSettingsModalHandle) return;
-
-    modal.replaceChildren();
-    encryptionSettingsModalHandle = mountSvelte(EncryptionSettingsModal, {
-        target: modal,
-        props: {
-            onCancel: () => encryptionSettingsModal.close(),
-            onSubmit: submitChange,
-        },
-    });
+export function cancelEncryptionSettings(): void {
+    encryptionSettingsModal.close();
 }
+
+
 
 export function openEncryptionSettingsModal() {
     encryptionSettingsModal.open({ hint: String(state.encryption?.hint || '') });
 }
 
-async function submitChange(
+export async function submitEncryptionSettings(
     currentPassword: string,
     newPassword: string,
     confirmPassword: string,
@@ -52,7 +40,11 @@ async function submitChange(
 
     encryptionSettingsModal.setBusy(true);
     try {
-        await ChangeEncryptionPassword(currentPassword, newPassword, hint);
+        const result = await changeEncryptionPassword(currentPassword, newPassword, hint);
+        if (!result.ok) {
+            encryptionSettingsModal.setError(humanizeBackendError(result.error));
+            return;
+        }
         await loadEncryptionStatus();
         encryptionSettingsModal.close();
         notify({
@@ -61,7 +53,7 @@ async function submitChange(
             body: 'Use the new password for encrypted files from now on.',
         });
     } catch (err) {
-        encryptionSettingsModal.setError(String(err));
+        encryptionSettingsModal.setError(humanizeBackendError(err));
     } finally {
         encryptionSettingsModal.setBusy(false);
     }

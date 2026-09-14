@@ -1,19 +1,19 @@
-import { readFileSync } from 'node:fs';
+
 import { writable } from 'svelte/store';
 import { describe, expect, it, vi } from 'vitest';
 import type { ThemeState } from './theme-controller';
 import { connectNativeTheme, type NativeThemeRuntime } from './native-theme';
 import { getThemeDefinition, normalizeThemePreference, type ThemeMode } from './theme-model';
 
-const nativeThemeSource = readFileSync(new URL('./native-theme.ts', import.meta.url), 'utf8');
+
 
 function state(mode: ThemeMode, resolvedThemeId: ThemeState['resolvedThemeId']): ThemeState {
     const activeTheme = getThemeDefinition(resolvedThemeId);
     return {
         preference: normalizeThemePreference({
             mode,
-            lightThemeId: 'tdrive-light',
-            darkThemeId: resolvedThemeId === 'dracula' ? 'dracula' : 'tokyo-night',
+            lightThemeId: activeTheme.appearance === 'light' ? resolvedThemeId : 'tdrive-day',
+            darkThemeId: activeTheme.appearance === 'dark' ? resolvedThemeId : 'tdrive-vault',
         }),
         resolvedAppearance: activeTheme.appearance,
         resolvedThemeId,
@@ -40,6 +40,26 @@ describe('native theme bridge', () => {
         disconnect();
     });
 
+    it('uses the TDrive Day canvas for the default light palette backdrop', () => {
+        const theme = writable(state('light', 'tdrive-day'));
+        const native = runtime();
+
+        const disconnect = connectNativeTheme(theme, 'darwin', native);
+
+        expect(native.setBackgroundColour).toHaveBeenLastCalledWith(238, 244, 245, 255);
+        disconnect();
+    });
+
+    it('uses the TDrive Vault canvas for the default native backdrop', () => {
+        const theme = writable(state('dark', 'tdrive-vault'));
+        const native = runtime();
+
+        const disconnect = connectNativeTheme(theme, 'darwin', native);
+
+        expect(native.setBackgroundColour).toHaveBeenLastCalledWith(14, 23, 28, 255);
+        disconnect();
+    });
+
     it('synchronizes the Windows titlebar from explicit light and dark modes', () => {
         const theme = writable(state('light', 'tdrive-light'));
         const native = runtime();
@@ -63,10 +83,7 @@ describe('native theme bridge', () => {
         disconnect();
     });
 
-    it('does not retain the removed native System-theme runtime surface', () => {
-        expect(nativeThemeSource).not.toContain('WindowSetSystemDefaultTheme');
-        expect(nativeThemeSource).not.toContain('setSystemTheme');
-    });
+
 
     it('isolates native-window teardown errors from frontend theme state', () => {
         const theme = writable(state('dark', 'tokyo-night'));

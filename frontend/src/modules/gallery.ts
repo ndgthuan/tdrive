@@ -11,33 +11,45 @@
 
 import { state } from '../state';
 import { getMedia } from '../api';
-import { openPreviewList } from './modals/preview';
 import { clearSearch } from './search';
-import Gallery from '../ui/gallery/Gallery.svelte';
-import { beginRender, cachedThumb, rearmLocked, setRoot } from '../ui/gallery/gallery-controller';
+import { appActions } from './app-actions';
+import { beginRender, cachedThumb, rearmLocked, setRoot, teardown as teardownGalleryController } from '../ui/gallery/gallery-controller';
 import { galleryView, type GalleryGroup } from '../ui/gallery/gallery-store';
-import { mountSvelte, type SvelteMountHandle } from '../ui/mount';
+import { setSidebarPhotosActive } from '../ui/sidebar/sidebar-store';
 import type { FileItem } from '../types';
 
 let galleryEl: HTMLElement | null = null;
-let galleryHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
 let renderToken = 0;
+let backgroundRenderToken = 0;
 let currentItems: FileItem[] = [];
 let currentChannelId = 0;
 
-export function setupGallery(): void {
-    galleryEl = document.getElementById('gallery-view');
-    if (!galleryEl || galleryHandle) return;
+export function activateGallery(): () => void {
+    const host = document.getElementById('gallery-view');
+    if (!host) return () => {};
 
-    setRoot(galleryEl);
-    galleryEl.replaceChildren();
-    galleryHandle = mountSvelte(Gallery, { target: galleryEl, props: {} });
+    if (galleryEl) teardownGallery();
+    galleryEl = host;
+    setRoot(host);
 
     // Click delegation stays on the stable host, matching the pre-Svelte path.
-    galleryEl.addEventListener('click', onGalleryClick);
+    host.addEventListener('click', onGalleryClick);
     // When the vault unlocks (e.g. from the lightbox), let locked cells retry
     // without waiting for a full gallery refresh.
     window.addEventListener('tdrive:unlocked', rearmLocked);
+
+    return teardownGallery;
+}
+
+export function teardownGallery(): void {
+    renderToken += 1;
+    backgroundRenderToken += 1;
+    galleryEl?.removeEventListener('click', onGalleryClick);
+    window.removeEventListener('tdrive:unlocked', rearmLocked);
+    teardownGalleryController();
+    galleryEl = null;
+    currentItems = [];
+    currentChannelId = 0;
 }
 
 // setPhotosMode toggles the whole main view between the file list and the
@@ -45,33 +57,50 @@ export function setupGallery(): void {
 // the Photos item is active in gallery view, the active drive in files view.
 export function setPhotosMode(on: boolean): void {
     document.querySelector('.main-content')?.classList.toggle('photos-mode', on);
-    document.getElementById('nav-photos')?.classList.toggle('active', on);
+    const photosNav = document.getElementById('nav-photos');
+    photosNav?.classList.toggle('active', on);
+    if (on) photosNav?.setAttribute('aria-current', 'page');
+    else photosNav?.removeAttribute('aria-current');
+    setSidebarPhotosActive(on);
+
     const activeId = Number(state.activeChannel?.id || 0);
     document.querySelectorAll<HTMLElement>('.drive-item[data-channel-id]').forEach((el) => {
         const isActiveDrive = Number(el.dataset.channelId) === activeId;
         el.classList.toggle('active', isActiveDrive && !on);
+        if (isActiveDrive && !on) el.setAttribute('aria-current', 'page');
+        else el.removeAttribute('aria-current');
     });
 }
 
-export async function renderGallery(): Promise<void> {
-    if (!galleryEl) setupGallery();
-    if (!galleryEl) return;
+interface GalleryRefreshOptions {
+    background?: boolean;
+}
 
-    const token = ++renderToken;
+export async function renderGallery({ background = false }: GalleryRefreshOptions = {}): Promise<void> {
+    if (!galleryEl || galleryEl !== document.getElementById('gallery-view')) return;
+
+    const token = background ? renderToken : ++renderToken;
+    const backgroundToken = background ? ++backgroundRenderToken : 0;
     const channelId = Number(state.activeChannel?.id || 0);
-    galleryView.set({ status: 'loading' });
+    if (!background) galleryView.set({ status: 'loading' });
 
     let media: FileItem[];
     try {
         media = await getMedia();
     } catch (err) {
         console.error('ListMedia failed:', err);
-        if (token === renderToken) galleryView.set({ status: 'error' });
+        if (token === renderToken && !background) galleryView.set({ status: 'error' });
         return;
     }
 
-    // A newer render started, or the user left photos mode, while we awaited.
-    if (token !== renderToken || state.virtualView !== 'photos') return;
+    // Foreground navigation invalidates background work; background refreshes
+    // only compete with other background refreshes after they have data to commit.
+    if (
+        token !== renderToken
+        || (background && backgroundToken !== backgroundRenderToken)
+        || state.virtualView !== 'photos'
+        || Number(state.activeChannel?.id ?? 0) !== channelId
+    ) return;
 
     currentItems = media;
     currentChannelId = channelId;
@@ -89,10 +118,10 @@ function onGalleryClick(event: MouseEvent): void {
     if (!cell) return;
     const index = Number(cell.dataset.index ?? -1);
     if (index < 0 || index >= currentItems.length) return;
-    openGalleryLightbox(index);
+    void openGalleryLightbox(index);
 }
 
-function openGalleryLightbox(index: number): void {
+async function openGalleryLightbox(index: number): Promise<void> {
     const channelId = currentChannelId;
     // Carry the fields the lightbox + info panel need: a download size
     // (plaintext for encrypted files), the loaded thumbnail as an instant
@@ -107,7 +136,9 @@ function openGalleryLightbox(index: number): void {
         uploadTime: it.uploadTime,
         thumbUrl: cachedThumb(channelId, it.msgId),
     }));
-    void openPreviewList(items, index);
+    const preview = await import('./modals/preview');
+    preview.activatePreviewModal();
+    await preview.openPreviewList(items, index);
 }
 
 // --- view switching (wired from the sidebar Photos item) ---
@@ -118,13 +149,13 @@ export function enterPhotos(): void {
     // to Files restores normal row interaction instead of search mode.
     clearSearch({ refresh: false });
     state.virtualView = 'photos';
-    window.refreshFiles();
+    appActions().refreshFiles();
 }
 
 export function exitPhotos(): void {
     if (state.virtualView !== 'photos') return;
     state.virtualView = null;
-    window.refreshFiles();
+    appActions().refreshFiles({ background: true });
 }
 
 // --- date grouping ---

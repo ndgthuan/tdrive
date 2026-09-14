@@ -2,32 +2,17 @@
 
 import { leaveSharedDrive } from '../channels';
 import { notify, dismissNotification } from '../notifications';
-import LeaveDriveModal from '../../ui/modals/LeaveDriveModal.svelte';
+import { humanizeBackendError } from '../errors';
 import {
     closeLeaveDriveModalView,
     openLeaveDriveModalView,
     setLeaveDriveModalInFlight,
     type LeaveDriveTarget,
 } from '../../ui/modals/leave-drive-modal-store';
-import { mountSvelte, type SvelteMountHandle } from '../../ui/mount';
-
-let leaveDriveModalHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
 let inFlight = false;
 
-export function setupLeaveDriveModal() {
-    const modal = document.getElementById('leave-drive-modal');
-    if (!modal || leaveDriveModalHandle) return;
 
-    modal.replaceChildren();
-    leaveDriveModalHandle = mountSvelte(LeaveDriveModal, {
-        target: modal,
-        props: {
-            onConfirm: confirmLeaveDrive,
-        },
-    });
-}
-
-async function confirmLeaveDrive(target: LeaveDriveTarget): Promise<void> {
+export async function confirmLeaveDrive(target: LeaveDriveTarget): Promise<void> {
     if (inFlight) return;
     inFlight = true;
     setLeaveDriveModalInFlight(true);
@@ -54,7 +39,7 @@ async function confirmLeaveDrive(target: LeaveDriveTarget): Promise<void> {
         notify({
             level: 'error',
             title: 'Could not leave drive',
-            body: String(err),
+            body: humanizeBackendError(err),
         });
     } finally {
         inFlight = false;

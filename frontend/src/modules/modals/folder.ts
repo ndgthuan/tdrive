@@ -1,33 +1,19 @@
 // New folder modal for TDrive frontend
 
-import { state } from '../../state';
-import { createFolder } from '../drive-data';
+import { invalidateFolderIndex, state } from '../../state';
+import { createFolder } from '../../api';
 import { notify } from '../notifications';
-import FolderModal from '../../ui/modals/FolderModal.svelte';
+import { humanizeBackendError } from '../errors';
+import { appActions } from '../app-actions';
 import {
     closeFolderModalView,
     openFolderModalView,
     setFolderModalInFlight,
 } from '../../ui/modals/folder-modal-store';
-import { mountSvelte, type SvelteMountHandle } from '../../ui/mount';
-
-let folderModalHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
 let inFlight = false;
 
-export function setupFolderModal() {
-    const modal = document.getElementById("folder-modal");
-    if (!modal || folderModalHandle) return;
 
-    modal.replaceChildren();
-    folderModalHandle = mountSvelte(FolderModal, {
-        target: modal,
-        props: {
-            onSubmit: submitFolder,
-        },
-    });
-}
-
-async function submitFolder(name: string): Promise<void> {
+export async function submitFolder(name: string): Promise<void> {
     if (inFlight) return;
 
     const trimmed = name.trim();
@@ -43,18 +29,19 @@ async function submitFolder(name: string): Promise<void> {
 
     // Render immediately so the new row appears under the cursor before the
     // Telegram round-trip completes.
-    window.refreshFiles();
+    appActions().refreshFiles();
 
     let failed = false;
     try {
         await createFolder(trimmed, parentId);
+        invalidateFolderIndex();
         closeFolderModalView();
     } catch (err) {
         failed = true;
         notify({
             level: 'error',
             title: 'Could not create folder',
-            body: String(err),
+            body: humanizeBackendError(err),
         });
     } finally {
         // Drop the pending overlay regardless of outcome. The follow-up
@@ -63,7 +50,7 @@ async function submitFolder(name: string): Promise<void> {
         state.pendingFolderOps.delete(tempId);
         inFlight = false;
         setFolderModalInFlight(false);
-        window.refreshFiles();
+        appActions().refreshFiles();
         if (!failed) {
             notify({ level: 'success', title: `Folder "${trimmed}" created` });
         }

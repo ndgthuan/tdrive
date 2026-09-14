@@ -2,14 +2,11 @@
 // chooses "Encrypt before upload". This password protects every
 // encrypted personal file; if forgotten, those files cannot be recovered.
 
-import { CreateEncryptionPassword } from '../../../wailsjs/go/main/App';
+import { createEncryptionPassword } from '../../api';
 import { notify } from '../notifications';
 import { loadEncryptionStatus } from '../encryption';
-import EncryptionSetupModal from '../../ui/modals/EncryptionSetupModal.svelte';
+import { humanizeBackendError } from '../errors';
 import { encryptionSetupModal } from '../../ui/modals/encryption-setup-modal-store';
-import { mountSvelte, type SvelteMountHandle } from '../../ui/mount';
-
-let encryptionSetupModalHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
 let pending: ((ok: boolean) => void) | null = null;
 
 function finish(ok: boolean): void {
@@ -20,22 +17,13 @@ function finish(ok: boolean): void {
         resolve(ok);
     }
 }
-
-export function setupEncryptionSetupModal() {
-    const modal = document.getElementById('encryption-setup-modal');
-    if (!modal || encryptionSetupModalHandle) return;
-
-    modal.replaceChildren();
-    encryptionSetupModalHandle = mountSvelte(EncryptionSetupModal, {
-        target: modal,
-        props: {
-            onCancel: () => finish(false),
-            onSubmit: submitSetup,
-        },
-    });
+export function cancelEncryptionSetup(): void {
+    finish(false);
 }
 
-async function submitSetup(password: string, confirmPassword: string, hint: string): Promise<void> {
+
+
+export async function submitEncryptionSetup(password: string, confirmPassword: string, hint: string): Promise<void> {
     if (password.length < 8) {
         encryptionSetupModal.setError('Use at least 8 characters.');
         return;
@@ -48,7 +36,11 @@ async function submitSetup(password: string, confirmPassword: string, hint: stri
     encryptionSetupModal.setError('');
     encryptionSetupModal.setBusy(true);
     try {
-        await CreateEncryptionPassword(password, hint);
+        const result = await createEncryptionPassword(password, hint);
+        if (!result.ok) {
+            encryptionSetupModal.setError(humanizeBackendError(result.error));
+            return;
+        }
         await loadEncryptionStatus();
         finish(true);
         notify({
@@ -57,7 +49,7 @@ async function submitSetup(password: string, confirmPassword: string, hint: stri
             body: 'Encrypted uploads will be protected before they leave this device.',
         });
     } catch (err) {
-        encryptionSetupModal.setError(String(err));
+        encryptionSetupModal.setError(humanizeBackendError(err));
     } finally {
         encryptionSetupModal.setBusy(false);
     }

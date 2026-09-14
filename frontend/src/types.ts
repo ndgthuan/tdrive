@@ -49,9 +49,177 @@ export interface SearchHit {
     size: number;
     uploadTime: number;
     uploaderId: number;
+    encrypted: boolean;
+    plaintextSize: number;
     path: string;
+    source: "fs" | "tg";
 }
 
+export type DriveKind = "personal" | "shared" | "unknown";
+
+export interface DriveChannel {
+    id: number;
+    title: string;
+    kind: DriveKind;
+    isActive: boolean;
+    inviteLink: string;
+}
+
+export interface PendingJoin {
+    inviteHash: string;
+    inviteLink: string;
+    title: string;
+    requestedAt: number;
+    lastCheckedAt: number;
+    status: string;
+    lastError: string;
+}
+
+export interface JoinDriveResult {
+    status: string;
+    channel: DriveChannel | null;
+    pending: PendingJoin | null;
+}
+
+export interface JoinRequest {
+    userId: number;
+    displayName: string;
+    username: string;
+    requestedAt: number;
+    about: string;
+}
+
+export interface PersonalDriveCandidate {
+    id: string;
+    title: string;
+    createdAt: number;
+    hasActivity: boolean;
+    recommended: boolean;
+}
+
+export interface PersonalDriveSetup {
+    status: string;
+    activeChannelId: string;
+}
+
+export interface SelfUser {
+    userId: number;
+    displayName: string;
+    username: string;
+    photoBase64: string;
+}
+
+export interface EncryptionStatusView {
+    available: boolean;
+    passwordSet: boolean;
+    passwordRemembered: boolean;
+    hint: string;
+}
+
+export interface FolderStat {
+    id: string;
+    bytes: number;
+    latestUpload: number;
+}
+
+export interface PreviewPayload {
+    dataBase64: string;
+    mimeType: string;
+}
+
+export type OperationErrorCode =
+    | "operation_failed"
+    | "backend_unavailable"
+    | "encryption_password_required"
+    | "invalid_encryption_password"
+    | "encryption_password_already_set"
+    | "encryption_policy_unavailable"
+    | "canceled"
+    | "deadline_exceeded"
+    | "not_found"
+    | "permission_denied"
+    | "already_exists"
+    | "insufficient_storage"
+    | "network_unavailable"
+    | "file_too_large";
+
+export interface OperationError {
+    code: OperationErrorCode;
+    message: string;
+}
+
+export type OperationResult =
+    | { ok: true; error?: never }
+    | { ok: false; error: OperationError };
+
+export interface PreviewResult {
+    result: OperationResult;
+    payload: PreviewPayload;
+}
+
+export interface UploadResult {
+    result: OperationResult;
+    files: FileItem[];
+}
+
+export interface DownloadResult {
+    result: OperationResult;
+    savedPath: string;
+}
+
+export interface ImportPlan {
+    files: number;
+    folders: number;
+    bytes: number;
+    oversize: number;
+    archives: number;
+    ignored: number;
+    maxBytes: number;
+    maxItems: number;
+    limitExceeded: boolean;
+    errorCount: number;
+    errors: string[];
+}
+
+export interface AppVersion {
+    version: string;
+    os: string;
+    arch: string;
+    devBuild: boolean;
+}
+
+export interface UpdateRelease {
+    version: string;
+    tag: string;
+    pageUrl: string;
+    publishedAt: string;
+    assetName: string;
+    assetSize: number;
+}
+
+export type UpdatePhase =
+    | 'idle'
+    | 'disabled'
+    | 'checking'
+    | 'up_to_date'
+    | 'available'
+    | 'downloading'
+    | 'ready'
+    | 'installing'
+    | 'installed';
+
+export interface UpdateSnapshot {
+    phase: UpdatePhase;
+    currentVersion: string;
+    latest: UpdateRelease | null;
+    installable: boolean;
+    installHint: string;
+    downloadedBytes: number;
+    totalBytes: number;
+    checkedAt: number;
+    error: string;
+    errorStage: string;
+}
 export type MountPhase = 'idle' | 'mounting' | 'mounted' | 'disconnecting' | 'error';
 export type MountedDriveKind = 'personal' | 'shared' | 'unknown';
 export type MountMode = 'read-only' | 'read-write';

@@ -4,20 +4,25 @@
 // ghost row on screen. The bulk-delete path already refreshed unconditionally;
 // this covers the single-item path, which used to return early on failure.
 
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { flushSync } from 'svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushSync, mount, unmount } from 'svelte';
+import DeleteModal from '../../ui/modals/DeleteModal.svelte';
+import { closeDeleteModalView } from '../../ui/modals/delete-modal-store';
 
 const deleteFileMock = vi.fn();
+const appActionMocks = vi.hoisted(() => ({ refreshFiles: vi.fn() }));
 vi.mock('../../../wailsjs/go/main/App', () => ({
     DeleteFile: (...args: unknown[]) => deleteFileMock(...args),
 }));
 vi.mock('../drive-data', () => ({
     deleteFolder: vi.fn(),
 }));
+vi.mock('../app-actions', () => ({ appActions: () => appActionMocks }));
 
-import { openDeleteModal, setupDeleteModal } from './delete';
+import { confirmDelete, openDeleteModal } from './delete';
 
 let host: HTMLElement;
+let app: Record<string, unknown> | null = null;
 
 function click(selector: string): void {
     const el = host.querySelector(selector) as HTMLElement | null;
@@ -26,41 +31,43 @@ function click(selector: string): void {
     flushSync();
 }
 
-beforeAll(() => {
+beforeEach(() => {
     host = document.createElement('div');
     host.id = 'delete-modal';
     document.body.appendChild(host);
-    setupDeleteModal();
+    app = mount(DeleteModal, { target: host, props: { onConfirm: confirmDelete } });
+    flushSync();
 });
 
-afterEach(() => {
+afterEach(async () => {
+    closeDeleteModalView();
+    flushSync();
+    if (app) await unmount(app);
+    app = null;
+    host.remove();
     deleteFileMock.mockReset();
-    (window as any).refreshFiles = undefined;
+    appActionMocks.refreshFiles.mockReset();
 });
 
 describe('confirmDelete (single file)', () => {
     it('refreshes the file list when the delete fails', async () => {
         deleteFileMock.mockResolvedValue('Error: File not found');
-        const refreshFiles = vi.fn();
-        (window as any).refreshFiles = refreshFiles;
 
         openDeleteModal({ type: 'file', id: 42, name: 'ghost.png' });
         flushSync();
         click('#delete-confirm');
 
         // confirmDelete's error branch is async (await deleteFileWithPasswordRetry).
-        await vi.waitFor(() => expect(refreshFiles).toHaveBeenCalledTimes(1));
+        await vi.waitFor(() => expect(appActionMocks.refreshFiles).toHaveBeenCalledTimes(1));
     });
 
     it('still refreshes the file list when the delete succeeds', async () => {
         deleteFileMock.mockResolvedValue('Success');
-        const refreshFiles = vi.fn();
-        (window as any).refreshFiles = refreshFiles;
 
         openDeleteModal({ type: 'file', id: 43, name: 'real.png' });
         flushSync();
         click('#delete-confirm');
 
-        await vi.waitFor(() => expect(refreshFiles).toHaveBeenCalledTimes(1));
+        await vi.waitFor(() => expect(appActionMocks.refreshFiles).toHaveBeenCalledTimes(1));
     });
 });

@@ -8,13 +8,19 @@ const mocks = vi.hoisted(() => ({
     pushTransferStart: vi.fn(),
     updateTransferName: vi.fn(),
     updateTransferProgress: vi.fn(),
+    refreshFiles: vi.fn(),
 }));
 
 vi.mock('../../wailsjs/go/main/App', () => ({
     DownloadFile: vi.fn(),
+    ImportPaths: (paths: string[], parentId: string, encrypt: boolean, extract: boolean) => window.go.main.App.ImportPaths(paths, parentId, encrypt, extract),
+    PlanImport: (paths: string[], encrypt: boolean, extract: boolean) => window.go.main.App.PlanImport(paths, encrypt, extract),
     SelectFiles: vi.fn(),
+    SelectFolder: () => window.go.main.App.SelectFolder(),
+    UploadToDriveFS: (files: string[], folders: string[], encrypt: boolean) => window.go.main.App.UploadToDriveFS(files, folders, encrypt),
 }));
 vi.mock('./notifications', () => ({ notify: mocks.notify }));
+vi.mock('./app-actions', () => ({ appActions: () => ({ refreshFiles: mocks.refreshFiles }) }));
 vi.mock('./notif-bell', () => ({
     markTransferDone: mocks.markTransferDone,
     pushTransferStart: mocks.pushTransferStart,
@@ -31,7 +37,7 @@ vi.mock('./modals/encryption-password', () => ({ openEncryptionPasswordModal: vi
 vi.mock('../ui/chrome/UploadMenu.svelte', () => ({ default: {} }));
 vi.mock('../ui/mount', () => ({ mountSvelte: vi.fn() }));
 
-import { importFolderWithParentID, setupFileDrop, setupUploadProgress } from './transfers';
+import { activateTransferSurfaces, importFolderWithParentID } from './transfers';
 
 type RuntimeHandler = (...args: unknown[]) => void;
 
@@ -42,6 +48,7 @@ interface TestNotice {
 }
 
 const handlers = new Map<string, RuntimeHandler>();
+let deactivateTransfers = () => {};
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -82,10 +89,7 @@ beforeEach(() => {
         configurable: true,
         value: { main: { App: app } },
     });
-    Object.defineProperty(window, 'refreshFiles', {
-        configurable: true,
-        value: vi.fn(),
-    });
+
     Object.defineProperty(window, 'runtime', {
         configurable: true,
         value: {
@@ -95,7 +99,7 @@ beforeEach(() => {
             OnFileDrop: vi.fn(),
         },
     });
-    setupUploadProgress();
+    deactivateTransfers = activateTransferSurfaces();
 });
 
 afterEach(() => {
@@ -103,9 +107,10 @@ afterEach(() => {
     state.transferActivity = idleTransferActivity;
     state.cancelingUpload = false;
     state.importBatch = null;
-    Reflect.deleteProperty(window, 'go');
+    deactivateTransfers();
+        Reflect.deleteProperty(window, 'go');
     Reflect.deleteProperty(window, 'runtime');
-    Reflect.deleteProperty(window, 'refreshFiles');
+
 });
 
 describe('aggregate import completion', () => {
@@ -193,7 +198,6 @@ describe('native file drop', () => {
         });
         state.currentFolderId = 'folder-7';
 
-        setupFileDrop();
 
         // Without this hook WebKit refuses the drag and WebView2 never reports paths.
         expect(window.runtime.OnFileDrop).toHaveBeenCalledWith(expect.any(Function), true);

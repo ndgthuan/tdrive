@@ -2,14 +2,11 @@
 // On success the backend remembers the decrypted master key in memory
 // until the app exits, so users do not re-enter the password per file.
 
-import { UseEncryptionPassword } from '../../../wailsjs/go/main/App';
+import { useEncryptionPassword, type OperationResult } from '../../api';
 import { loadEncryptionStatus } from '../encryption';
+import { humanizeBackendError } from '../errors';
 import { state } from '../../state';
-import EncryptionPasswordModal from '../../ui/modals/EncryptionPasswordModal.svelte';
 import { encryptionPasswordModal } from '../../ui/modals/encryption-password-modal-store';
-import { mountSvelte, type SvelteMountHandle } from '../../ui/mount';
-
-let encryptionPasswordModalHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
 let pending: ((ok: boolean) => void) | null = null;
 
 function finish(ok: boolean): void {
@@ -20,22 +17,13 @@ function finish(ok: boolean): void {
         resolve(ok);
     }
 }
-
-export function setupEncryptionPasswordModal() {
-    const modal = document.getElementById('encryption-password-modal');
-    if (!modal || encryptionPasswordModalHandle) return;
-
-    modal.replaceChildren();
-    encryptionPasswordModalHandle = mountSvelte(EncryptionPasswordModal, {
-        target: modal,
-        props: {
-            onCancel: () => finish(false),
-            onSubmit: submitPassword,
-        },
-    });
+export function cancelEncryptionPassword(): void {
+    finish(false);
 }
 
-async function submitPassword(password: string): Promise<void> {
+
+
+export async function submitEncryptionPassword(password: string): Promise<void> {
     if (!password) {
         encryptionPasswordModal.setError('Enter your encryption password.');
         return;
@@ -43,28 +31,35 @@ async function submitPassword(password: string): Promise<void> {
     encryptionPasswordModal.setError('');
     encryptionPasswordModal.setBusy(true);
     try {
-        await UseEncryptionPassword(password);
+        const result = await useEncryptionPassword(password);
+        if (!result.ok) {
+            encryptionPasswordModal.setError(humanizeBackendError(result.error));
+            return;
+        }
         await loadEncryptionStatus();
         finish(true);
     } catch (err) {
-        encryptionPasswordModal.setError(String(err));
+        encryptionPasswordModal.setError(humanizeBackendError(err));
     } finally {
         encryptionPasswordModal.setBusy(false);
     }
 }
 
-// callWithPasswordRetry runs a backend binding that returns "Error: ..." strings.
-// If it fails with "encryption password required" (a locked vault), it prompts
-// for the password once and retries. Used by rename/move/delete on encrypted
-// files and folders.
-export async function callWithPasswordRetry(call: () => Promise<any>): Promise<any> {
-    let res = await call();
-    if (typeof res === "string" && res.startsWith("Error") && /encryption password required/i.test(res)) {
-        const ok = await openEncryptionPasswordModal();
-        if (!ok) return "Error: Encryption password required";
-        res = await call();
+// Retry exactly once when the stable backend code says a locked vault blocked
+// the operation. Display wording is intentionally irrelevant to this branch.
+export async function callWithPasswordRetry(call: () => Promise<OperationResult>): Promise<OperationResult> {
+    let result = await call();
+    if (!result.ok && result.error.code === "encryption_password_required") {
+        const unlocked = await openEncryptionPasswordModal();
+        if (!unlocked) {
+            return {
+                ok: false,
+                error: { code: 'canceled', message: 'Encryption password entry was canceled' },
+            };
+        }
+        result = await call();
     }
-    return res;
+    return result;
 }
 
 export function openEncryptionPasswordModal(): Promise<boolean> {

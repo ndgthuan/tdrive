@@ -15,110 +15,142 @@
 //   notify({ level: 'success', title: 'Folder created' });
 //
 //   // Errors are sticky by default; user dismisses or clicks to copy.
-//   notify({ level: 'error', title: 'Could not join drive', body: String(err) });
+//   notify({ level: 'error', title: 'Could not join drive', body: 'Try again.' });
 //
-// This module owns the queue: capping, replace-by-id, and the expiry ticker
-// with its hover-pause rules. ToastStack.svelte only renders the store.
+// This module owns the queue: capping, replace-by-id, and the nearest-deadline
+// expiry scheduler with its hover-pause rules. ToastStack.svelte only renders
+// the store.
 
 import { get } from 'svelte/store';
+import { toAppError, type AppErrorSource } from './errors';
 import { pushHistoryEvent } from './notif-bell';
-import ToastStack from '../ui/notifications/ToastStack.svelte';
 import { toasts, type ToastItem, type ToastLevel } from '../ui/notifications/toast-store';
-import { mountSvelte, type SvelteMountHandle } from '../ui/mount';
 
 const MAX_VISIBLE = 5;
 const DEFAULT_DURATION = 4000;
+const MAX_TIMEOUT_DELAY_MS = 2_147_483_647;
 const LEVELS: readonly ToastLevel[] = ['info', 'success', 'warning', 'error'];
 
-let stackHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
-let timer: number | null = null;
+let expiryTimer: ReturnType<typeof setTimeout> | null = null;
+let allPaused = false;
+const individuallyPaused = new Set<string>();
 
-export function setupNotifications() {
-    if (stackHandle) return;
+function handleToastEscape(event: KeyboardEvent): void {
+    if (event.key !== 'Escape') return;
+    const lastError = [...get(toasts)].reverse().find((toast) => toast.level === 'error');
+    if (lastError) dismissNotification(lastError.id);
+}
 
-    const stackEl = document.createElement('div');
-    stackEl.id = 'toast-stack';
-    stackEl.className = 'toast-stack';
-    stackEl.setAttribute('role', 'status');
-    stackEl.setAttribute('aria-live', 'polite');
-    document.body.appendChild(stackEl);
+export function activateNotificationEffects(): () => void {
+    window.addEventListener('keydown', handleToastEscape);
+    document.addEventListener('visibilitychange', handleAppWake);
+    window.addEventListener('focus', handleAppWake);
+    window.addEventListener('pageshow', handleAppWake);
+    rescheduleExpiry();
 
-    stackHandle = mountSvelte(ToastStack, {
-        target: stackEl,
-        props: {
-            onDismiss: dismissNotification,
-            onPauseToast: pauseToast,
-            onResumeToast: resumeToast,
-            onPauseAll: () => setAllPaused(true),
-            onResumeAll: () => setAllPaused(false),
-        },
-    });
+    return () => {
+        window.removeEventListener('keydown', handleToastEscape);
+        document.removeEventListener('visibilitychange', handleAppWake);
+        window.removeEventListener('focus', handleAppWake);
+        window.removeEventListener('pageshow', handleAppWake);
+        clearExpiryTimer();
+    };
+}
 
-    // Esc clears the most recent error toast (sticky errors otherwise
-    // require a manual click). A modal's own Escape handling runs in the
-    // capture phase and stops propagation, so this never fires behind one.
-    window.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        const lastError = [...get(toasts)].reverse().find((t) => t.level === 'error');
-        if (lastError) dismissNotification(lastError.id);
-    });
+export function pauseAllNotifications(): void {
+    setAllPaused(true);
+}
 
-    ensureTimer();
+export function resumeAllNotifications(): void {
+    setAllPaused(false);
 }
 
 // notify enqueues a toast. Returns its id; pass the same id back via
 // `notify({ id })` to replace an existing entry in place (used for
 // long-running operations).
-export function notify(opts: any = {}) {
-    const level: ToastLevel = LEVELS.includes(opts.level) ? opts.level : 'info';
-    const id = opts.id || `t${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const sticky = opts.sticky === true || level === 'error' || opts.durationMs === 0;
-    const duration = sticky ? 0 : (Number.isFinite(opts.durationMs) ? opts.durationMs : DEFAULT_DURATION);
-    const now = Date.now();
-    const entry: ToastItem = {
-        id,
-        level,
-        title: String(opts.title || ''),
-        body: opts.body ? String(opts.body) : '',
-        sticky,
-        durationMs: duration,
-        expiresAt: duration > 0 ? now + duration : 0,
-        paused: false,
-        spinner: opts.spinner === true,
-    };
+export interface NotifyOptions {
+    id?: string;
+    level?: ToastLevel;
+    title?: string;
+    body?: string;
+    sticky?: boolean;
+    durationMs?: number;
+    spinner?: boolean;
+}
 
-    // Mirror non-spinner toasts into the bell history. In-progress sticky
-    // toasts (spinners) are skipped because their final success/failure
-    // version replaces them; the panel doesn't need both.
-    if (!entry.spinner && entry.title) {
-        pushHistoryEvent({
-            level: entry.level,
-            title: entry.title,
-            body: entry.body,
-            ts: now,
-        });
-    }
+export function notify(opts: NotifyOptions = {}) { const level: ToastLevel = opts.level && LEVELS.includes(opts.level) ? opts.level : 'info';
+const id = opts.id || `t${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+const sticky = opts.sticky === true || level === 'error' || opts.durationMs === 0;
+const duration = sticky ? 0 : (typeof opts.durationMs === 'number' && Number.isFinite(opts.durationMs) ? opts.durationMs : DEFAULT_DURATION);
+const now = Date.now();
+const paused = allPaused || individuallyPaused.has(id);
+const entry: ToastItem = {
+    id,
+    level,
+    title: String(opts.title || ''),
+    body: opts.body ? String(opts.body) : '',
+    sticky,
+    durationMs: duration,
+    expiresAt: duration > 0 ? now + duration : 0,
+    paused,
+    ...(paused && duration > 0 ? { remainingMs: duration } : {}),
+    spinner: opts.spinner === true,
+};
 
-    toasts.update((list) => {
-        const idx = list.findIndex((t) => t.id === id);
-        if (idx >= 0) {
-            // Replace in place; the keyed each block morphs the same node.
-            const next = [...list];
-            next[idx] = entry;
-            return next;
-        }
-        // Cap the visible queue; if exceeded, the oldest non-sticky entry
-        // is dismissed early so urgent ones aren't drowned.
-        const next = [...list];
-        if (next.length >= MAX_VISIBLE) {
-            const stalest = next.findIndex((t) => !t.sticky);
-            next.splice(stalest >= 0 ? stalest : 0, 1);
-        }
-        next.push(entry);
-        return next;
+// Mirror non-spinner toasts into the bell history. In-progress sticky
+// toasts (spinners) are skipped because their final success/failure
+// version replaces them; the panel doesn't need both.
+if (!entry.spinner && entry.title) {
+    pushHistoryEvent({
+        level: entry.level,
+        title: entry.title,
+        body: entry.body,
+        ts: now,
     });
-    ensureTimer();
-    return id;
+}
+
+let evictedID = '';
+toasts.update((list) => {
+    const idx = list.findIndex((t) => t.id === id);
+    if (idx >= 0) {
+        // Replace in place; the keyed each block morphs the same node.
+        const next = [...list];
+        next[idx] = entry;
+        return next;
+    }
+    // Cap the visible queue; if exceeded, the oldest non-sticky entry
+    // is dismissed early so urgent ones aren't drowned.
+    const next = [...list];
+    if (next.length >= MAX_VISIBLE) {
+        const stalest = next.findIndex((t) => !t.sticky);
+        [evictedID] = next.splice(stalest >= 0 ? stalest : 0, 1).map((toast) => toast.id);
+    }
+    next.push(entry);
+    return next;
+});
+if (evictedID) individuallyPaused.delete(evictedID);
+rescheduleExpiry();
+return id; }
+export interface AppErrorNotificationOptions {
+    id?: string;
+    title?: string;
+    source?: AppErrorSource;
+}
+
+/** Reports only normalized copy and contains notification-renderer failures. */
+export function notifyAppError(error: unknown, options: AppErrorNotificationOptions = {}): string | null {
+    const appError = toAppError(error, { source: options.source });
+    try {
+        return notify({
+            id: options.id,
+            level: 'error',
+            title: options.title ?? appError.title,
+            body: appError.message,
+            sticky: true,
+        });
+    } catch {
+        return null;
+    }
 }
 
 export function dismissNotification(id: string) {
@@ -129,73 +161,123 @@ export function dismissNotification(id: string) {
         next.splice(idx, 1);
         return next;
     });
-    ensureTimer();
+    individuallyPaused.delete(id);
+    rescheduleExpiry();
 }
 
 export function clearAllNotifications() {
     toasts.set([]);
-    if (timer) {
-        cancelAnimationFrame(timer);
-        timer = null;
-    }
+    individuallyPaused.clear();
+    allPaused = false;
+    clearExpiryTimer();
 }
 
-// pauseToast freezes one toast's countdown while it is hovered; resumeToast
-// restarts it from the captured remainder (or a fresh window when the broad
-// stack-level pause didn't capture one).
-function pauseToast(id: string) {
-    toasts.update((list) =>
-        list.map((t) => (t.id === id && !t.paused ? { ...t, paused: true } : t)),
-    );
-}
-
-function resumeToast(id: string) {
+// pauseToast freezes one toast's countdown while it is hovered. Stack and
+// toast hover states are tracked separately so moving between child toasts
+// cannot accidentally restart a countdown while the stack remains hovered.
+export function pauseToast(id: string): void {
+    individuallyPaused.add(id);
     const now = Date.now();
-    toasts.update((list) =>
-        list.map((t) => {
-            if (t.id !== id || t.sticky || !t.paused) return t;
-            const remaining = t.remainingMs || t.durationMs || DEFAULT_DURATION;
-            return { ...t, paused: false, expiresAt: now + remaining };
-        }),
-    );
-    ensureTimer();
+    toasts.update((list) => list.map((toast) => {
+        if (toast.id !== id || toast.sticky || toast.paused) return toast;
+        return pauseAt(toast, now);
+    }));
+    rescheduleExpiry();
+}
+
+export function resumeToast(id: string): void {
+    individuallyPaused.delete(id);
+    if (allPaused) {
+        rescheduleExpiry();
+        return;
+    }
+    const now = Date.now();
+    toasts.update((list) => list.map((toast) => {
+        if (toast.id !== id || toast.sticky || !toast.paused) return toast;
+        const remaining = toast.remainingMs ?? toast.durationMs ?? DEFAULT_DURATION;
+        return { ...toast, paused: false, expiresAt: now + remaining };
+    }));
+    rescheduleExpiry();
 }
 
 function setAllPaused(paused: boolean) {
+    if (paused === allPaused) {
+        rescheduleExpiry();
+        return;
+    }
+    allPaused = paused;
     const now = Date.now();
     toasts.update((list) => {
         if (!list.length) return list;
-        return list.map((t) => {
-            if (t.sticky) return t;
-            if (paused && !t.paused) {
-                return { ...t, paused: true, remainingMs: Math.max(0, (t.expiresAt || now) - now) };
+        return list.map((toast) => {
+            if (toast.sticky) return toast;
+            if (paused && !toast.paused) return pauseAt(toast, now);
+            if (!paused && toast.paused && !individuallyPaused.has(toast.id)) {
+                return { ...toast, paused: false, expiresAt: now + (toast.remainingMs ?? 0) };
             }
-            if (!paused && t.paused) {
-                return { ...t, paused: false, expiresAt: now + (t.remainingMs || 0) };
-            }
-            return t;
+            return toast;
         });
     });
-    ensureTimer();
+    rescheduleExpiry();
 }
 
-function hasExpiringToasts() {
-    return get(toasts).some((t) => !t.sticky && !t.paused && t.expiresAt);
+function pauseAt(toast: ToastItem, now: number): ToastItem {
+    return {
+        ...toast,
+        paused: true,
+        remainingMs: Math.max(0, (toast.expiresAt || now) - now),
+    };
 }
 
-function ensureTimer() {
-    if (timer || !hasExpiringToasts()) return;
-    timer = requestAnimationFrame(tick);
+function handleAppWake() {
+    if (document.visibilityState === 'hidden') return;
+    rescheduleExpiry();
 }
 
-function tick() {
-    timer = null;
-    const now = Date.now();
-    // The rAF loop runs every frame while a countdown is live; only touch the
-    // store (and wake its subscribers) when something actually expired.
-    const survives = (t: ToastItem) => t.sticky || t.paused || !t.expiresAt || now < t.expiresAt;
+function clearExpiryTimer() {
+    if (expiryTimer === null) return;
+    clearTimeout(expiryTimer);
+    expiryTimer = null;
+}
+
+function expireDueToasts(now: number) {
+    const survives = (toast: ToastItem) => (
+        toast.sticky || toast.paused || !toast.expiresAt || now < toast.expiresAt
+    );
     if (!get(toasts).every(survives)) {
-        toasts.update((list) => list.filter(survives));
+        toasts.update((list) => {
+            for (const toast of list) {
+                if (!survives(toast)) individuallyPaused.delete(toast.id);
+            }
+            return list.filter(survives);
+        });
     }
-    ensureTimer();
+}
+
+function nearestDeadline(): number | null {
+    let nearest = Infinity;
+    for (const toast of get(toasts)) {
+        if (toast.sticky || toast.paused || !toast.expiresAt) continue;
+        nearest = Math.min(nearest, toast.expiresAt);
+    }
+    return Number.isFinite(nearest) ? nearest : null;
+}
+
+function rescheduleExpiry() {
+    clearExpiryTimer();
+    expireDueToasts(Date.now());
+    scheduleNearestDeadline();
+}
+
+function scheduleNearestDeadline() {
+    const deadline = nearestDeadline();
+    if (deadline === null) return;
+    const delay = Math.min(MAX_TIMEOUT_DELAY_MS, Math.max(0, deadline - Date.now()));
+    expiryTimer = setTimeout(handleExpiryTimer, delay);
+}
+
+function handleExpiryTimer() {
+    expiryTimer = null;
+    expireDueToasts(Date.now());
+    scheduleNearestDeadline();
 }

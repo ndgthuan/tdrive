@@ -1,16 +1,16 @@
-// Behavior tests for the notification bell: history mutations drive the bell
-// mode, the panel opens with sections and clears the unread badge, and
-// terminal transfer updates are idempotent.
+// Behavior tests for notification history, hover disclosure, auto-close, and
+// terminal transfer invariants.
 
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { flushSync } from 'svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushSync, mount, unmount } from 'svelte';
+import NotifBell from '../ui/notifications/NotifBell.svelte';
 import { get } from 'svelte/store';
 import {
+    cancelTransfersInDirection,
     clearHistory,
     markTransferDone,
     pushHistoryEvent,
     pushTransferStart,
-    setupNotifBell,
     updateTransferProgress,
 } from './notif-bell';
 import {
@@ -20,19 +20,9 @@ import {
     type TransferEvent,
 } from '../ui/notifications/notif-store';
 
-// happy-dom has no Web Animations API; Svelte outros call element.animate.
-// Stub it so out-transitions complete immediately.
-if (!Element.prototype.animate) {
-    (Element.prototype as any).animate = function () {
-        const anim: any = { cancel() {}, finish() {}, finished: Promise.resolve() };
-        Object.defineProperty(anim, 'onfinish', {
-            set(cb: (() => void) | null) {
-                if (cb) queueMicrotask(cb);
-            },
-        });
-        return anim;
-    };
-}
+
+let host: HTMLElement;
+let app: Record<string, unknown> | null = null;
 
 function bell(): HTMLElement {
     const el = document.getElementById('notif-bell');
@@ -47,15 +37,26 @@ function reset(): void {
     flushSync();
 }
 
-beforeAll(() => {
-    const host = document.createElement('div');
+beforeEach(() => {
+    host = document.createElement('div');
     host.id = 'notif-bell-root';
     document.body.appendChild(host);
-    setupNotifBell();
+    app = mount(NotifBell, {
+        target: host,
+        props: {
+            onCancelDirection: cancelTransfersInDirection,
+            onClearHistory: clearHistory,
+        },
+    });
     flushSync();
 });
 
-afterEach(reset);
+afterEach(async () => {
+    reset();
+    if (app) await unmount(app);
+    app = null;
+    host.remove();
+});
 
 describe('notif-bell', () => {
     it('reflects transfer and error state in the bell mode', () => {
@@ -119,27 +120,38 @@ describe('notif-bell', () => {
         expect(document.body.textContent).toContain('3 / 5 files');
     });
 
-    it('opens the panel on click, renders sections, and clears unread errors', () => {
-        pushTransferStart({ id: 3, direction: 'up', name: 'c.bin', total: 10 });
-        pushHistoryEvent({ level: 'error', title: 'Could not join drive', body: 'expired' });
-        flushSync();
-        expect(get(notifUnreadErrors)).toBe(1);
+    it('opens the full panel on hover and closes after the pointer leaves', () => {
+        vi.useFakeTimers();
+        try {
+            pushTransferStart({ id: 3, direction: 'up', name: 'c.bin', total: 10 });
+            pushHistoryEvent({ level: 'error', title: 'Could not join drive', body: 'expired' });
+            flushSync();
+            expect(get(notifUnreadErrors)).toBe(1);
 
-        bell().dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        flushSync();
+            bell().dispatchEvent(new MouseEvent('mouseenter'));
+            flushSync();
 
-        expect(get(notifPanelOpen)).toBe(true);
-        expect(get(notifUnreadErrors)).toBe(0);
-        const panel = document.body.querySelector('.notif-panel');
-        expect(panel).not.toBeNull();
-        expect(panel?.textContent).toContain('Active');
-        expect(panel?.textContent).toContain('Recent');
-        expect(panel?.textContent).toContain('Could not join drive');
+            expect(get(notifPanelOpen)).toBe(true);
+            expect(get(notifUnreadErrors)).toBe(0);
+            const panel = document.body.querySelector<HTMLElement>('.notif-panel');
+            expect(panel?.textContent).toContain('Active');
+            expect(panel?.textContent).toContain('Recent');
+            expect(panel?.textContent).toContain('Could not join drive');
+            expect(panel?.querySelector('.notif-panel-close')).toBeNull();
 
-        // Escape closes the panel.
-        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-        flushSync();
-        expect(get(notifPanelOpen)).toBe(false);
+            bell().dispatchEvent(new MouseEvent('mouseleave'));
+            panel?.dispatchEvent(new MouseEvent('mouseenter'));
+            vi.runAllTimers();
+            flushSync();
+            expect(get(notifPanelOpen)).toBe(true);
+
+            panel?.dispatchEvent(new MouseEvent('mouseleave'));
+            vi.runAllTimers();
+            flushSync();
+            expect(get(notifPanelOpen)).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('caps history at 100 entries, newest first', () => {

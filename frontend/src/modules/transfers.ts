@@ -5,9 +5,12 @@
 // hover popover via pushTransferStart/updateTransferProgress/markTransferDone.
 // Completed transfers stay in the bell's "Recent" panel until cleared.
 
-import { state, setTransferDirectionActive, type DownloadQueueItem } from '../state';
-import { SelectFiles, DownloadFile, DownloadFolder } from '../../wailsjs/go/main/App';
+import { invalidateFolderIndex, state, setTransferDirectionActive, type DownloadQueueItem } from '../state';
+import { downloadFile, downloadFolder, importPaths, onNativeFileDrop, onRuntimeEvent, planImport, selectFiles, selectFolder, uploadToDriveFs, type RuntimeEventMap, type RuntimeUnsubscribe } from '../api';
+import type { ImportPlan, OperationError } from '../types';
 import { notify } from './notifications';
+import { humanizeBackendError } from './errors';
+import { appActions } from './app-actions';
 import { loadEncryptionStatus } from './encryption';
 import { openUploadOptionsModal } from './modals/upload-options';
 import { openImportOptionsModal } from './modals/import-options';
@@ -20,18 +23,32 @@ import {
     updateTransferName,
     markTransferDone,
 } from './notif-bell';
-import UploadMenu from '../ui/chrome/UploadMenu.svelte';
-import { mountSvelte, type SvelteMountHandle } from '../ui/mount';
-
-let uploadMenuHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
 
 
-type DownloadResultPayload = {
-    status?: unknown;
-    message?: unknown;
-    saved_path?: unknown;
-};
+let transferUnsubscribers: RuntimeUnsubscribe[] = [];
 
+function subscribeTransferEvent<K extends keyof RuntimeEventMap>(
+    eventName: K,
+    callback: (...data: RuntimeEventMap[K]) => void,
+): RuntimeUnsubscribe {
+    const unsubscribe = onRuntimeEvent(eventName, callback);
+    transferUnsubscribers.push(unsubscribe);
+    return unsubscribe;
+}
+
+
+
+
+let activeTransferDriveId: number | null = null;
+
+function invalidateTransferCaches(): void {
+    invalidateFolderIndex(activeTransferDriveId);
+    const driveKey = activeTransferDriveId === null ? null : String(activeTransferDriveId);
+    if (driveKey && state.telegramRootCacheDriveKey === driveKey) {
+        state.telegramRootCache = null;
+        state.telegramRootCacheDriveKey = null;
+    }
+}
 type FolderDownloadProgressPayload = {
     folder_id?: unknown;
     percent?: unknown;
@@ -45,24 +62,9 @@ function asObjectRecord(value: unknown): Record<string, unknown> {
     return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
-function normalizeDownloadResult(result: unknown) {
-    if (!result || typeof result !== "object") {
-        return { status: "error", message: "Download failed", saved_path: "" };
-    }
 
-    const payload = result as DownloadResultPayload;
-    const status = String(payload.status || "error").toLowerCase();
-    return {
-        status: status === "success" || status === "canceled" || status === "error" ? status : "error",
-        message: String(payload.message || "Download failed"),
-        saved_path: String(payload.saved_path || ""),
-    };
-}
-
-export function setupDownloadProgress() {
-    if (!window.runtime?.EventsOn) return;
-
-    window.runtime.EventsOn("download_progress", (percent: unknown) => {
+function activateDownloadProgressEvents(): void {
+    subscribeTransferEvent("download_progress", (percent) => {
         const activeKey = state.activeDownloadId;
         if (activeKey === null) return;
         const value = Number(percent);
@@ -80,7 +82,7 @@ export function setupDownloadProgress() {
         updateTransferProgress({ id: item.key, direction: 'down', progress: nextProgress });
     });
 
-    window.runtime.EventsOn("folder_download_progress", (rawPayload: unknown) => {
+    subscribeTransferEvent("folder_download_progress", (rawPayload) => {
         const activeKey = state.activeDownloadId;
         if (activeKey === null) return;
         const item = state.downloadQueue.find((entry) => entry.key === activeKey);
@@ -135,32 +137,31 @@ async function startNextDownload() {
     pushTransferStart({ id: next.key, direction: 'down', name: next.name, total: next.size });
 
     try {
-        let result = normalizeDownloadResult(await dispatchDownload(next));
-        // If the backend needs the encryption password, prompt once and
-        // retry. This avoids a separate per-file encryption lookup before
-        // download starts.
-        if (result.status === "error" && /encryption password required/i.test(result.message || "")) {
-            const ok = await openEncryptionPasswordModal();
-            if (ok) {
-                result = normalizeDownloadResult(await dispatchDownload(next));
+        let result = await dispatchDownload(next);
+        if (!result.result.ok && result.result.error.code === 'encryption_password_required') {
+            const unlocked = await openEncryptionPasswordModal();
+            if (!unlocked) {
+                finalizeDownload(next.key, 'canceled');
+                return;
             }
+            result = await dispatchDownload(next);
         }
 
-        if (result.status === "success") {
+        if (result.result.ok) {
             finalizeDownload(next.key, 'done');
             if (next.kind === 'folder') {
                 notify({
                     level: 'success',
                     title: 'Folder downloaded',
-                    body: result.saved_path ? `Saved to ${result.saved_path}` : `${next.name} saved`,
+                    body: result.savedPath ? 'Saved to ' + result.savedPath : next.name + ' saved',
                 });
             }
-        } else if (result.status === "canceled") {
+        } else if (result.result.error.code === 'canceled') {
             finalizeDownload(next.key, 'canceled');
         } else {
             const canceled = state.cancelingDownload;
             finalizeDownload(next.key, canceled ? 'canceled' : 'failed');
-            if (!canceled) notifyDownloadFailure(next, result.message);
+            if (!canceled) notifyDownloadFailure(next, result.result.error);
         }
     } catch (err) {
         console.error("Download failed:", err);
@@ -233,26 +234,26 @@ function finalizeDownload(key: string, status: 'done' | 'failed' | 'canceled'): 
     state.downloadQueue = state.downloadQueue.filter((item) => item.key !== key);
 }
 
-// notifyDownloadFailure surfaces the backend's reason as a toast. markTransferDone
-// only flips the bell row to "failed" with no explanation, so without this a
-// rejected destination, an already-present folder, and a genuine disk error all
-// look identical. The encryption-password prompt has its own modal, so its
-// sentinel is suppressed here rather than shown twice.
-function notifyDownloadFailure(item: DownloadQueueItem, message: unknown): void {
-    const reason = String(message ?? '').trim();
-    if (/encryption password required/i.test(reason)) return;
+// Surface the backend's display message because the terminal bell row carries
+// only status, not the reason the download failed.
+function notifyDownloadFailure(item: DownloadQueueItem, error: OperationError | string): void {
+    const reason = humanizeBackendError(error);
     const noun = item.kind === 'folder' ? 'Folder' : 'File';
-    if (/already exists/i.test(reason)) {
-        notify({ level: 'warning', title: `${noun} already exists`, body: reason });
+    if (typeof error !== 'string' && error.code === 'already_exists') {
+        notify({ level: 'warning', title: noun + ' already exists', body: reason });
         return;
     }
-    notify({ level: 'error', title: `Couldn't download ${item.name}`, body: reason || 'Download failed' });
+    notify({
+        level: 'error',
+        title: `Couldn't download ${item.name}`,
+        body: reason || 'The download could not be completed.',
+    });
 }
 
 function dispatchDownload(item: DownloadQueueItem) {
     return item.kind === 'folder'
-        ? DownloadFolder(item.id)
-        : DownloadFile(item.id, item.id);
+        ? downloadFolder(item.id)
+        : downloadFile(item.id, item.id);
 }
 
 function clampFinite(raw: unknown, fallback: number, minValue: number, maxValue: number): number {
@@ -305,10 +306,8 @@ function refreshImportRow() {
     }
 }
 
-export function setupUploadProgress() {
-    if (!window.runtime?.EventsOn) return;
-
-    window.runtime.EventsOn("upload_start", (id: any, name: any, size: any, parentId: any) => {
+function activateUploadProgressEvents(): void {
+    subscribeTransferEvent("upload_start", (id, name, size, parentId) => {
         // New backends suppress detailed events during imports. Ignore any
         // strays from an older backend so a large import still keeps one row.
         if (state.importBatch) {
@@ -340,7 +339,7 @@ export function setupUploadProgress() {
         pushTransferStart({ id: uploadId, direction: 'up', name: filename, total: Number(size) || 0 });
     });
 
-    window.runtime.EventsOn("upload_progress", (id: any, percent: any) => {
+    subscribeTransferEvent("upload_progress", (id, percent) => {
         const uploadId = Number(id);
         if (!Number.isFinite(uploadId)) return;
         const value = Number(percent);
@@ -357,7 +356,7 @@ export function setupUploadProgress() {
         updateTransferProgress({ id: uploadId, direction: 'up', progress: clamped });
     });
 
-    window.runtime.EventsOn("upload_complete", (id: any, name: any) => {
+    subscribeTransferEvent("upload_complete", (id, name) => {
         const uploadId = Number(id);
         if (!Number.isFinite(uploadId)) return;
         if (state.importBatch) {
@@ -385,11 +384,12 @@ export function setupUploadProgress() {
         markTransferDone({ id: uploadId, direction: 'up', status: 'done' });
 
         if (batchFinished) {
-            window.refreshFiles();
+            invalidateTransferCaches();
+            appActions().refreshFiles();
         }
     });
 
-    window.runtime.EventsOn("upload_error", (id: any, name: any, message: any) => {
+    subscribeTransferEvent("upload_error", (id, name, message) => {
         const uploadId = Number(id);
         if (!Number.isFinite(uploadId)) return;
         if (state.importBatch) {
@@ -422,7 +422,7 @@ export function setupUploadProgress() {
 
         // Surface the backend's actual failure reason. The bell row only shows
         // a generic "failed" state, which leaves the user with nothing to act on.
-        const errorBody = String(message ?? "").trim();
+        const errorBody = humanizeBackendError(message);
         if (errorBody && !state.cancelingUpload) {
             notify({
                 level: 'error',
@@ -432,11 +432,12 @@ export function setupUploadProgress() {
         }
 
         if (batchFinished) {
-            window.refreshFiles();
+            invalidateTransferCaches();
+            appActions().refreshFiles();
         }
     });
 
-    window.runtime.EventsOn("import_start", () => {
+    subscribeTransferEvent("import_start", () => {
         importCompleteReceived = false;
         importFailureReasons.length = 0;
         state.importBatch = createImportProgress();
@@ -444,16 +445,18 @@ export function setupUploadProgress() {
     });
 
     // Live phase label: "Extracting backup.zip", "Adding Photos", etc.
-    window.runtime.EventsOn("import_progress", (info: any) => {
+    subscribeTransferEvent("import_progress", (info) => {
         if (!state.importBatch) return;
-        const label = String(info?.label ?? "").trim();
+        const payload = asObjectRecord(info);
+        const label = String(payload.label ?? "").trim();
         if (label) updateTransferName({ id: IMPORT_TRANSFER_ID, direction: 'up', name: label });
     });
 
     // Folders done, uploads begin: now we know the real file count.
-    window.runtime.EventsOn("import_uploading", (info: any) => {
+    subscribeTransferEvent("import_uploading", (info) => {
         if (!state.importBatch) return;
-        const files = Number(info?.files) || 0;
+        const payload = asObjectRecord(info);
+        const files = Number(payload.files) || 0;
         state.importBatch = reduceImportProgress(state.importBatch, { total: files });
         updateTransferName({
             id: IMPORT_TRANSFER_ID,
@@ -463,23 +466,24 @@ export function setupUploadProgress() {
         refreshImportRow();
     });
 
-    window.runtime.EventsOn("import_upload_progress", (info: any) => {
+    subscribeTransferEvent("import_upload_progress", (info) => {
         if (!state.importBatch) return;
-        state.importBatch = reduceImportProgress(state.importBatch, info ?? {});
+        state.importBatch = reduceImportProgress(state.importBatch, asObjectRecord(info));
         refreshImportRow();
     });
 
-    window.runtime.EventsOn("import_complete", (info: any) => {
+    subscribeTransferEvent("import_complete", (info) => {
         importCompleteReceived = true;
-        const failedUploads = Math.max(Number(info?.failed) || 0, state.importBatch?.failed || 0);
-        const uploaded = Number(info?.uploaded) || 0;
-        const oversize = Number(info?.oversize) || 0;
-        const backendStatus = String(info?.status ?? '').toLowerCase();
-        const fatalError = String(info?.error ?? '').trim();
-        const reportedErrors = Number(info?.errorCount);
+        const payload = asObjectRecord(info);
+        const failedUploads = Math.max(Number(payload.failed) || 0, state.importBatch?.failed || 0);
+        const uploaded = Number(payload.uploaded) || 0;
+        const oversize = Number(payload.oversize) || 0;
+        const backendStatus = String(payload.status ?? '').toLowerCase();
+        const fatalError = String(payload.error ?? '').trim();
+        const reportedErrors = Number(payload.errorCount);
         const errorCount = Number.isFinite(reportedErrors)
             ? Math.max(0, Math.floor(reportedErrors))
-            : (Array.isArray(info?.errors) ? info.errors.length : 0);
+            : (Array.isArray(payload.errors) ? payload.errors.length : 0);
         const canceled = state.cancelingUpload || backendStatus === 'canceled';
         const fatal = backendStatus === 'failed';
         const status = canceled
@@ -501,7 +505,8 @@ export function setupUploadProgress() {
         markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status });
         state.importBatch = null;
 
-        if (typeof window.refreshFiles === 'function') window.refreshFiles();
+        invalidateTransferCaches();
+        appActions().refreshFiles();
 
         if (!canceled && (status === 'failed' || failedUploads > 0 || oversize > 0 || errorCount > 0)) {
             const bits: string[] = [];
@@ -517,8 +522,8 @@ export function setupUploadProgress() {
                 if (reasons.length >= MAX_IMPORT_FAILURE_REASONS) break;
                 if (!reasons.includes(reason)) reasons.push(reason);
             }
-            if (Array.isArray(info?.errors)) {
-                for (const raw of info.errors) {
+            if (Array.isArray(payload.errors)) {
+                for (const raw of payload.errors) {
                     if (reasons.length >= MAX_IMPORT_FAILURE_REASONS) break;
                     const text = String(raw ?? '').trim();
                     if (text && !reasons.includes(text)) reasons.push(text);
@@ -537,27 +542,21 @@ export function setupUploadProgress() {
 }
 
 // uploadWithParentID opens the file picker and routes the selection through the
-// shared import flow (kept as the name the context menu and window.selectFile
-// already call).
-export async function uploadWithParentID(parentID: any) {
-    const paths = await SelectFiles();
+// shared import flow.
+export async function uploadWithParentID(parentID: string) {
+    const paths = await selectFiles();
     await runImportFlow(parentID, paths);
 }
 
 // importFolderWithParentID opens the directory picker and imports the chosen
 // folder tree into parentID.
-export async function importFolderWithParentID(parentID: any) {
-    const selectFolder = window?.go?.main?.App?.SelectFolder;
-    if (typeof selectFolder !== "function") {
-        notifyBindingsMissing("SelectFolder");
-        return;
-    }
+export async function importFolderWithParentID(parentID: string) {
     let dir = "";
     try {
-        dir = String((await selectFolder()) || "");
+        dir = await selectFolder();
     } catch (err) {
         console.error("SelectFolder failed:", err);
-        notify({ level: 'error', title: 'Could not open the folder picker', body: String(err) });
+        notify({ level: 'error', title: 'Could not open the folder picker', body: humanizeBackendError(err) });
         return;
     }
     if (!dir) return;
@@ -568,13 +567,14 @@ export async function importFolderWithParentID(parentID: any) {
 // picker, or drag-drop). A plain-files selection keeps the original per-file
 // upload UX; a selection containing folders or archives goes through the import
 // dialog and the aggregated import flow.
-async function runImportFlow(parentID: any, paths: any) {
-    if (!paths || !paths.length) return;
+async function runImportFlow(parentID: string, paths: string[]) {
+    if (!paths.length) return;
     if (flowBusy) {
         notify({ level: 'info', title: 'A transfer is already in progress', body: 'Wait for it to finish, then start another.' });
         return;
     }
     flowBusy = true;
+    activeTransferDriveId = state.activeChannel?.id ?? null;
     try {
         const onPersonal = state.activeChannel?.kind === 'personal';
         if (onPersonal) {
@@ -582,16 +582,9 @@ async function runImportFlow(parentID: any, paths: any) {
             await loadEncryptionStatus();
         }
 
-        const planFn = window?.go?.main?.App?.PlanImport;
-        const importFn = window?.go?.main?.App?.ImportPaths;
-        if (typeof planFn !== "function" || typeof importFn !== "function") {
-            notifyBindingsMissing(typeof planFn !== "function" ? "PlanImport" : "ImportPaths");
-            return;
-        }
-
-        let plan: any = null;
+        let plan: ImportPlan | null = null;
         try {
-            plan = await planFn(paths, false, false);
+            plan = await planImport(paths, false, false);
         } catch (err) {
             console.error("PlanImport failed:", err);
         }
@@ -618,7 +611,7 @@ async function runImportFlow(parentID: any, paths: any) {
             // Plain files: the original flow (per-file rows, encrypt-options modal).
             let encrypt = false;
             if (onPersonal) {
-                const choice: any = await openUploadOptionsModal({ count: plan.files || paths.length });
+                const choice = await openUploadOptionsModal({ count: plan.files || paths.length });
                 if (!choice) return;
                 encrypt = !!choice.encrypt;
                 if (encrypt && !state.encryption.passwordRemembered) {
@@ -637,7 +630,7 @@ async function runImportFlow(parentID: any, paths: any) {
             plan,
             personal: onPersonal,
             hasArchives: Number(plan.archives) > 0,
-            replan: (encrypt: boolean, extract: boolean) => planFn(paths, encrypt, extract),
+            replan: (encrypt: boolean, extract: boolean) => planImport(paths, encrypt, extract),
         });
         if (!choice) return;
 
@@ -653,12 +646,16 @@ async function runImportFlow(parentID: any, paths: any) {
         importCompleteReceived = false;
         let importThrew = false;
         try {
-            await importFn(paths, parentID || "", encrypt, extract);
-        } catch (err) {
+            const result = await importPaths(paths, parentID, encrypt, extract);
+            if (!result.ok) {
+                if (result.error.code === 'canceled') state.cancelingUpload = true;
+                throw result.error;
+            }
+        } catch (error) {
             importThrew = true;
-            console.error("Import failed:", err);
+            console.error('Import failed:', error);
             if (!state.cancelingUpload && !importCompleteReceived) {
-                notify({ level: 'error', title: 'Import failed', body: String(err) });
+                notify({ level: 'error', title: 'Import failed', body: humanizeBackendError(error) });
             }
             if (!importCompleteReceived && !state.importBatch) {
                 pushTransferStart({ id: IMPORT_TRANSFER_ID, direction: 'up', name: 'Import failed', total: 0 });
@@ -676,13 +673,15 @@ async function runImportFlow(parentID: any, paths: any) {
             }
         }
     } finally {
+        if (!importCompleteReceived) invalidateTransferCaches();
         flowBusy = false;
         state.cancelingUpload = false;
     }
 }
 
 // uploadPathsBatch runs the classic per-file upload (one bell row per file).
-async function uploadPathsBatch(paths: any, parentID: any, encrypt: boolean) {
+async function uploadPathsBatch(paths: string[], parentID: string, encrypt: boolean) {
+    if (activeTransferDriveId === null) activeTransferDriveId = state.activeChannel?.id ?? null;
     setTransferDirectionActive('upload', true);
     state.uploadBatch = { total: paths.length, done: 0, failed: 0 };
 
@@ -701,26 +700,21 @@ async function uploadPathsBatch(paths: any, parentID: any, encrypt: boolean) {
     }
     state.uploadTransfers = nextTransfers;
 
-    const upload = window?.go?.main?.App?.UploadToDriveFS;
-    if (typeof upload !== "function") {
-        setTransferDirectionActive('upload', false);
-        state.uploadBatch = null;
-        state.uploadTransfers = new Map();
-        notifyBindingsMissing("UploadToDriveFS");
-        return;
-    }
+
 
     let uploadThrew = false;
     try {
-        const parentIDs = paths.map(() => parentID || "");
-        await upload(paths, parentIDs, encrypt);
-    } catch (err) {
+        const parentIDs = paths.map(() => parentID);
+        const upload = await uploadToDriveFs(paths, parentIDs, encrypt);
+        if (!upload.result.ok) {
+            if (upload.result.error.code === 'canceled') state.cancelingUpload = true;
+            throw upload.result.error;
+        }
+    } catch (error) {
         uploadThrew = true;
-        console.error("Upload failed:", err);
-        // On cancel the backend returns "N uploads failed"; the per-file rows
-        // already show Canceled, so don't also pop a generic failure toast.
+        console.error('Upload failed:', error);
         if (!state.cancelingUpload) {
-            notify({ level: 'error', title: 'Upload failed', body: String(err) });
+            notify({ level: 'error', title: 'Upload failed', body: humanizeBackendError(error) });
         }
     } finally {
         setTransferDirectionActive('upload', false);
@@ -738,61 +732,54 @@ async function uploadPathsBatch(paths: any, parentID: any, encrypt: boolean) {
                 markTransferDone({ id: uploadId, direction: 'up', status: 'done' });
             }
         }
+        invalidateTransferCaches();
         state.uploadBatch = null;
         state.cancelingUpload = false;
     }
 }
 
-function notifyBindingsMissing(name: string) {
-    notify({
-        level: 'error',
-        title: 'Upload bindings missing',
-        body: `${name} is missing in the backend. Rebuild the app (wails dev/build) and try again.`,
-    });
+
+
+export function chooseFilesForCurrentFolder(): void {
+    void uploadWithParentID(state.currentFolderId);
 }
 
-// setupUploadMenu wires the Upload button's popover (Files / Folder). The OS
-// dialogs cannot select files and folders together, so the entry point splits
-// them; drag-drop covers truly mixed selections.
-export function setupUploadMenu() {
-    const host = document.getElementById('upload-menu-root');
-    if (!host || uploadMenuHandle) return;
-
-    host.replaceChildren();
-    uploadMenuHandle = mountSvelte(UploadMenu, {
-        target: host,
-        props: {
-            onFiles: () => {
-                void uploadWithParentID(state.currentFolderId);
-            },
-            onFolder: () => {
-                void importFolderWithParentID(state.currentFolderId);
-            },
-        },
-    });
+export function chooseFolderForCurrentFolder(): void {
+    void importFolderWithParentID(state.currentFolderId);
 }
 
-// setupFileDrop handles native OS file drops (mixed files + folders) forwarded
-// by the Go side. The drop target is the current folder.
-export function setupFileDrop() {
-    if (!window.runtime?.EventsOn) return;
-    // Accept OS file drags at the page level. Modern WebKit refuses a file
-    // drag the page does not handle, so the native drop never reaches Go, and
-    // WebView2 only reports dropped paths through this runtime hook. The Go
-    // side stays the single consumer via files_dropped below.
-    window.runtime.OnFileDrop?.(() => {}, true);
-    window.runtime.EventsOn('files_dropped', (payload: any) => {
+function activateFileDropEvents(): void {
+    // Modern WebKit rejects unhandled page drags, and WebView2 reports native
+    // paths through Wails. Register the native drop target before the event.
+    transferUnsubscribers.push(onNativeFileDrop(() => {}));
+    subscribeTransferEvent('files_dropped', (payload) => {
         // If an in-app drag-to-move is underway, ignore native drops entirely
         // (macOS can still fire one for the internal drag).
         if (state.dragState) return;
-        const paths = Array.isArray(payload) ? payload : payload?.paths;
-        if (!Array.isArray(paths) || !paths.length) return;
-        if (!state.activeChannel) return; // ignore drops before a drive is open
-        const x = Number(payload?.x);
-        const y = Number(payload?.y);
+        const event = asObjectRecord(payload);
+        const rawPaths = Array.isArray(payload) ? payload : event.paths;
+        if (!Array.isArray(rawPaths) || !rawPaths.length) return;
+        const paths = rawPaths.filter((path): path is string => typeof path === 'string');
+        if (!paths.length || !state.activeChannel) return;
+        const x = Number(event.x);
+        const y = Number(event.y);
         if (!Number.isFinite(x) || !Number.isFinite(y)) return;
         const target = document.elementFromPoint(x, y);
         if (!target || !(target as HTMLElement).closest('#file-list')) return;
         void runImportFlow(state.currentFolderId, paths);
     });
+}
+
+export function activateTransferSurfaces(): () => void {
+    teardownTransferSurfaces();
+    activateDownloadProgressEvents();
+    activateUploadProgressEvents();
+    activateFileDropEvents();
+    return teardownTransferSurfaces;
+}
+
+export function teardownTransferSurfaces(): void {
+    const unsubscribers = transferUnsubscribers;
+    transferUnsubscribers = [];
+    for (const unsubscribe of unsubscribers) unsubscribe();
 }

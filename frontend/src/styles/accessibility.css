@@ -1,0 +1,33 @@
+@media (forced-colors: active) {
+    .video-settings-panel .video-settings-check input[type=checkbox] { appearance: auto; }
+    .video-settings-check input[type=checkbox]::before { content: none; }
+    .video-settings-panel .video-settings-range { appearance: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:focus-within { scroll-behavior: auto; }
+
+    .auth-appearance-popover,
+    .auth-box,
+    .context-menu-panel,
+    .modal-card,
+    .notif-panel,
+    .profile-menu,
+    .preview-overlay.is-shared-entering::before,
+    .selection-bar,
+    .toast,
+    .upload-menu {
+        animation: none !important;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-delay: 0ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-delay: 0ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

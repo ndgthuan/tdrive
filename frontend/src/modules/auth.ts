@@ -1,28 +1,51 @@
 // Authentication flows for TDrive frontend.
 //
-// The auth and personal-drive setup screens are rendered by
-// AuthScreens.svelte from the auth store; this module owns the orchestration:
-// the login state machine, explicit drive recovery, dashboard bring-up, and the Telegram
-// event stream that advances screens.
+// AuthScreens.svelte owns rendering while this module orchestrates the login
+// state machine, personal-drive recovery, dashboard bring-up, and the Telegram
+// event stream that advances the typed application view.
 
-import { state } from '../state';
+import { get } from 'svelte/store';
+import { invalidateFolderIndex, state } from '../state';
+import type { PersonalDriveCandidate, PersonalDriveSetup } from '../types';
 import {
-    CheckSystemStatus, SaveSetup,
-    LoginPhoneNumber, SumbitCode, SumbitPassword,
-    CheckLoginStatus, PreparePersonalDrive, DiscoverPersonalDrives,
-    SelectPersonalDrive, CreatePersonalDrive, MyUserID, SyncChannel,
-} from '../../wailsjs/go/main/App';
+    checkSystemStatus,
+    saveSetup,
+    loginPhoneNumber,
+    submitCode as submitLoginCode,
+    submitPassword as submitLoginPassword,
+    checkLoginStatus,
+    preparePersonalDrive,
+    discoverPersonalDrives as fetchPersonalDrives,
+    selectPersonalDrive as selectPersonalDriveApi,
+    createPersonalDrive as createPersonalDriveApi,
+    getMyUserId,
+    syncChannel,
+    onRuntimeEvent,
+} from '../api';
 import { renderBreadcrumb } from './navigation';
 import { loadChannels } from './channels';
 import { loadEncryptionStatus } from './encryption';
 import { loadSelfUser } from './profile-menu';
 import { notify } from './notifications';
-import AuthScreens from '../ui/auth/AuthScreens.svelte';
-import { authCodeReset, authHint, authPhone, authScreen } from '../ui/auth/auth-store';
+import { appActions } from './app-actions';
+import { humanizeBackendError } from './errors';
+import {
+    authHint,
+    authPhone,
+    authSubmission,
+    beginAuthSubmission,
+    failAuthSubmission,
+    finishAuthSubmission,
+    resetAuthSubmissions,
+    type AuthFlow,
+} from '../ui/auth/auth-store';
+import {
+    authScreen,
+    showAuthView,
+    showDashboardView,
+} from '../ui/app/app-store';
 import { parseDriveScanProgress, personalDriveSetup } from '../ui/auth/personal-drive-store';
-import { mountSvelte, type SvelteMountHandle } from '../ui/mount';
 
-let authScreensHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
 let personalDriveFlowVersion = 0;
 
 function startPersonalDriveFlow(): number {
@@ -41,36 +64,21 @@ function errorText(err: unknown): string {
     return String(err ?? '').trim();
 }
 
-function successScreen(): HTMLElement | null {
-    return document.getElementById('success-screen');
-}
-
-export function hideAllScreens() {
-    authScreen.set(null);
-    const dashboard = successScreen();
-    if (dashboard) dashboard.style.display = 'none';
-}
-
-export function showAuthWrapper() {
-    const authWrapper = document.getElementById('auth-wrapper');
-    if (authWrapper) authWrapper.style.display = 'flex';
-
-    const dashboard = successScreen();
-    if (dashboard) dashboard.style.display = 'none';
-}
-
 async function showDashboardForFlow(flowVersion: number): Promise<void> {
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;
 
-    const authWrapper = document.getElementById("auth-wrapper");
-    if (authWrapper) authWrapper.style.display = "none";
-
-    authScreen.set(null);
-    const dashboard = successScreen();
-    if (dashboard) dashboard.style.display = "flex";
+    showDashboardView();
     state.currentFolderId = "";
     state.folderPath = [];
+    state.myUserID = 0;
     renderBreadcrumb();
+
+    // Identity is independent of channel discovery. Resolve both together,
+    // but publish identity only after this dashboard flow is still current.
+    const userIDPromise = getMyUserId().catch((err: unknown) => {
+        if (isCurrentPersonalDriveFlow(flowVersion)) console.warn('getMyUserId failed:', err);
+        return 0;
+    });
 
     // Load drive list (personal + any joined shared) before the first
     // refresh, so the sidebar populates and folder-control gating runs
@@ -91,23 +99,15 @@ async function showDashboardForFlow(flowVersion: number): Promise<void> {
     }
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;
 
-    // Resolve self user id once. Owner-only actions on shared drives
-    // depend on this; if it fails (e.g. offline), default-deny by
-    // leaving state.myUserID = 0.
-    try {
-        const id = await MyUserID();
-        if (!isCurrentPersonalDriveFlow(flowVersion)) return;
-        state.myUserID = Number(id) || 0;
-    } catch (err) {
-        if (!isCurrentPersonalDriveFlow(flowVersion)) return;
-        console.warn('MyUserID failed:', err);
-        state.myUserID = 0;
-    }
+    // Owner-only shared-drive actions remain default-deny until identity resolves.
+    const userID = await userIDPromise;
+    if (!isCurrentPersonalDriveFlow(flowVersion)) return;
+    state.myUserID = Number(userID) || 0;
 
     // Pull Telegram metadata before reading encryption state. On a fresh
     // reinstall this is what restores the wrapped master key into SQLite.
     try {
-        await window.triggerRefresh();
+        await appActions().triggerRefresh();
     } catch (err) {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.warn('Initial drive refresh failed:', err);
@@ -121,7 +121,9 @@ async function showDashboardForFlow(flowVersion: number): Promise<void> {
     const personal = state.channels.find((c) => c?.kind === 'personal');
     if (personal && Number(personal.id) !== Number(state.activeChannel?.id || 0)) {
         try {
-            await SyncChannel(Number(personal.id));
+            await syncChannel(Number(personal.id));
+            if (!isCurrentPersonalDriveFlow(flowVersion)) return;
+            invalidateFolderIndex(personal.id);
         } catch (err) {
             if (!isCurrentPersonalDriveFlow(flowVersion)) return;
             console.warn('Personal sync before encryption status failed:', err);
@@ -149,20 +151,15 @@ async function showDashboardForFlow(flowVersion: number): Promise<void> {
     loadSelfUser();
 }
 
-export async function showDashboard(): Promise<void> {
-    await showDashboardForFlow(startPersonalDriveFlow());
-}
-
 function showDriveSetupScreen(): void {
-    showAuthWrapper();
-    authScreen.set('drive');
+    showAuthView('drive');
     personalDriveSetup.loading();
 }
 
 async function discoverPersonalDrives(flowVersion: number): Promise<void> {
-    let candidates;
+    let candidates: PersonalDriveCandidate[];
     try {
-        candidates = await DiscoverPersonalDrives();
+        candidates = await fetchPersonalDrives();
     } catch (err) {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive discovery failed:', err);
@@ -170,7 +167,7 @@ async function discoverPersonalDrives(flowVersion: number): Promise<void> {
         return;
     }
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;
-    personalDriveSetup.showCandidates(Array.isArray(candidates) ? candidates : []);
+    personalDriveSetup.showCandidates(candidates);
 }
 
 // Activates the saved drive without touching the screen: the common case
@@ -179,9 +176,9 @@ async function discoverPersonalDrives(flowVersion: number): Promise<void> {
 export async function preparePersonalDriveAndContinue(): Promise<void> {
     const flowVersion = startPersonalDriveFlow();
 
-    let setup;
+    let setup: PersonalDriveSetup;
     try {
-        setup = await PreparePersonalDrive();
+        setup = await preparePersonalDrive();
     } catch (err) {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive preparation failed:', err);
@@ -191,18 +188,18 @@ export async function preparePersonalDriveAndContinue(): Promise<void> {
     }
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;
 
-    if (setup?.status === 'ready') {
+    if (setup.status === 'ready') {
         await showDashboardForFlow(flowVersion);
         return;
     }
     showDriveSetupScreen();
-    if (setup?.status === 'selection_required') {
+    if (setup.status === 'selection_required') {
         await discoverPersonalDrives(flowVersion);
         return;
     }
     personalDriveSetup.discoveryError(
         'TDrive could not prepare your personal drive.',
-        `Unexpected setup status "${String(setup?.status ?? '')}".`,
+        `Unexpected setup status "${setup.status}".`,
     );
 }
 
@@ -214,7 +211,7 @@ export async function selectPersonalDrive(channelID: string): Promise<void> {
     }
     personalDriveSetup.recovering({ createRetry: false });
     try {
-        await SelectPersonalDrive(channelID);
+        await selectPersonalDriveApi(channelID);
     } catch (err) {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive recovery failed:', err);
@@ -232,7 +229,7 @@ export async function createPersonalDrive(): Promise<void> {
     const flowVersion = startPersonalDriveFlow();
     personalDriveSetup.recovering();
     try {
-        await CreatePersonalDrive();
+        await createPersonalDriveApi();
     } catch (err) {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive creation failed:', err);
@@ -246,149 +243,178 @@ export async function createPersonalDrive(): Promise<void> {
     await showDashboardForFlow(flowVersion);
 }
 
-export async function checkStatusAndShowScreen() {
-    try {
-        // Step A: Check Setup
-        const status = await CheckSystemStatus();
+export async function initializeSession(): Promise<void> {
+    resetAuthSubmissions();
 
-        if (status === "NEEDS_SETUP") {
-            showAuthWrapper();
-            authScreen.set('setup');
-            return;
-        }
-
-        // Step B: Check Login
-        const isLoggedIn = await CheckLoginStatus();
-        if (isLoggedIn) {
-            await preparePersonalDriveAndContinue();
-        } else {
-            showAuthWrapper();
-            authScreen.set('phone');
-        }
-    } catch (err) {
-        console.error("Startup Crash:", err);
-        notify({
-            level: 'error',
-            title: 'Startup error',
-            body: String(err) + " — did you restart `wails dev`?",
-        });
+    const status = await checkSystemStatus();
+    if (status === 'NEEDS_SETUP') {
+        showAuthView('setup');
+        return;
     }
+
+    if (await checkLoginStatus()) {
+        await preparePersonalDriveAndContinue();
+        return;
+    }
+
+    showAuthView('phone');
 }
 
 // --- screen submit handlers (wired into AuthScreens) ---
 
-function submitSetup(apiIdRaw: string, apiHash: string): void {
-    const id = parseInt(apiIdRaw, 10);
-    const hash = (apiHash || '').trim();
-    if (!id || !hash) {
-        notify({ level: 'warning', title: 'Enter both API ID and hash' });
-        return;
-    }
-    SaveSetup(id, hash).then((res) => {
-        if (res === "Success") location.reload();
-        else notify({ level: 'error', title: 'Setup failed', body: String(res) });
-    });
+function currentAuthFlow(): AuthFlow | null {
+    const screen = get(authScreen);
+    return screen === 'setup' || screen === 'phone' || screen === 'code' || screen === 'password'
+        ? screen
+        : null;
 }
 
-function submitPhone(phoneRaw: string): void {
-    const phone = (phoneRaw || '').trim();
+async function submitSetup(apiIdRaw: string, apiHashRaw: string): Promise<void> {
+    if (!beginAuthSubmission('setup')) return;
+
+    const apiIdText = apiIdRaw.trim();
+    const apiHash = apiHashRaw.trim();
+    const apiId = Number(apiIdText);
+    if (!/^\d+$/.test(apiIdText) || !Number.isSafeInteger(apiId) || apiId <= 0) {
+        failAuthSubmission('setup', 'Enter the numeric API ID from my.telegram.org/apps.');
+        return;
+    }
+    if (!apiHash) {
+        failAuthSubmission('setup', 'Enter the API hash from my.telegram.org/apps.');
+        return;
+    }
+
+    try {
+        const result = await saveSetup(apiId, apiHash);
+        if (result !== 'Success') {
+            failAuthSubmission('setup', humanizeBackendError(result));
+            return;
+        }
+        finishAuthSubmission('setup');
+        location.reload();
+    } catch (err) {
+        failAuthSubmission('setup', humanizeBackendError(err));
+    }
+}
+
+async function submitPhone(phoneRaw: string): Promise<void> {
+    if (!beginAuthSubmission('phone')) return;
+
+    const phone = phoneRaw.trim();
     if (!phone) {
-        notify({ level: 'warning', title: 'Enter your phone number' });
+        failAuthSubmission('phone', 'Enter the phone number for your Telegram account.');
         return;
     }
 
-    LoginPhoneNumber(phone).then(() => {
-        showAuthWrapper();
+    try {
+        await loginPhoneNumber(phone);
+        // A very fast Telegram failure can arrive before the Wails promise
+        // resolves. Do not advance over the inline error in that case.
+        if (get(authSubmission).phone.error) return;
+        finishAuthSubmission('phone');
+        finishAuthSubmission('code');
         authPhone.set(phone);
-        authScreen.set('code');
-    }).catch((err) => {
-        notify({ level: 'error', title: 'Could not start login', body: String(err) });
-    });
+        showAuthView('code');
+    } catch (err) {
+        failAuthSubmission('phone', humanizeBackendError(err));
+    }
 }
 
-function submitCode(codeRaw: string): void {
-    const code = (codeRaw || '').trim();
+async function submitCode(codeRaw: string): Promise<void> {
+    if (!beginAuthSubmission('code')) return;
+
+    const code = codeRaw.trim();
     if (!code) {
-        notify({ level: 'warning', title: 'Enter the code from Telegram' });
+        failAuthSubmission('code', 'Enter the login code Telegram sent you.');
         return;
     }
-    SumbitCode(code).catch((err) => {
-        notify({ level: 'error', title: 'Could not submit code', body: String(err) });
-    });
+
+    try {
+        await submitLoginCode(code);
+        // Keep this flow busy until Telegram emits success, password-required,
+        // code-invalid, or login-error. The bridge call only queues the code.
+    } catch (err) {
+        failAuthSubmission('code', humanizeBackendError(err));
+    }
 }
 
-function submitPassword(password: string): void {
-    SumbitPassword(password).catch((err) => {
-        notify({ level: 'error', title: 'Could not submit password', body: String(err) });
-    });
+async function submitPassword(passwordRaw: string): Promise<void> {
+    if (!beginAuthSubmission('password')) return;
+
+    const password = passwordRaw.trim();
+    if (!password) {
+        failAuthSubmission('password', 'Enter your Telegram password.');
+        return;
+    }
+
+    try {
+        await submitLoginPassword(password);
+        // As with the code, the terminal result arrives over the event stream.
+    } catch (err) {
+        failAuthSubmission('password', humanizeBackendError(err));
+    }
 }
 
 function backToPhone(): void {
-    showAuthWrapper();
-    authScreen.set('phone');
+    finishAuthSubmission('code');
+    finishAuthSubmission('phone');
+    showAuthView('phone');
 }
 
-export function setupAuthWindowBindings() {
-    const host = document.getElementById('auth-wrapper');
-    if (host && !authScreensHandle) {
-        authScreensHandle = mountSvelte(AuthScreens, {
-            target: host,
-            props: {
-                onSetup: submitSetup,
-                onPhone: submitPhone,
-                onCode: submitCode,
-                onPassword: submitPassword,
-                onBackToPhone: backToPhone,
-                onDriveSelect: (channelID: string) => { void selectPersonalDrive(channelID); },
-                onDriveCreate: () => { void createPersonalDrive(); },
-                onDriveRetry: () => { void preparePersonalDriveAndContinue(); },
-            },
-        });
-    }
+export const authScreenActions = {
+    onSetup: submitSetup,
+    onPhone: submitPhone,
+    onCode: submitCode,
+    onPassword: submitPassword,
+    onBackToPhone: backToPhone,
+    onDriveSelect: selectPersonalDrive,
+    onDriveCreate: createPersonalDrive,
+    onDriveRetry: preparePersonalDriveAndContinue,
+};
 
-    // The login-flow listeners below need the Wails runtime. Boot waits for it
-    // (see waitForWailsRuntime in main.ts), but guard here too so a genuinely
-    // missing runtime degrades to the startup error toast instead of throwing
-    // and blanking the whole window. Mirrors the window.runtime?.EventsOn guards
-    // in transfers.ts.
-    if (!window.runtime?.EventsOn) return;
-
-    window.runtime.EventsOn("login-success", () => { void preparePersonalDriveAndContinue(); });
-
-    // History-scan progress. Fires for routine syncs too; the store ignores
-    // anything that arrives outside an on-screen recovery.
-    window.runtime.EventsOn("drive_scan_progress", (payload: unknown) => {
-        const update = parseDriveScanProgress(payload);
-        if (update) personalDriveSetup.scanProgress(update);
-    });
-
-    window.runtime.EventsOn("login-password-required", () => {
-        showAuthWrapper();
-        authHint.set('');
-        authScreen.set('password');
-    });
-
-    window.runtime.EventsOn("login-error", (msg: unknown) => {
-        notify({ level: 'error', title: 'Login failed', body: String(msg || 'Try again.') });
-    });
-
-    // Wrong code: the backend keeps the login attempt alive and waits for a new
-    // code, so stay on the code screen (AuthScreens clears + refocuses it) and
-    // surface the error.
-    window.runtime.EventsOn("login-code-invalid", () => {
-        showAuthWrapper();
-        authScreen.set('code');
-        authCodeReset.update((n) => n + 1);
-        notify({ level: 'error', title: 'Wrong code', body: 'That code was incorrect — try again.' });
-    });
-
-    window.runtime.EventsOn("gothint", (hint: unknown) => {
-        const text = (hint ?? "").toString().trim();
-        const normalized = text.replace(/^(hint\s*:?[\s\u00A0]*)+/i, "").trim();
-        if (!normalized || normalized.toLowerCase().includes("no hint")) {
+export function connectAuthEvents(): () => void {
+    const disconnectors = [
+        onRuntimeEvent('login-success', () => {
+            resetAuthSubmissions();
+            void preparePersonalDriveAndContinue();
+        }),
+        onRuntimeEvent('drive_scan_progress', (payload) => {
+            const update = parseDriveScanProgress(payload);
+            if (update) personalDriveSetup.scanProgress(update);
+        }),
+        onRuntimeEvent('login-password-required', () => {
+            finishAuthSubmission('code');
+            finishAuthSubmission('password');
             authHint.set('');
-            return;
-        }
-        authHint.set(normalized);
-    });
+            showAuthView('password');
+        }),
+        onRuntimeEvent('login-error', (msg) => {
+            const message = humanizeBackendError(msg || 'Try again.');
+            const flow = currentAuthFlow();
+            if (flow) {
+                failAuthSubmission(flow, message);
+                return;
+            }
+            notify({ level: 'error', title: 'Login failed', body: message });
+        }),
+        // The backend keeps this login attempt alive. Keep the entered code
+        // visible so the user can correct it without requesting another code.
+        onRuntimeEvent('login-code-invalid', () => {
+            showAuthView('code');
+            failAuthSubmission('code', 'That code was incorrect. Check it and try again.');
+        }),
+        onRuntimeEvent('gothint', (hint) => {
+            const text = (hint ?? '').toString().trim();
+            const normalized = text.replace(/^(hint\s*:?[\s\u00A0]*)+/i, '').trim();
+            authHint.set(!normalized || normalized.toLowerCase().includes('no hint') ? '' : normalized);
+        }),
+    ];
+
+    let connected = true;
+    return () => {
+        if (!connected) return;
+        connected = false;
+        startPersonalDriveFlow();
+        for (const disconnect of disconnectors) disconnect();
+    };
 }

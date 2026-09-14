@@ -1,9 +1,10 @@
 // Rename modal for TDrive frontend
 
-import { RenameFile, RenameFolder, MsgToTdriveSystem } from '../../../wailsjs/go/main/App';
+import { addTelegramFileToDrive, renameFile, renameFolder } from '../../api';
+import { invalidateFolderIndex } from '../../state';
 import { callWithPasswordRetry } from './encryption-password';
 import { humanizeBackendError } from '../errors';
-import RenameModal from '../../ui/modals/RenameModal.svelte';
+import { appActions } from '../app-actions';
 import {
     closeRenameModalView,
     openRenameModalView,
@@ -11,52 +12,27 @@ import {
     setRenameModalInFlight,
     type RenameModalTarget,
 } from '../../ui/modals/rename-modal-store';
-import { mountSvelte, type SvelteMountHandle } from '../../ui/mount';
-
-let renameModalHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
+import type { FileCommandItem } from '../../ui/file-list/types';
 
 async function ensureFileInTdriveSystem(target: RenameModalTarget): Promise<void> {
-    if (target.type !== 'file') return;
-    if (String(target.source || 'fs') !== 'tg') return;
+    if (target.type !== 'file' || target.source !== 'tg') return;
 
-    const res = await MsgToTdriveSystem(
-        Number(target.id),
-        String(target.name || ''),
-        Number(target.size || 0),
-        String(target.parentId || ''),
+    const result = await addTelegramFileToDrive(
+        target.id,
+        target.name,
+        target.size,
+        target.parentId,
     );
 
-    if (typeof res === 'string' && res.startsWith('Error')) {
-        throw new Error(humanizeBackendError(res));
-    }
+    if (!result.ok) throw new Error(humanizeBackendError(result.error));
 }
 
-export function setupRenameModal() {
-    const modal = document.getElementById('rename-modal');
-    if (!modal || renameModalHandle) return;
 
-    modal.replaceChildren();
-    renameModalHandle = mountSvelte(RenameModal, {
-        target: modal,
-        props: {
-            onSubmit: submitRename,
-        },
-    });
+export function openRenameModal(target: FileCommandItem): void {
+    openRenameModalView(target);
 }
 
-export function openRenameModal(target: any) {
-    if (!target) return;
-    openRenameModalView({
-        type: target.type === 'folder' ? 'folder' : 'file',
-        id: target.id,
-        name: String(target.name || ''),
-        size: Number(target.size || 0),
-        parentId: String(target.parentId || ''),
-        source: String(target.source || 'fs'),
-    });
-}
-
-async function submitRename(target: RenameModalTarget, rawName: string): Promise<void> {
+export async function submitRename(target: RenameModalTarget, rawName: string): Promise<void> {
     const nextName = (rawName || '').trim();
     if (!nextName) {
         setRenameModalError("Name can't be empty.");
@@ -70,20 +46,21 @@ async function submitRename(target: RenameModalTarget, rawName: string): Promise
     setRenameModalError('');
     setRenameModalInFlight(true);
     try {
-        let res = '';
+        let result;
         if (target.type === 'folder') {
-            res = await callWithPasswordRetry(() => RenameFolder(String(target.id), nextName));
+            result = await callWithPasswordRetry(() => renameFolder(target.id, nextName));
         } else {
             await ensureFileInTdriveSystem(target);
-            res = await callWithPasswordRetry(() => RenameFile(Number(target.id), nextName));
+            result = await callWithPasswordRetry(() => renameFile(target.id, nextName));
         }
 
-        if (typeof res === 'string' && res.startsWith('Error')) {
-            setRenameModalError(humanizeBackendError(res));
+        if (!result.ok) {
+            setRenameModalError(humanizeBackendError(result.error));
             return;
         }
+        invalidateFolderIndex();
         closeRenameModalView();
-        window.refreshFiles();
+        appActions().refreshFiles();
     } catch (err) {
         setRenameModalError(humanizeBackendError(err));
     } finally {

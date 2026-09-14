@@ -1,0 +1,135 @@
+/* === AUTH SCREENS === */
+#auth-wrapper { display: flex; justify-content: center; align-items: safe center; height: 100vh; padding: 24px 16px; overflow-y: auto; background: var(--bg-dark); }
+
+.auth-box {
+    background: var(--bg-sidebar); border: 1px solid var(--border);
+    padding: clamp(1.25rem, 5vw, 2.5rem); border-radius: var(--radius-xl); width: 380px; max-width: 100%; flex-shrink: 0; text-align: center;
+    box-shadow: var(--shadow-md);
+    --motion-enter-y: 4px;
+    animation: tdrive-surface-enter var(--motion-med) var(--ease-enter) both;
+}
+
+.auth-icon-box {
+    width: 60px; height: 60px; margin: 0 auto 1.5rem auto;
+    background: var(--overlay-accent-1); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent);
+}
+.auth-icon-box svg { width: 32px; height: 32px; }
+
+.auth-box h2 { color: var(--color-text); margin-bottom: 0.5rem; font-weight: 600; }
+.auth-box p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+.auth-subtitle { margin-bottom: 1rem; }
+
+.auth-helper-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.auth-helper-label {
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.auth-helper-pill {
+    display: inline-flex;
+    align-items: center;
+    max-width: 230px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--overlay-white-1);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.auth-link {
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 10px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.auth-link:hover { background: var(--overlay-accent-1); }
+.auth-link:active { transform: translateY(1px); }
+
+.auth-caption {
+    text-align: left;
+    margin: -2px 0 12px 0;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    line-height: 1.35;
+}
+.auth-caption span {
+    color: var(--color-text-soft);
+    font-weight: 500;
+}
+
+input {
+    width: 100%; padding: 12px 15px; background: var(--bg-dark); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--color-text); margin-bottom: 15px; font-size: 0.95rem; outline: none;
+    transition:
+        background-color var(--motion-med) var(--ease-standard),
+        border-color var(--motion-med) var(--ease-standard),
+        box-shadow var(--motion-med) var(--ease-standard),
+        color var(--motion-med) var(--ease-standard);
+}
+input:focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
+
+.input-with-action {
+    position: relative;
+    margin-bottom: 15px;
+}
+.input-with-action input {
+    padding-right: 44px;
+    margin-bottom: 0;
+}
+.input-with-action .input-action-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.input-with-action .input-action-btn:hover {
+    background: var(--overlay-white-1);
+    border-color: var(--border);
+    color: var(--color-text-soft);
+}
+.input-with-action .input-action-btn:active {
+    transform: translateY(-50%) scale(0.98);
+}
+.input-with-action .input-action-icon {
+    width: 18px;
+    height: 18px;
+}
+.input-with-action .icon-eye-off { display: none; }
+.input-with-action .input-action-btn[data-state="visible"] .icon-eye { display: none; }
+.input-with-action .input-action-btn[data-state="visible"] .icon-eye-off { display: block; }
+

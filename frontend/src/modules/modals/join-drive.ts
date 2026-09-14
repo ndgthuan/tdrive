@@ -2,30 +2,15 @@
 
 import { joinSharedDrive } from '../channels';
 import { notify, dismissNotification } from '../notifications';
-import JoinDriveModal from '../../ui/modals/JoinDriveModal.svelte';
+import { humanizeBackendError } from '../errors';
 import { joinDriveModal } from '../../ui/modals/join-drive-modal-store';
-import { mountSvelte, type SvelteMountHandle } from '../../ui/mount';
 
-let joinDriveModalHandle: SvelteMountHandle<Record<string, unknown>> | null = null;
-
-export function setupJoinDriveModal() {
-    const modal = document.getElementById('join-drive-modal');
-    if (!modal || joinDriveModalHandle) return;
-
-    modal.replaceChildren();
-    joinDriveModalHandle = mountSvelte(JoinDriveModal, {
-        target: modal,
-        props: {
-            onSubmit: submitJoinDrive,
-        },
-    });
-}
 
 export function openJoinDriveModal() {
     joinDriveModal.open(null);
 }
 
-async function submitJoinDrive(link: string): Promise<void> {
+export async function submitJoinDrive(link: string): Promise<void> {
     const progressId = notify({
         id: 'joining-drive',
         level: 'info',
@@ -57,7 +42,7 @@ async function submitJoinDrive(link: string): Promise<void> {
         notify({
             level: 'error',
             title: 'Could not join drive',
-            body: String(err),
+            body: humanizeBackendError(err),
         });
     } finally {
         joinDriveModal.setBusy(false);

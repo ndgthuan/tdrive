@@ -1,8 +1,10 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushSync } from 'svelte';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushSync, mount, unmount } from 'svelte';
+import FileViewerModal from '../../ui/viewers/FileViewerModal.svelte';
 import { get } from 'svelte/store';
 import { fileViewerState } from '../../ui/viewers/file-viewer-store';
-import { canOpenFileViewer, closeFileViewer, openFileViewer, setupFileViewerModal } from './file-viewer';
+import { activateFileViewerModal, closeFileViewer, downloadActiveFile, openFileViewer, teardownFileViewerModal } from './file-viewer';
+import { canOpenFileViewer } from '../media-types';
 
 const mocks = vi.hoisted(() => ({
     openStream: vi.fn(),
@@ -13,17 +15,19 @@ const mocks = vi.hoisted(() => ({
     notify: vi.fn(),
 }));
 
-vi.mock('../../api', () => ({ openStream: mocks.openStream, closeMedia: mocks.closeMedia }));
-vi.mock('../../ui/viewers/pdf-frame', () => ({ pdfViewerFrameSrc: () => 'about:blank', isPdfFrameMessage: () => false }));
-vi.mock('../transfers', () => ({ enqueueDownload: mocks.enqueueDownload }));
-vi.mock('../notifications', () => ({ notify: mocks.notify }));
-vi.mock('../../../wailsjs/runtime/runtime', () => ({
-    EventsOn: (name: string, callback: () => void) => {
+vi.mock('../../api', () => ({
+    openStream: mocks.openStream,
+    closeMedia: mocks.closeMedia,
+    onRuntimeEvent: (name: string, callback: () => void) => {
         mocks.eventsOn(name, callback);
         mocks.events.set(name, callback);
         return vi.fn();
     },
 }));
+vi.mock('../../ui/viewers/pdf-frame', () => ({ pdfViewerFrameSrc: () => 'about:blank', isPdfFrameMessage: () => false }));
+vi.mock('../transfers', () => ({ enqueueDownload: mocks.enqueueDownload }));
+vi.mock('../notifications', () => ({ notify: mocks.notify }));
+
 
 function opened(token: string, encrypted = true, name = 'secret.txt') {
     return {
@@ -48,19 +52,28 @@ function lock() {
 }
 
 let host: HTMLElement;
+let viewerComponent: Record<string, unknown>;
 
 beforeAll(() => {
     host = document.createElement('div');
-    host.id = 'viewer-modal';
-    document.body.appendChild(host);
-    setupFileViewerModal();
+        host.id = 'viewer-modal';
+        document.body.appendChild(host);
+        viewerComponent = mount(FileViewerModal, {
+                    target: host,
+                    props: { onClose: closeFileViewer, onDownload: downloadActiveFile },
+                });
+    host = document.getElementById('viewer-modal')!;
+    activateFileViewerModal();
 });
 
-beforeEach(() => {
-    mocks.openStream.mockReset();
-    mocks.closeMedia.mockReset().mockResolvedValue(undefined);
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('secret', { status: 200 })));
+afterAll(async () => {
+    teardownFileViewerModal();
+    await unmount(viewerComponent);
 });
+
+beforeEach(() => { mocks.openStream.mockReset();
+mocks.closeMedia.mockReset().mockResolvedValue(undefined);
+vi.stubGlobal('fetch', vi.fn(async () => new Response('secret', { status: 200 }))); });
 
 afterEach(() => {
     closeFileViewer();
@@ -114,7 +127,7 @@ describe('encrypted file viewer lifecycle', () => {
     });
 
     it('registers the lock listener only once', () => {
-        setupFileViewerModal();
+        activateFileViewerModal();
         expect(mocks.eventsOn.mock.calls.filter(([name]) => name === 'encrypted_media_sessions_closed')).toHaveLength(1);
     });
 

@@ -15,103 +15,61 @@ import { openNewDriveModal } from './modals/new-drive';
 import { openJoinDriveModal } from './modals/join-drive';
 import { openJoinRequestsModal } from './modals/join-requests';
 import { notify } from './notifications';
+import { humanizeBackendError } from './errors';
 import { enterPhotos, exitPhotos } from './gallery';
 import { showContextMenu, type ContextMenuItem } from './context-menu';
-import DriveList from '../ui/sidebar/DriveList.svelte';
 import {
     setSidebarState,
-    type SidebarChannel,
-    type SidebarPendingJoin,
+    type SidebarActionMenuRequest,
 } from '../ui/sidebar/sidebar-store';
-import { mountSvelte, type SvelteMountHandle } from '../ui/mount';
+import type { DriveChannel, PendingJoin } from '../types';
 
-let personalEl: HTMLElement | null = null;
-let sharedEl: HTMLElement | null = null;
-let personalDriveList: SvelteMountHandle<Record<string, unknown>> | null = null;
-let sharedDriveList: SvelteMountHandle<Record<string, unknown>> | null = null;
 
-export function setupSidebar() {
-    personalEl = document.getElementById('drives-personal');
-    sharedEl = document.getElementById('drives-shared');
-    mountDriveLists();
+export function activateSidebar(): () => void {
+    const newButton = document.getElementById('open-new-drive');
+    const joinButton = document.getElementById('open-join-drive');
+    const photosButton = document.getElementById('nav-photos');
+    const onNewDrive = () => openNewDriveModal();
+    const onJoinDrive = () => openJoinDriveModal();
+    const onPhotos = () => enterPhotos();
 
-    const newBtn = document.getElementById('open-new-drive');
-    if (newBtn) newBtn.addEventListener('click', () => openNewDriveModal());
-    const joinBtn = document.getElementById('open-join-drive');
-    if (joinBtn) joinBtn.addEventListener('click', () => openJoinDriveModal());
-    const photosBtn = document.getElementById('nav-photos');
-    if (photosBtn) photosBtn.addEventListener('click', () => enterPhotos());
-
+    newButton?.addEventListener('click', onNewDrive);
+    joinButton?.addEventListener('click', onJoinDrive);
+    photosButton?.addEventListener('click', onPhotos);
     renderSidebar();
+
+    return () => {
+        newButton?.removeEventListener('click', onNewDrive);
+        joinButton?.removeEventListener('click', onJoinDrive);
+        photosButton?.removeEventListener('click', onPhotos);
+    };
 }
 
 export function renderSidebar() {
-    if (!personalEl || !sharedEl) return;
 
     const channels = state.channels || [];
-    const personal = channels.filter((c) => c?.kind === 'personal').map(normalizeChannel);
-    const shared = channels.filter((c) => c?.kind === 'shared').map(normalizeChannel);
-    const pending = Array.isArray(state.pendingJoins)
-        ? state.pendingJoins.map(normalizePendingJoin).filter((p) => p.invite_hash)
-        : [];
+    const personal = channels.filter((channel) => channel.kind === 'personal');
+    const shared = channels.filter((channel) => channel.kind === 'shared');
+    const pending = state.pendingJoins.filter((request) => request.inviteHash);
 
+    const photosActive = state.virtualView === 'photos';
     setSidebarState({
         personal,
         shared,
         pending,
         activeChannelId: state.activeChannel ? Number(state.activeChannel.id) : null,
-        photosActive: state.virtualView === 'photos',
+        photosActive,
     });
 
-    // The Photos item owns the highlight while the gallery is open.
-    document.getElementById('nav-photos')?.classList.toggle('active', state.virtualView === 'photos');
+    // The Photos item owns the current-route semantics while the gallery is open.
+    const photosNav = document.getElementById('nav-photos');
+    photosNav?.classList.toggle('active', photosActive);
+    if (photosActive) photosNav?.setAttribute('aria-current', 'page');
+    else photosNav?.removeAttribute('aria-current');
 }
 
-function mountDriveLists(): void {
-    if (personalEl && !personalDriveList) {
-        personalEl.replaceChildren();
-        personalDriveList = mountSvelte(DriveList, {
-            target: personalEl,
-            props: {
-                kind: 'personal' as const,
-                onDriveClick: handleDriveClick,
-            },
-        });
-    }
 
-    if (sharedEl && !sharedDriveList) {
-        sharedEl.replaceChildren();
-        sharedDriveList = mountSvelte(DriveList, {
-            target: sharedEl,
-            props: {
-                kind: 'shared' as const,
-                onDriveClick: handleDriveClick,
-                onDriveContextMenu: showSharedContextMenu,
-                onPendingClick: handlePendingClick,
-                onPendingContextMenu: showPendingContextMenu,
-            },
-        });
-    }
-}
-
-function normalizeChannel(channel: any): SidebarChannel {
-    return {
-        id: Number(channel?.id || 0),
-        title: String(channel?.title || ''),
-        kind: String(channel?.kind || ''),
-        is_active: Boolean(channel?.is_active),
-    };
-}
-
-function normalizePendingJoin(pending: any): SidebarPendingJoin {
-    return {
-        invite_hash: String(pending?.invite_hash || ''),
-        title: String(pending?.title || ''),
-        last_error: String(pending?.last_error || ''),
-    };
-}
-
-function handleDriveClick(channelId: number): void {
+export function handleDriveClick(channelId: number): void {
     if (Number(channelId) === Number(state.activeChannel?.id)) {
         // Clicking the already-active drive while in Photos returns to its files.
         if (state.virtualView === 'photos') exitPhotos();
@@ -120,8 +78,8 @@ function handleDriveClick(channelId: number): void {
     void switchActiveChannel(Number(channelId));
 }
 
-async function handlePendingClick(inviteHash: string): Promise<void> {
-    const pending = state.pendingJoins.find((item) => String(item?.invite_hash || '') === inviteHash);
+export async function handlePendingClick(inviteHash: string): Promise<void> {
+    const pending = state.pendingJoins.find((item) => item.inviteHash === inviteHash);
     if (!pending) return;
 
     try {
@@ -133,7 +91,7 @@ async function handlePendingClick(inviteHash: string): Promise<void> {
                 body: 'Joined the drive.',
             });
         } else {
-            const lastError = String(result?.pending?.last_error || '').trim();
+            const lastError = result?.pending?.lastError.trim() ?? '';
             notify({
                 level: lastError ? 'error' : 'info',
                 title: lastError ? 'Could not check request' : 'Still waiting for approval',
@@ -144,12 +102,12 @@ async function handlePendingClick(inviteHash: string): Promise<void> {
         notify({
             level: 'error',
             title: 'Could not check request',
-            body: String(err),
+            body: humanizeBackendError(err),
         });
     }
 }
 
-function showSharedContextMenu(event: MouseEvent, c: SidebarChannel) {
+export function showSharedActionsMenu(request: SidebarActionMenuRequest, c: DriveChannel): void {
     const items: ContextMenuItem[] = [
         {
             label: 'Copy invite link',
@@ -161,7 +119,7 @@ function showSharedContextMenu(event: MouseEvent, c: SidebarChannel) {
                     notify({
                         level: 'error',
                         title: 'Could not get invite link',
-                        body: String(err),
+                        body: humanizeBackendError(err),
                     });
                 }
             },
@@ -176,7 +134,7 @@ function showSharedContextMenu(event: MouseEvent, c: SidebarChannel) {
                     notify({
                         level: 'error',
                         title: 'Could not get approval link',
-                        body: String(err),
+                        body: humanizeBackendError(err),
                     });
                 }
             },
@@ -191,17 +149,17 @@ function showSharedContextMenu(event: MouseEvent, c: SidebarChannel) {
             action: () => openLeaveDriveModal({ id: Number(c.id), title: c.title }),
         },
     ];
-    showContextMenu(event.clientX, event.clientY, items);
+    showContextMenu(request.x, request.y, items);
 }
 
-function showPendingContextMenu(event: MouseEvent, p: SidebarPendingJoin) {
-    showContextMenu(event.clientX, event.clientY, [
+export function showPendingActionsMenu(request: SidebarActionMenuRequest, p: PendingJoin): void {
+    showContextMenu(request.x, request.y, [
         {
             label: 'Check now',
             action: async () => {
                 try {
-                    const result = await checkPendingJoin(String(p.invite_hash || ''));
-                    const lastError = String(result?.pending?.last_error || '').trim();
+                    const result = await checkPendingJoin(p.inviteHash);
+                    const lastError = result?.pending?.lastError.trim() ?? '';
                     notify({
                         level: result?.status === 'joined' ? 'success' : (lastError ? 'error' : 'info'),
                         title: result?.status === 'joined'
@@ -213,7 +171,7 @@ function showPendingContextMenu(event: MouseEvent, p: SidebarPendingJoin) {
                     notify({
                         level: 'error',
                         title: 'Could not check request',
-                        body: String(err),
+                        body: humanizeBackendError(err),
                     });
                 }
             },
@@ -223,7 +181,7 @@ function showPendingContextMenu(event: MouseEvent, p: SidebarPendingJoin) {
             danger: true,
             action: async () => {
                 try {
-                    await removePendingJoin(String(p.invite_hash || ''));
+                    await removePendingJoin(p.inviteHash);
                     notify({
                         level: 'success',
                         title: 'Pending request removed',
@@ -232,7 +190,7 @@ function showPendingContextMenu(event: MouseEvent, p: SidebarPendingJoin) {
                     notify({
                         level: 'error',
                         title: 'Could not remove request',
-                        body: String(err),
+                        body: humanizeBackendError(err),
                     });
                 }
             },
