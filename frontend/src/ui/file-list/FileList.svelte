@@ -6,6 +6,7 @@
     import LockKeyholeIcon from '@lucide/svelte/icons/lock-keyhole';
     import PlayIcon from '@lucide/svelte/icons/play';
     import FileState from './FileState.svelte';
+    import { fileTypeFamily, fileTypeIcon } from './file-type';
     import { sortFileListRows } from './file-sort';
     import { fileListView } from './file-list-store';
     import { fileSortState } from './file-sort-store';
@@ -138,13 +139,13 @@
             >
                 <div class="row-name" role="gridcell" aria-colindex="1" title={row.name}>
                     <span class="folder-chip" aria-hidden="true">
-                        <FolderIcon size={18} strokeWidth={2} aria-hidden="true" />
+                        <FolderIcon size={17} strokeWidth={1.5} aria-hidden="true" />
                     </span>
                     <span class="row-label">{row.name}</span>
                     <span class="pending-indicator" aria-hidden="true"></span>
                 </div>
                 <div class="row-meta" role="gridcell" aria-colindex="2">Creating...</div>
-                <div class="row-meta" role="gridcell" aria-colindex="3">—</div>
+                <div class="row-meta" role="gridcell" aria-colindex="3"><span aria-hidden="true">…</span></div>
                 <div class="row-actions" role="gridcell" aria-colindex="4"></div>
             </div>
         {:else}
@@ -175,17 +176,25 @@
                 <div class="row-name" role="gridcell" aria-colindex="1" draggable="true" title={row.name}>
                     {#if row.kind === 'folder'}
                         <span class="folder-chip" aria-hidden="true">
-                            <FolderIcon size={18} strokeWidth={2} aria-hidden="true" />
+                            <FolderIcon size={17} strokeWidth={1.5} aria-hidden="true" />
                         </span>
                         <span class="row-label">{row.name}</span>
                     {:else}
-                        <span class="file-ext-text" aria-hidden="true">{row.ext}</span>
+                        {@const family = fileTypeFamily(row.ext)}
+                        {@const TypeIcon = fileTypeIcon(family)}
+                        <span class="file-type-icon" data-family={family} aria-hidden="true">
+                            <!-- Lighter than the app default: Lucide's stroke is fixed
+                                 against a 24px grid, so it reads heavier the smaller
+                                 the glyph is drawn. The folder chip matches. -->
+                            <TypeIcon size={17} strokeWidth={1.5} aria-hidden="true" />
+                        </span>
                         {#if row.encrypted}
                             <span class="file-lock-badge" title="Encrypted" aria-label="Encrypted">
                                 <LockKeyholeIcon size={12} strokeWidth={2} aria-hidden="true" />
                             </span>
                         {/if}
-                        <span class="row-label">{row.baseName}</span>
+                        <!-- The glyph says document or video; only the name says mkv or mp4. -->
+                        <span class="row-label">{row.name}</span>
                         {#if row.uploaderChip}
                             <span class="uploader-chip">{row.uploaderChip.label}</span>
                         {/if}

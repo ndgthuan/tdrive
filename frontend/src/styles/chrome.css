@@ -5,7 +5,26 @@
     width: 240px; flex-shrink: 0; background: var(--bg-sidebar); border-right: 1px solid var(--color-surface-1);
     padding: 20px; display: flex; flex-direction: column; min-height: 0;
 }
-.logo { font-size: 1.2rem; font-weight: 800; color: var(--color-text); margin-bottom: 40px; letter-spacing: -0.5px; }
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 40px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--color-text);
+    letter-spacing: -0.5px;
+}
+
+/* The mark is the one piece of warmth in an otherwise severe column, so it is
+   sized to the wordmark's cap height rather than shrunk into a favicon. */
+.logo-mark {
+    width: 44px;
+    height: 28px;
+    flex: 0 0 auto;
+    display: block;
+    object-fit: contain;
+}
 
 .storage-info { padding-top: 20px; border-top: 1px solid var(--border); }
 .storage-info p { font-size: var(--type-xs); color: var(--text-muted); display: flex; justify-content: space-between; gap: var(--space-2); }
@@ -35,7 +54,7 @@
 .drive-item {
     display: flex; align-items: center; gap: 12px; color: var(--text-muted);
     background: transparent; border: none; cursor: pointer;
-    padding: 9px 12px; border-radius: 8px; font-size: var(--type-base); font-weight: var(--weight-medium);
+    padding: 9px 12px; border-radius: var(--radius-md); font-size: var(--type-base); font-weight: var(--weight-medium);
     transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); text-align: left; width: 100%;
 }
 .drive-item:hover { background: var(--bg-panel); color: var(--text-main); }
@@ -62,7 +81,7 @@
     text-transform: uppercase;
     color: var(--accent);
     border: 1px solid var(--overlay-accent-3);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 2px 6px;
 }
 .drives-actions {
@@ -91,7 +110,7 @@
     overflow: hidden;
     margin-left: 10px;
     padding: 1px 8px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--overlay-accent-1);
     color: var(--text-muted);
     font-size: 0.72rem;
