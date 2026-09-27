@@ -24,9 +24,10 @@ export const THEME_FALLBACK_CLASS = 'theme-transition-fallback';
 export const LINUX_WEBKIT_CLASS = 'linux-webkit';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-// Keep the fallback class just beyond the 1.2s CSS animation so WebViews that
-// lack View Transitions never remove the final animation frame prematurely.
-const FALLBACK_CLEANUP_DELAY_MS = 1250;
+const SYSTEM_APPEARANCE_QUERY = '(prefers-color-scheme: dark)';
+// Palette changes are feedback, not a full-screen event. Keep the CSS fallback
+// long enough for its 200ms colour settle, then release it promptly.
+const FALLBACK_CLEANUP_DELAY_MS = 240;
 
 type ThemeStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
@@ -45,6 +46,7 @@ export interface ThemeControllerEnvironment {
     readonly document?: Document;
     readonly storage?: ThemeStorage;
     readonly reducedMotion?: MediaQueryList;
+    readonly systemAppearance?: MediaQueryList;
     readonly userAgent?: string;
 }
 
@@ -64,6 +66,7 @@ interface ResolvedEnvironment {
     readonly document?: Document;
     readonly storage?: ThemeStorage;
     readonly reducedMotion?: MediaQueryList;
+    readonly systemAppearance?: MediaQueryList;
     readonly userAgent?: string;
 }
 
@@ -111,6 +114,14 @@ export function createThemeController(
         }
 
         const generation = beginTransition(targetDocument, THEME_FALLBACK_CLASS, origin);
+        // A transition only runs if there is a style recalculation where it is
+        // already armed and the old colour is still current. Adding the class
+        // and swapping the palette in one task gives the browser a single
+        // recalculation, so it animates nothing -- which is why this path used
+        // to reach for a keyframe animation, and why that animation had to fade
+        // the page to be visible at all. Reading a layout property forces the
+        // flush and lets the colours actually cross over.
+        void targetDocument.documentElement.offsetHeight;
         applyState(nextState);
         fallbackTimer = setTimeout(() => {
             if (generation !== transitionGeneration) return;
@@ -123,10 +134,10 @@ export function createThemeController(
         const targetDocument = activeEnvironment?.document;
         const startViewTransition = targetDocument?.startViewTransition;
         if (!targetDocument || typeof startViewTransition !== 'function') return false;
-        // WebKitGTK exposes the API, but a root view transition forces the
-        // page into accelerated compositing that the Wails Linux webview does
-        // not have: the view paints black or the transition never settles.
-        if (isLinuxWebKit(activeEnvironment?.userAgent)) return false;
+        // Embedded WebKit cannot be trusted with a root view transition; see
+        // viewTransitionUnreliable. Both platforms fall through to the CSS
+        // transition, which only animates colour.
+        if (viewTransitionUnreliable(activeEnvironment?.userAgent)) return false;
 
         const generation = beginTransition(targetDocument, THEME_TRANSITION_CLASS, origin);
         let stateApplied = false;
@@ -184,7 +195,7 @@ export function createThemeController(
         activeEnvironment = resolved;
         started = true;
         resolved.document?.documentElement.classList.toggle(LINUX_WEBKIT_CLASS, isLinuxWebKit(resolved.userAgent));
-        const preference = readPreference(resolved.storage);
+        const preference = readPreference(resolved.storage, appearanceFromSystem(resolved.systemAppearance));
         latestPreference = preference;
         applyInstantly(createThemeState(preference));
     }
@@ -269,8 +280,34 @@ function resolveEnvironment(environment: ThemeControllerEnvironment): ResolvedEn
         document: targetDocument,
         storage: environment.storage ?? getBrowserStorage(targetWindow),
         reducedMotion: environment.reducedMotion ?? queryMedia(targetWindow, REDUCED_MOTION_QUERY),
+        systemAppearance: environment.systemAppearance ?? queryMedia(targetWindow, SYSTEM_APPEARANCE_QUERY),
         userAgent: environment.userAgent ?? targetWindow?.navigator?.userAgent,
     };
+}
+
+/**
+ * True for an iOS or iPadOS webview. Matched on the platform tokens rather than
+ * Safari's, because every browser on iOS is WebKit underneath.
+ */
+export function isIOSWebKit(userAgent: string | undefined): boolean {
+    if (!userAgent) return false;
+    return /\b(?:iPhone|iPad|iPod)\b/.test(userAgent) && /AppleWebKit\//.test(userAgent);
+}
+
+/**
+ * Where a root view transition cannot be trusted to settle.
+ *
+ * Both cases are embedded WebKit. On Linux, WebKitGTK exposes the API but
+ * forces the page into accelerated compositing the Wails webview does not have,
+ * and the view paints black. On iOS the transition covers the whole screen for
+ * a change that is only colour, which reads as a stutter rather than a
+ * crossfade and has been seen to leave the new palette unapplied.
+ *
+ * Both fall back to the CSS transition path, which animates colour alone and
+ * behaves the same everywhere.
+ */
+export function viewTransitionUnreliable(userAgent: string | undefined): boolean {
+    return isLinuxWebKit(userAgent) || isIOSWebKit(userAgent);
 }
 
 /**
@@ -316,7 +353,7 @@ function hasRuntimeEnvironment(environment: ResolvedEnvironment): boolean {
     return Boolean(environment.document || environment.storage || environment.reducedMotion);
 }
 
-function readPreference(storage?: ThemeStorage): ThemePreference {
+function readPreference(storage: ThemeStorage | undefined, legacySystemAppearance: ThemeAppearance): ThemePreference {
     let serialized: string | null | undefined;
     try {
         serialized = storage?.getItem(THEME_STORAGE_KEY);
@@ -327,7 +364,7 @@ function readPreference(storage?: ThemeStorage): ThemePreference {
     if (!serialized) return normalizeThemePreference(null);
 
     try {
-        const preference = normalizeThemePreference(JSON.parse(serialized) as unknown);
+        const preference = normalizeThemePreference(JSON.parse(serialized) as unknown, legacySystemAppearance);
         if (serialized !== JSON.stringify(preference)) writePreference(storage, preference);
         return preference;
     } catch {
@@ -348,6 +385,14 @@ function prefersReducedMotion(reducedMotion?: MediaQueryList): boolean {
         return reducedMotion?.matches === true;
     } catch {
         return true;
+    }
+}
+
+function appearanceFromSystem(query?: MediaQueryList): ThemeAppearance {
+    try {
+        return query && !query.matches ? 'light' : 'dark';
+    } catch {
+        return 'dark';
     }
 }
 

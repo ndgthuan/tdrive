@@ -42,6 +42,7 @@ describe('AppearancePanel behavior', () => {
         expect(host?.textContent).not.toContain('Automatic pair');
         expect(host?.querySelector('.appearance-toggle')).toBeNull();
         expect(host?.querySelector('.palette-section')).not.toBeNull();
+        expect(host?.querySelectorAll('[data-appearance-mode][aria-label]')).toHaveLength(2);
     });
 
     it('supports arrow-key navigation through appearance modes', () => {
@@ -83,6 +84,10 @@ describe('AppearancePanel behavior', () => {
         light.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
         flushSync();
         expect(get(themeState).preference.mode).toBe('dark');
+
+        // Palette navigation follows the currently resolved surface. Select
+        // Dark explicitly before asserting dark-palette boundaries.
+        click('#appearance-mode-dark');
 
         // Read the boundaries off the catalogue: this covers Home/End/wrap,
         // not the identity of whichever palette currently sits at either end.

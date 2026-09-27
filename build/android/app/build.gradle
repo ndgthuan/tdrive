@@ -1,0 +1,91 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.wails.app'
+    compileSdk 35
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    defaultConfig {
+        applicationId "com.jeetraj.tdrive"
+        minSdk 21
+        targetSdk 35
+        versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "1")
+        versionName System.getenv("ANDROID_VERSION_NAME") ?: "1.0"
+
+        // Configure supported ABIs
+        ndk {
+            abiFilters 'arm64-v8a', 'x86_64'
+        }
+    }
+
+    def keystoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
+    def hasKeystore = keystoreFile != null && !keystoreFile.trim().isEmpty()
+    if (System.getenv("ANDROID_REQUIRE_RELEASE_SIGNING") == "true" && !hasKeystore) {
+        throw new GradleException("Android release signing is required but ANDROID_KEYSTORE_FILE is unset")
+    }
+    if (hasKeystore && ["ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD"].any {
+        !System.getenv(it)?.trim()
+    }) {
+        throw new GradleException("Android release signing credentials are incomplete")
+    }
+
+    signingConfigs {
+        // A real keystore can be provided via environment variables; without
+        // one, release builds are signed with the debug keystore so they can
+        // be installed for testing (not suitable for Play Store uploads).
+        release {
+            if (hasKeystore) {
+                storeFile file(keystoreFile)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig hasKeystore ? signingConfigs.release : signingConfigs.debug
+        }
+        debug {
+            debuggable true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    // Source sets configuration
+    sourceSets {
+        main {
+            // JNI libraries are in jniLibs folder
+            jniLibs.srcDirs = ['src/main/jniLibs']
+            // Assets for the WebView
+            assets.srcDirs = ['src/main/assets']
+        }
+    }
+
+    // Packaging options
+    packagingOptions {
+        // Don't strip Go symbols in debug builds
+        doNotStrip '*/arm64-v8a/libwails.so'
+        doNotStrip '*/x86_64/libwails.so'
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.webkit:webkit:1.9.0'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+}

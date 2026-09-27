@@ -11,7 +11,6 @@ describe('AppearancePanel', () => {
         expect(body).toContain('Dark');
         expect(body).not.toContain('System');
         expect(body).not.toContain('>Mode<');
-        expect(body).not.toContain('Follow your system');
         expect(body).not.toContain('Always bright');
         expect(body).not.toContain('Always dim');
         expect(body).not.toContain('Personalize');

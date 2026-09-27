@@ -194,9 +194,14 @@ export function isThemeForAppearance(value: unknown, appearance: ThemeAppearance
 }
 
 /** Returns a fresh, validated preference suitable for application state. */
-export function normalizeThemePreference(value: unknown): ThemePreference {
+export function normalizeThemePreference(
+    value: unknown,
+    legacySystemAppearance: ThemeAppearance = 'dark',
+): ThemePreference {
     const candidate = isRecord(value) ? value : {};
-    const mode = isThemeMode(candidate.mode) ? candidate.mode : DEFAULT_THEME_PREFERENCE.mode;
+    const mode = isThemeMode(candidate.mode)
+        ? candidate.mode
+        : candidate.mode === 'system' ? legacySystemAppearance : DEFAULT_THEME_PREFERENCE.mode;
     const lightThemeId = isThemeForAppearance(candidate.lightThemeId, 'light')
         ? candidate.lightThemeId
         : DEFAULT_THEME_PREFERENCE.lightThemeId;

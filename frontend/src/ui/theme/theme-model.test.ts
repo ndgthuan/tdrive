@@ -70,18 +70,19 @@ describe('theme model', () => {
         expect(normalizeThemePreference(persisted)).toEqual(persisted);
     });
 
-    it('migrates the removed System mode to explicit dark without losing valid palettes', () => {
+    it('migrates a saved System pair to the current appearance without losing palettes', () => {
         expect(
             normalizeThemePreference({
                 mode: 'system',
                 lightThemeId: 'catppuccin-latte',
                 darkThemeId: 'nord',
-            }),
+            }, 'light'),
         ).toEqual({
-            mode: 'dark',
+            mode: 'light',
             lightThemeId: 'catppuccin-latte',
             darkThemeId: 'nord',
         });
+        expect(normalizeThemePreference({ mode: 'system' }, 'dark').mode).toBe('dark');
         expect(isThemeMode('system')).toBe(false);
     });
 
