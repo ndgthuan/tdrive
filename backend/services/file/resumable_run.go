@@ -102,6 +102,9 @@ func (s *Service) buildResumablePartPlan(size int64) (uploadPartPlan, error) {
 // ResumeUpload resumes an interrupted plain multipart upload. An empty path
 // uses the original source path; a replacement must have identical bytes.
 func (s *Service) ResumeUpload(ctx context.Context, expectedChannelID int64, jobID, sourcePath string) (Metadata, error) {
+	if err := s.requireUploadRight(ctx, expectedChannelID); err != nil {
+		return Metadata{}, err
+	}
 	job, err := s.loadUploadJob(ctx, jobID)
 	if err != nil {
 		return Metadata{}, err
@@ -273,7 +276,11 @@ func (s *Service) runResumableUpload(ctx context.Context, job uploadJob, sourceP
 				func(sent, _ int64) {
 					if uploadID != nil {
 						observer.Progress(*uploadID, float64(offset+sent)/float64(job.Size)*100)
+						return
 					}
+					// A resumed job has no upload id, so its byte progress would
+					// otherwise go nowhere. Name the job instead: (jobID, sent, size).
+					s.emitEvent("resumable_upload_progress", job.ID, offset+sent, job.Size)
 				}, randomID)
 			sentBytes = sink.count
 			sentHash = hex.EncodeToString(h.Sum(nil))

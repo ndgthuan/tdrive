@@ -10,6 +10,7 @@
     import { installModalA11y } from '../modals/modal_a11y';
     import { t_store } from '../../i18n/i18n';
     import { createSheetDragController } from '../modals/sheet_gesture';
+    import { active_drive_can_edit } from '../members/members_store';
 
     // Desktop anchors this menu under its toolbar button. The phone cannot: the
     // trigger is docked into the middle of the tab bar, hard against the bottom
@@ -134,6 +135,7 @@
 <svelte:window onkeydown={onWindowKeydown} />
 <svelte:document onclick={onDocumentClick} />
 
+{#if $active_drive_can_edit}
 <button
     bind:this={buttonEl}
     id="upload-btn"
@@ -162,6 +164,7 @@
     {/if}
     {$t_store('chrome.new_button')}
 </button>
+{/if}
 <div
     bind:this={overlayEl}
     class="upload-menu-overlay"

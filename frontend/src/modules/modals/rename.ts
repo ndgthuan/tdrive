@@ -1,4 +1,5 @@
 import { t } from '../../i18n/i18n';
+import { allow_edit_in } from '../../ui/members/drive_guard';
 // Rename modal for TDrive frontend
 
 import { addTelegramFileToDrive, renameFile, renameFolder } from '../../api';
@@ -30,6 +31,7 @@ async function ensureFileInTdriveSystem(target: RenameModalTarget): Promise<void
 
 
 export function openRenameModal(target: FileCommandItem): void {
+    if (!allow_edit_in(target.channelId)) return;
     openRenameModalView(target);
 }
 

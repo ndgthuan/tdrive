@@ -16,6 +16,7 @@ import { appActions } from '../app_actions';
 import { humanizeBackendError } from '../errors';
 import { notify } from '../notifications';
 import { t } from '../../i18n/i18n';
+import { allow_edit_in, may_delete_others_in } from '../../ui/members/drive_guard';
 
 /** The busy key for an operation that spans the whole trash, not one row. */
 export const EMPTY_TRASH_KEY = '*';
@@ -82,6 +83,7 @@ export async function loadTrash(): Promise<void> {
 
 export async function restoreEntry(objectId: string): Promise<void> {
     const channelId = Number(state.activeChannel?.id ?? 0);
+    if (!allow_edit_in(channelId)) return;
     if (await mutate(objectId, t('trash.restore_failed'), () => restoreFromTrash(channelId, objectId))) {
         // The item is back in a folder the user may be looking at.
         invalidateFolderIndex();
@@ -94,12 +96,14 @@ export async function restoreEntry(objectId: string): Promise<void> {
 
 /** Both destructive paths ask first; neither ever runs off the row's button. */
 export function askPurgeTrashEntry(entry: TrashEntry): void {
+    if (!allow_edit_in(undefined)) return;
     trashConfirmModal.open({
         kind: 'purge', objectId: entry.objectId, name: entry.name, isFolder: entry.kind === 'folder',
     });
 }
 
 export function askEmptyTrash(): void {
+    if (!may_delete_others_in(undefined) || !allow_edit_in(undefined)) return;
     trashConfirmModal.open({ kind: 'empty', summary: trashSummary(get(trashEntries)) });
 }
 

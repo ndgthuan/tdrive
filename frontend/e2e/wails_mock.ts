@@ -62,6 +62,19 @@ export function galleryPage(count: number, template: Record<string, unknown>): M
 
 const MOCK_IMAGE_CAPABILITY = 'mock-original-image';
 
+/** What DriveMembersService.MyRole answers for a role, with the permissions that role has in Telegram. */
+export function driveRoleAnswer(role: 'owner' | 'manager' | 'editor' | 'viewer') {
+    const elevated = role === 'owner' || role === 'manager';
+    return {
+        result: { ok: true },
+        role,
+        can_upload: role !== 'viewer',
+        can_delete_others: elevated,
+        can_manage_members: elevated,
+        can_invite: elevated,
+    };
+}
+
 const DEFAULT_METHODS: Record<string, MockPlan> = {
     AppVersion: resolves({ version: '0.0.0-test', os: 'test', arch: 'test' }),
     CheckForUpdate: resolves({ phase: 'up_to_date', current_version: '0.0.0-test' }),
@@ -109,6 +122,16 @@ const DEFAULT_METHODS: Record<string, MockPlan> = {
     OpenOriginalImage: resolves({ token: MOCK_IMAGE_CAPABILITY, url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZcsQAAAAASUVORK5CYII=', thumbnail_url: '', hls_url: '', name: 'photo.png', kind: 'image', mime_type: 'image/png', supports_range: true, info: { channel_id: 1, file_id: 1, revision: 1, name: 'photo.png', stored_size: 68, plaintext_size: 68, encrypted: false, multipart: false } }),
     CloseMedia: resolves(null),
     ListPendingJoins: resolves([]),
+    // Shared-drive roles. The default answer is owner, so existing journeys see
+    // every control they always did; a spec swaps in a viewer plan to test gating.
+    MyRole: resolves(driveRoleAnswer('owner')),
+    RefreshMyRole: resolves(driveRoleAnswer('owner')),
+    ListMembers: resolves({ result: { ok: true }, members: [{ user_id: 7, display_name: 'Test User', username: 'test', role: 'owner', joined_at: 0, is_self: true }], total: 1, next_offset: 1, has_more: false }),
+    CreateInvite: resolves({ result: { ok: true }, link: 'https://t.me/+mockInviteLink', default_role: 'editor' }),
+    GetDefaultRole: resolves({ result: { ok: true }, role: 'editor' }),
+    SetDefaultRole: resolves({ ok: true }),
+    SetRole: resolves({ ok: true }),
+    RemoveMember: resolves({ ok: true }),
     Me: resolves({ user_id: 7, display_name: 'Test User', username: 'test', photo_base64: '' }),
     MountDrive: resolves({
         result: { ok: true },

@@ -84,6 +84,8 @@ export interface RuntimeEventMap {
     "common:filepicker": [payload: unknown];
     "updates:open": [];
     update_state: [payload: unknown];
+    /** A member's role in a shared drive changed: {drive_id, role}. */
+    "drive:role_changed": [payload: unknown];
 }
 
 export type RuntimeEventName = keyof RuntimeEventMap;

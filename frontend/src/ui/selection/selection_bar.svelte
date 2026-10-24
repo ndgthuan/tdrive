@@ -4,6 +4,7 @@
     import Trash2Icon from 'phosphor-svelte/lib/TrashIcon';
     import { t_store } from '../../i18n/i18n';
     import { selectionBarState } from './selection_bar_store';
+    import { active_drive_can_edit } from '../members/members_store';
 
     interface SelectionBarProps {
         onDownload: () => void;
@@ -32,6 +33,7 @@
         </span>
         <span class="selection-btn-label">{$t_store('selection.download')}</span>
     </button>
+    {#if $active_drive_can_edit}
     <button id="selection-move" class="selection-btn" type="button" onclick={onMove}>
         <span class="selection-btn-icon" aria-hidden="true">
             <FolderInputIcon size={22} />
@@ -44,6 +46,7 @@
         </span>
         <span class="selection-btn-label">{$t_store('selection.delete')}</span>
     </button>
+    {/if}
     <span class="selection-spacer" aria-hidden="true"></span>
     <button id="selection-clear" class="selection-btn done" type="button" onclick={onClear}>{$t_store('selection.done')}</button>
 </div>

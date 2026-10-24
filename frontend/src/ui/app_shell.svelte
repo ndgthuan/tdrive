@@ -57,6 +57,8 @@
     import FeatureLayer from './app/feature_layer.svelte';
     import ChannelNav from './channels/channel_nav.svelte';
     import { sidebarState } from './sidebar/sidebar_store';
+    import ViewOnlyBadge from './members/view_only_badge.svelte';
+    import { active_drive_can_delete_others } from './members/members_store';
     import ChannelView from './channels/channel_view.svelte';
     import { channelSources, openChannel } from './channels/channel_store';
     import { sourceKey } from './channels/channel_model';
@@ -280,6 +282,7 @@
                  never a box of its own and taking it away moves nothing. -->
             {#if dashboardVisible}
                 <Breadcrumb onNavigate={navigateToIndex} onBack={navigateBack} drag={breadcrumbDrag} />
+                <ViewOnlyBadge />
             {/if}
             <div id="gallery-title" class="gallery-title">{$t_store('shell.photos')}</div>
             <PhotosModeBar />
@@ -288,7 +291,7 @@
                  confirmation. With nothing to empty it is absent rather than
                  disabled: a dead control invites a click that cannot do
                  anything. It is disabled only while a mutation is in flight. -->
-            {#if $trashEntries.length > 0}
+            {#if $trashEntries.length > 0 && $active_drive_can_delete_others}
                 <button
                     id="trash-empty-btn"
                     class="trash-empty-btn"

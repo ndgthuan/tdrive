@@ -16,6 +16,7 @@ import type { UploadFailure } from '../types';
 import type { ImportPlan, OperationError } from '../types';
 import type { TransferEvent } from '../ui/notifications/notif_store';
 import { dismissNotification, notify } from './notifications';
+import { allow_edit_in } from '../ui/members/drive_guard';
 import {
     canPickFolder,
     folderPathFor,
@@ -981,6 +982,7 @@ function activateUploadProgressEvents(): void {
 // uploadWithParentID opens the file picker and routes the selection through the
 // shared import flow.
 export async function uploadWithParentID(parentID: string) {
+    if (!allow_edit_in(undefined)) return;
     // The lock covers the picker, not just what follows it: on a phone the
     // host spends seconds copying the picked documents before this resolves,
     // and that window used to be unguarded. See withTransferFlow.
@@ -993,6 +995,7 @@ export async function uploadWithParentID(parentID: string) {
 // importFolderWithParentID opens the directory picker and imports the chosen
 // folder tree into parentID.
 export async function importFolderWithParentID(parentID: string) {
+    if (!allow_edit_in(undefined)) return;
     // The lock is taken here rather than inside either branch, so it covers the
     // picker itself -- the same window the file picker was leaving open.
     await withTransferFlow(async () => {
@@ -1569,6 +1572,7 @@ function activateFileDropEvents(): void {
         // upload into whatever folder the drive had last shown, behind the
         // trash's chrome.
         if (!paths.length || !state.activeChannel || state.virtualView !== null) return;
+        if (!allow_edit_in(undefined)) return;
         const x = Number(event.x);
         const y = Number(event.y);
         if (!Number.isFinite(x) || !Number.isFinite(y)) return;

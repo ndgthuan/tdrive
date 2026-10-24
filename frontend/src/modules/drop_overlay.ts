@@ -1,4 +1,5 @@
 import { t } from '../i18n/i18n';
+import { allow_edit_in } from '../ui/members/drive_guard';
 // Frosted drop target shown over the file list while an OS file drag is over
 // the window. The overlay itself is drawn by ui/transfers/drop_overlay.svelte;
 // this module is the controller that decides when it is up, what it says, and
@@ -166,6 +167,7 @@ export function activateDropOverlay(): () => void {
 
     const onDragOver = (event: DragEvent) => {
         if (!isFileDrag(event) || state.dragState || !state.activeChannel || state.virtualView !== null) return;
+        if (!allow_edit_in(undefined, { notifyUser: false })) return;
         show();
         if (hideTimer !== null) clearTimeout(hideTimer);
         hideTimer = setTimeout(hide, HIDE_AFTER_IDLE_MS);

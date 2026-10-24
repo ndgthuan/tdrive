@@ -16,6 +16,10 @@ type Drive interface {
 	// CanOrganize returns nil when the drive may be changed. Channel sources
 	// are read-only and must return an error.
 	CanOrganize(channel_id int64) error
+	// DriveRole returns the caller's role in the drive: owner, manager, editor or
+	// viewer, and what that role may change. The personal drive is always owner.
+	// Telegram is the source, so a failure here means the role is unknown.
+	DriveRole(ctx context.Context, channel_id int64) (DriveRole, error)
 	// DriveName returns the name the user sees for the drive's root: "My Drive"
 	// for the personal drive, otherwise the shared drive's title. Empty when the
 	// drive is unknown, in which case prompts fall back to the drive id.
@@ -86,4 +90,13 @@ type FileNode struct {
 	Name     string
 	ParentID string
 	Size     int64
+}
+
+// DriveRole is the caller's standing in one drive. CanUpload is false for a
+// viewer, who may only look. CanDeleteOthers is true for managers and the owner,
+// who may change any file; an editor may change only the files they uploaded.
+type DriveRole struct {
+	Role            string
+	CanUpload       bool
+	CanDeleteOthers bool
 }

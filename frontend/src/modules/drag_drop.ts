@@ -1,4 +1,5 @@
 import { t } from '../i18n/i18n';
+import { access_now, allow_edit_in } from '../ui/members/drive_guard';
 // Drag and drop handling for TDrive frontend
 
 import { invalidateFolderIndex, state } from '../state';
@@ -40,6 +41,8 @@ export function setDropHighlight(element: HTMLElement, allowed: boolean): void {
 export function canDropOnFolder(targetFolderId: string): boolean {
     const drag = state.dragState;
     if (!drag || targetFolderId === drag.parentId) return false;
+    const access = access_now(state.activeChannel?.id);
+    if (access.shared && access.known && !access.canUpload) return false;
     return !drag.blocked.has(targetFolderId);
 }
 
@@ -57,6 +60,7 @@ async function ensureFileInTdriveSystem(target: FileCommandItem): Promise<void> 
 export async function performDropMove(newParentId: string): Promise<void> {
     const drag = state.dragState;
     if (!drag) return;
+    if (!allow_edit_in(state.activeChannel?.id, { notifyUser: true })) return;
     const originatingDriveId = state.activeChannel?.id ?? null;
     const items = drag.items;
     if (items.length === 0 || newParentId === drag.parentId) {

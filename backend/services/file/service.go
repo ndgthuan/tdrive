@@ -66,6 +66,7 @@ import (
 
 	tdcrypto "TDrive/backend/crypto"
 	"TDrive/backend/datadir"
+	"TDrive/backend/drive_roles"
 	"TDrive/backend/projection"
 	"TDrive/backend/services/servicecontext"
 	"TDrive/backend/tgclient"
@@ -111,6 +112,9 @@ type Service struct {
 	EmitOp               EmitOpFunc
 	EmitOpContext        EmitOpContextFunc
 	ActorID              ActorIDFunc
+	// Roles answers what the caller may do in a shared drive. Nil keeps the
+	// uploader-only rule, which tests and offline tools rely on.
+	Roles drive_roles.Guard
 	RequireEncryptionKey RequireEncryptionKeyFunc
 	// RequireEncryptionKeyForChannel is used by rendition reads before cache or
 	// network access. RequireEncryptionKey remains for legacy non-rendition

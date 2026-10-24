@@ -312,7 +312,7 @@ func (s *Service) SendMessage(ctx context.Context, req SendMessageRequest) (Chat
 			drive:      drive,
 			drive_name: drive_name,
 		}
-		system := agent_system_prompt(scope, drive_name, env.vision)
+		system := agent_system_prompt(scope, drive_name, role_label(ctx, drive, scope.ChannelID), env.vision)
 		reply_text, actions, err = s.run_agent(ctx, env, system, turns, completer)
 		if err != nil {
 			if len(actions) == 0 {

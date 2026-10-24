@@ -155,5 +155,9 @@ func (s *AIService) drive() (ai.Drive, error) {
 	if folders == nil {
 		return nil, errBackendUnavailable
 	}
-	return &aiDrive{files: files, reads: reads, folders: folders}, nil
+	roles := engine.DriveRoles()
+	if roles == nil {
+		return nil, errBackendUnavailable
+	}
+	return &aiDrive{files: files, reads: reads, folders: folders, roles: roles}, nil
 }

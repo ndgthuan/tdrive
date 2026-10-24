@@ -12,6 +12,7 @@ import {
 } from './channels';
 import { openShareDriveModal } from './modals/share_drive';
 import { openLeaveDriveModal } from './modals/leave_drive';
+import { openMembersDialog } from './modals/members';
 import { openNewDriveModal } from './modals/new_drive';
 import { openJoinDriveModal } from './modals/join_drive';
 import { openJoinRequestsModal } from './modals/join_requests';
@@ -146,6 +147,11 @@ export function showSharedActionsMenu(request: SidebarActionMenuRequest, c: Driv
                     });
                 }
             },
+        },
+        {
+            label: t('members.menu_item'),
+            icon: 'users',
+            action: () => openMembersDialog({ id: Number(c.id), title: c.title }),
         },
         {
             label: t('leftovers.join_requests'),

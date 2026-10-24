@@ -81,6 +81,8 @@
     import NewDriveModal from '../modals/new_drive_modal.svelte';
     import RenameModal from '../modals/rename_modal.svelte';
     import ShareDriveModal from '../modals/share_drive_modal.svelte';
+    import MembersDialog from '../members/members_dialog.svelte';
+    import { activate_member_roles } from '../members/members_store';
     import FailedUploadsModal from '../modals/failed_uploads_modal.svelte';
     import UploadOptionsModal from '../modals/upload_options_modal.svelte';
     import TrashConfirmModal from '../trash/trash_confirm_modal.svelte';
@@ -116,6 +118,7 @@
             activateLiveSyncEvents(),
             activateUpdates(),
             activateChannelSources(),
+            activate_member_roles(),
         ];
         let previewActivationCancelled = false;
         let deactivatePreview = () => {};
@@ -192,6 +195,9 @@
     </div>
     <div id="share-drive-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
         <ShareDriveModal />
+    </div>
+    <div id="members-dialog" class="modal-overlay" style="display: none;" aria-hidden="true">
+        <MembersDialog />
     </div>
     <div id="leave-drive-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
         <LeaveDriveModal onConfirm={confirmLeaveDrive} />

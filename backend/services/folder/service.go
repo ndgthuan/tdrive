@@ -26,6 +26,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"TDrive/backend/drive_roles"
 	"TDrive/backend/projection"
 	"TDrive/backend/services/servicecontext"
 
@@ -52,6 +53,9 @@ type Service struct {
 	ActorID              ActorIDFunc
 	RequireEncryptionKey RequireEncryptionKeyFunc
 	TrashObject          TrashObjectFunc
+	// Roles answers what the caller may do in a shared drive. Nil skips the role
+	// rules and leaves the uploader rule for deletes.
+	Roles drive_roles.Guard
 }
 
 type Folder struct {
@@ -73,6 +77,9 @@ func (s *Service) CreateContext(ctx context.Context, channelID int64, name strin
 	}
 	if channelID == 0 {
 		return Folder{}, fmt.Errorf("no active channel")
+	}
+	if err := s.requireFolderRole(ctx, channelID, drive_roles.RequireUpload); err != nil {
+		return Folder{}, err
 	}
 
 	name = strings.TrimSpace(name)
@@ -137,6 +144,9 @@ func (s *Service) Delete(ctx context.Context, channelID int64, folderID string) 
 	if err != nil {
 		return err
 	}
+	if err := s.requireFolderRole(ctx, channelID, drive_roles.RequireUpload); err != nil {
+		return err
+	}
 	if err := s.requireDeletePermission(ctx, channelID, files); err != nil {
 		return err
 	}
@@ -167,6 +177,9 @@ func (s *Service) RenameContext(ctx context.Context, channelID int64, folderID s
 	}
 	if channelID == 0 {
 		return fmt.Errorf("No active channel")
+	}
+	if err := s.requireFolderRole(ctx, channelID, drive_roles.RequireFolderManage); err != nil {
+		return err
 	}
 	newName = strings.TrimSpace(newName)
 	if newName == "" {
@@ -207,6 +220,9 @@ func (s *Service) MoveContext(ctx context.Context, channelID int64, folderID str
 	}
 	if !projection.IsFolderID(folderID) {
 		return fmt.Errorf("Invalid folder id")
+	}
+	if err := s.requireFolderRole(ctx, channelID, drive_roles.RequireFolderManage); err != nil {
+		return err
 	}
 	parent := normalizeParent(newParentID)
 	if folderID == parent {
@@ -266,6 +282,10 @@ func (s *Service) emit(ctx context.Context, channelID int64, op projection.Op) e
 	return s.EmitOp(channelID, op)
 }
 
+// requireDeletePermission applies the shared-drive rule to every file a folder
+// delete would trash: managers and the owner pass, and an editor passes only
+// when every file in the subtree is their own. It is the same central rule the
+// file service applies to a folder trash.
 func (s *Service) requireDeletePermission(ctx context.Context, channelID int64, files []projection.FileSlim) error {
 	if len(files) == 0 {
 		return nil
@@ -277,6 +297,13 @@ func (s *Service) requireDeletePermission(ctx context.Context, channelID int64, 
 	if ch.Kind != projection.KindShared {
 		return nil
 	}
+	caps := drive_roles.CapabilitiesFor(drive_roles.RoleEditor)
+	if s.Roles != nil {
+		caps, err = s.Roles.MyRole(ctx, channelID)
+		if err != nil {
+			return err
+		}
+	}
 	if s.ActorID == nil {
 		return fmt.Errorf("actor resolver not ready")
 	}
@@ -284,12 +311,11 @@ func (s *Service) requireDeletePermission(ctx context.Context, channelID int64, 
 	if err != nil {
 		return err
 	}
+	uploaders := make([]int64, 0, len(files))
 	for _, file := range files {
-		if file.UploaderID == 0 || file.UploaderID != actorID {
-			return fmt.Errorf("Only the uploader can delete every file in this folder in a shared drive")
-		}
+		uploaders = append(uploaders, file.UploaderID)
 	}
-	return nil
+	return drive_roles.RequireFolderSubtreeChange(caps, uploaders, actorID, "delete")
 }
 
 // requireEncryptedKey demands the encryption key when any of the files is
@@ -334,4 +360,24 @@ func normalizeParent(p string) string {
 		return projection.RootParent
 	}
 	return p
+}
+
+// requireFolderRole applies one drive_roles check to a shared drive. The personal
+// drive and a nil Roles guard always pass; a channel that is not shared passes.
+func (s *Service) requireFolderRole(ctx context.Context, channelID int64, check func(drive_roles.Capabilities) error) error {
+	if s.Roles == nil {
+		return nil
+	}
+	ch, err := projection.GetChannel(s.DB, channelID)
+	if err != nil {
+		return err
+	}
+	if ch.Kind != projection.KindShared {
+		return nil
+	}
+	caps, err := s.Roles.MyRole(ctx, channelID)
+	if err != nil {
+		return err
+	}
+	return check(caps)
 }

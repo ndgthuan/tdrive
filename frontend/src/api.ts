@@ -1,6 +1,7 @@
 // Public frontend boundary over generated Wails bindings.
 // Domain implementations stay internal; UI modules import only from this file.
 export * from "./api/drives";
+export * from "./api/drive_members";
 export * from "./api/files";
 export * from "./api/resumable_uploads";
 export * from "./api/resumable_downloads";
