@@ -18,6 +18,7 @@
 
 <span class="brand-icon" style={`width:${size}px;height:${size}px;font-size:${size}px`} aria-hidden="true">
     {#if svg}
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- the logos are vendored static SVG files, never user input -->
         {@html svg}
     {:else}
         <PlugIcon size={size} weight="regular" />
