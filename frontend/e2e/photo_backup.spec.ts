@@ -25,6 +25,23 @@ async function usePlatform(page: Page, platform: Platform): Promise<void> {
     await page.addInitScript((mobile) => history.replaceState(null, '', `/?mobile=${mobile}`), platform);
 }
 
+/** The phone's automatic backup state, in the snake_case shape the backend sends. */
+function auto_backup_state(overrides: Record<string, unknown>) {
+    return {
+        enabled: false, folder_name: 'Phone', default_folder_name: 'Phone', folder_name_custom: false,
+        folder_id: 'folder-phone', wifi_only: true, charging_only: false, permission: 'granted',
+        phase: 'off', platform: 'android', errors: [],
+        ...overrides,
+    };
+}
+
+/** Account, then the automatic backup page. Returns the card's section. */
+async function open_auto_backup(page: Page) {
+    await page.getByRole('navigation', { name: 'Primary' }).getByRole('button', { name: 'Account', exact: true }).click();
+    await page.getByRole('button', { name: /Photo & video backup/ }).click();
+    return page.locator('section.auto-backup');
+}
+
 const ok = { ok: true };
 
 /**
@@ -46,7 +63,9 @@ async function overflowsSideways(panel: ReturnType<Page['getByRole']>): Promise<
 }
 
 
-for (const platform of ['desktop', 'android'] as const) {
+// The phone's Account page no longer offers the encryption prompt from its
+// backup card (that card is automatic backup now), so the prompt is desktop-only.
+for (const platform of ['desktop'] as const) {
     test(`locked backup opens the password prompt on ${platform} and cancel keeps it stopped`, async ({ page }) => {
         await usePlatform(page, platform);
         const mock = await bootTDrive(page, {
@@ -120,7 +139,9 @@ test('empty backup settings fit the desktop viewport and guide source selection'
     await page.screenshot({ path: testInfo.outputPath('backup-desktop-empty.png') });
 });
 
-for (const platform of ['desktop', 'android', 'ios'] as const) {
+// The phone's Account page shows automatic backup instead of this panel, so the
+// settings and pause journey is desktop-only; the phone card has its own tests.
+for (const platform of ['desktop'] as const) {
     test(`photo backup settings and pause are available on ${platform}`, async ({ page }, testInfo) => {
         await usePlatform(page, platform);
         const state = {
@@ -130,7 +151,7 @@ for (const platform of ['desktop', 'android', 'ios'] as const) {
             sources: [{ id: 'camera', kind: 'library', root: 'Camera', name: 'Camera', enabled: true, added_at: 1 }],
             status: { phase: 'uploading', pending: 12, uploading: 1, complete: 24, failed: 0, current_file: 'Trips/IMG_0042.HEIC', current_file_bytes_done: 500, current_file_bytes_total: 1000, current_file_percent: 50 },
             capabilities: {
-                wifi_only: { supported: platform === 'android', label: 'Wi-Fi only', detail: 'Requires a recent device connectivity update.' },
+                wifi_only: { supported: false, label: 'Wi-Fi only', detail: 'Requires a recent device connectivity update.' },
                 access: { status: 'limited', detail: 'Only selected photos are accessible.' },
             },
         };
@@ -143,7 +164,7 @@ for (const platform of ['desktop', 'android', 'ios'] as const) {
         await expect(panel.getByRole('switch', { name: 'Back up photos & videos' })).toHaveAttribute('aria-checked', 'true');
         await expect(panel.getByRole('switch', { name: 'Photos', exact: true })).toHaveAttribute('aria-checked', 'true');
         await expect(panel.getByRole('switch', { name: 'Videos', exact: true })).toHaveAttribute('aria-checked', 'true');
-        await expect(panel.getByRole('switch', { name: 'Wi-Fi only' })).toHaveCount(platform === 'android' ? 1 : 0);
+        await expect(panel.getByRole('switch', { name: 'Wi-Fi only' })).toHaveCount(0);
         await expect(panel).toContainText('Only selected photos are accessible');
         // A photo library is a flat set of resources; nothing to mirror.
         await expect(panel).not.toContainText('Subfolders are backed up too');
@@ -225,41 +246,45 @@ for (const platform of ['desktop', 'android', 'ios'] as const) {
 }
 
 /**
- * The panel on a 390px screen. Every line here used to fight for the same row:
- * "Ready to back up" wrapped onto two while its counts were cut off beside it,
- * and "Backing up" wrapped under two buttons staggering down the side of it.
+ * The phone's Account page runs automatic backup, and its card has its own
+ * rows: the on/off switch, the folder it saves to, and the two policy
+ * switches. Nothing in it may reach past a 390px screen.
  */
-test('the phone panel gives each line its own row and the action the full card', async ({ page }) => {
+test('the phone auto backup card keeps each row on its own line on a 390px screen', async ({ page }) => {
     await usePlatform(page, 'android');
     await bootTDrive(page, {
-        GetPhotoBackupState: resolves({
-            platform: 'android',
-            settings: { enabled: true, photos: true, videos: true, encrypt: true },
-            sources: [{ id: 'camera', kind: 'android', name: 'Camera', root: '/DCIM/Camera', enabled: true }],
-            status: { phase: 'queued', complete: 41, pending: 14 },
-            destination: { title: 'Photo backup / Pixel 8 / Camera' },
-        }),
+        GetState: resolves(auto_backup_state({ enabled: true, phase: 'up_to_date' })),
+        // The runtime starts a catch-up run whenever backup is on.
+        BackUpNow: resolves(auto_backup_state({ enabled: true, phase: 'up_to_date' })),
     });
-    const panel = await openPanel(page, 'android');
-    await expect(panel).toBeVisible();
-
-    // The count is under the state, in full, not cut off beside it.
-    const title = panel.getByText('Ready to back up', { exact: true });
-    const summary = panel.getByText('41 backed up · 14 waiting', { exact: true });
-    const titleBox = (await title.boundingBox())!;
-    const summaryBox = (await summary.boundingBox())!;
-    expect(summaryBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height - 1);
-    expect(await summary.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
-
-    // The action runs the width of the card it sits in.
-    const card = (await panel.locator('.pb-situation').boundingBox())!;
-    const action = (await panel.getByRole('button', { name: 'Back up now', exact: true }).boundingBox())!;
-    expect(card.width - action.width).toBeLessThan(40);
-
-    // The section label keeps its own row above the two ways to add a source.
-    const label = (await panel.getByText('Backing up', { exact: true }).boundingBox())!;
-    const add = (await panel.getByRole('button', { name: 'Add folder', exact: true }).boundingBox())!;
-    expect(add.y).toBeGreaterThanOrEqual(label.y + label.height - 1);
-    // Nothing anywhere in the panel reaches past its own width.
+    const panel = await open_auto_backup(page);
+    await expect(panel.getByRole('switch', { name: 'Auto backup', exact: true })).toHaveAttribute('aria-checked', 'true');
+    await expect(panel).toContainText('My Drive / Phone');
+    await expect(panel.getByRole('button', { name: 'Rename', exact: true })).toBeVisible();
+    await expect(panel.getByRole('switch', { name: 'Wi-Fi only', exact: true })).toHaveAttribute('aria-checked', 'true');
+    await expect(panel.getByRole('switch', { name: 'Only while charging', exact: true })).toHaveAttribute('aria-checked', 'false');
+    await expect(panel).toContainText('Everything is backed up.');
     expect(await overflowsSideways(panel)).toBe(false);
 });
+
+for (const platform of ['android', 'ios'] as const) {
+    test(`the phone auto backup shows its live queue and starts a run on ${platform}`, async ({ page }) => {
+        await usePlatform(page, platform);
+        const mock = await bootTDrive(page, {
+            GetState: resolves(auto_backup_state({ platform, enabled: true, phase: 'running' })),
+            BackUpNow: resolves(auto_backup_state({ platform, enabled: true, phase: 'running' })),
+        });
+        const panel = await open_auto_backup(page);
+        await mock.emit('auto_backup:progress', {
+            enabled: true, done: 24, total: 37, current_name: 'IMG_0042.HEIC', current_bytes: 500, paused: false, folder_name: 'Phone',
+        });
+        await expect(panel).toContainText('24 of 37');
+        await expect(panel).toContainText('IMG_0042.HEIC');
+        await expect(panel.getByRole('progressbar')).toBeVisible();
+        // The runtime already starts a run on its own, so count from here.
+        const starts = (await mock.calls('BackUpNow')).length;
+        await panel.getByRole('button', { name: 'Back up now', exact: true }).click();
+        await expect.poll(async () => (await mock.calls('BackUpNow')).length).toBe(starts + 1);
+        expect(await overflowsSideways(panel)).toBe(false);
+    });
+}

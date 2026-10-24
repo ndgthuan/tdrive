@@ -109,7 +109,7 @@ final class MediaDlEngine {
         worker.execute(() -> {
             try {
                 ensure_ready();
-                YoutubeDL.UpdateStatus outcome = YoutubeDL.getInstance().updateYoutubeDL(app_context);
+                YoutubeDL.UpdateStatus outcome = YoutubeDL.getInstance().updateYoutubeDL(app_context, YoutubeDL.UpdateChannel._STABLE);
                 String version = YoutubeDL.getInstance().version(app_context);
                 done.finish("yt-dlp " + version + " (" + outcome + ")", "");
             } catch (Exception e) {
@@ -132,8 +132,9 @@ final class MediaDlEngine {
                 List<String> argv = to_list(payload.getJSONArray("args"));
                 ensure_ready();
                 YoutubeDLRequest request = build_request(argv);
-                YoutubeDLResponse response = YoutubeDL.getInstance().execute(request, id, (progress, eta) -> {
+                YoutubeDLResponse response = YoutubeDL.getInstance().execute(request, id, (progress, eta, line) -> {
                     sink.line(id, progress_line(progress, eta));
+                    return kotlin.Unit.INSTANCE;
                 });
                 String out = response.getOut() == null ? "" : response.getOut();
                 for (String line : out.split("\n")) {

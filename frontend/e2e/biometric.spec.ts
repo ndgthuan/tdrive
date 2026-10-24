@@ -170,39 +170,44 @@ for (const state of [
     { name: 'error with a long hint', error: true, top: 0 },
     { name: 'error with a long hint and a 48px top safe area', error: true, top: 48 },
 ] as const) {
-    test(`the short Android unlock sheet keeps each control reachable above the keyboard in ${state.name}`, async ({ page, browserName }) => {
+    // The phone's Account page now shows automatic backup, which has no unlock
+    // prompt. The short-screen keyboard contract is the same on the locked
+    // gallery card, the one place a phone asks for the encryption password.
+    test(`the short Android locked card keeps each control reachable above the keyboard in ${state.name}`, async ({ page, browserName }) => {
+        await routeRenditions(page);
         await page.setViewportSize({ width: 390, height: 568 });
         const scale = await page.evaluate(() => devicePixelRatio);
         const hint = !state.error ? locked.hint : 'The encryption password I saved when setting up my personal drive, which is different from my Telegram login and my device screen lock.';
+        const photo = { ...FIRST_PHOTO, encrypted: true };
         const mock = await bootTDrive(page, {
+            ...galleryPlans([photo]),
             SafeAreaInsets: resolves({ top: state.top * scale, right: 0, bottom: 0, left: 0 }),
             EncryptionStatus: resolves({ ...locked, hint }),
             BiometricStatus: resolves({ ...biometric, kind: 'biometric', enrolled: true }),
-            UseBiometricUnlock: resolves({ ok: false, error: { code: 'biometric_canceled', message: 'Private native diagnostic' } }),
-            GetPhotoBackupState: resolves({ ...backup, platform: 'android' }),
+            UseBiometricUnlock: resolves({ ok: false, error: { code: 'biometric_failed', message: 'Private native diagnostic' } }),
         }, { url: '/?mobile=android' });
         await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--mobile-inset-top'))).toBe(`${state.top}px`);
-        await page.getByRole('navigation', { name: 'Primary' }).getByRole('button', { name: 'Account', exact: true }).click();
-        await page.getByRole('button', { name: /Photo & video backup/ }).click();
-        await page.getByRole('button', { name: 'Unlock and back up', exact: true }).click();
-        const prompt = page.getByRole('dialog', { name: 'Unlock encrypted files' });
-        const native = prompt.getByRole('button', { name: 'Use biometrics', exact: true });
+        await page.getByRole('button', { name: 'Photos', exact: true }).click();
+        await page.getByRole('button', { name: photo.name, exact: true }).click();
+        const card = page.getByRole('group', { name: 'Locked photo' });
+        const native = card.getByRole('button', { name: 'Use biometrics', exact: true });
         await expect(native).toBeVisible();
         if (state.error) {
             await native.click();
-            await expect(prompt.getByRole('alert')).toContainText('Enter your password or try again.');
+            await expect(card.getByRole('alert')).toHaveText('Biometric authentication failed. Try again or use your encryption password.');
         }
-        const password = prompt.getByLabel('Encryption password', { exact: true });
+        const password = card.getByLabel('Encryption password', { exact: true });
+        const unlock = card.getByRole('button', { name: 'Unlock', exact: true });
+        const reveal = card.getByRole('button', { name: 'Show password', exact: true });
         await password.focus();
         await mock.emit('common:keyboard', { visible: true, height: 280 * scale });
         await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--mobile-keyboard-inset'))).toBe('280px');
-        await expect.poll(async () => (await prompt.locator('.modal-sheet-body').boundingBox())!.height).toBeGreaterThanOrEqual(48);
-        for (const action of [prompt.locator('#encryption-password-confirm'), prompt.getByRole('button', { name: 'Cancel', exact: true })]) {
-            // WebKit can report a 48px target as 47.999984px after translation.
+        for (const action of [unlock, reveal]) {
+            // WebKit can report a 44px target as 43.999984px after translation.
             const height = (await action.boundingBox())!.height;
-            expect(Math.round(height * 1000) / 1000).toBeGreaterThanOrEqual(48);
+            expect(Math.round(height * 1000) / 1000).toBeGreaterThanOrEqual(44);
         }
-        for (const control of [password, native, prompt.locator('#encryption-password-confirm'), prompt.getByRole('button', { name: 'Cancel', exact: true })]) {
+        for (const control of [password, native, unlock, reveal]) {
             await control.evaluate((node) => node.scrollIntoView({ block: 'center', behavior: 'instant' }));
             // DOM visibility alone misses clipping by a collapsed scroll body.
             await expect.poll(() => control.evaluate((node, safeTop) => {
@@ -220,9 +225,7 @@ for (const state of [
         }
         await password.evaluate((node) => node.scrollIntoView({ block: 'center', behavior: 'instant' }));
         await page.screenshot({ path: `/tmp/tdrive-biometric-unlock-short-${browserName}-${state.top ? 'error-cutout' : state.error ? 'error' : 'normal'}.png` });
-        await prompt.getByRole('button', { name: 'Cancel', exact: true }).click();
-        await expect(prompt).toBeHidden();
-        expect(await mock.calls('RunPhotoBackup')).toHaveLength(0);
+        expect(await mock.calls('OpenOriginalImage')).toHaveLength(0);
     });
 }
 
@@ -355,24 +358,21 @@ for (const platform of ['desktop', 'android'] as const) {
         await expect(settings).toBeHidden();
     });
 
-    test(`password fallback works after a canceled biometric prompt on ${platform}`, async ({ page, browserName }, testInfo) => {
-        if (platform === 'android') await page.setViewportSize({ width: 390, height: 844 });
+    // The phone's Account backup no longer opens the unlock prompt, so the
+    // android fallback is covered on the locked gallery card (see the
+    // "keeps password fallback after failed biometric authentication" tests).
+    if (platform === 'desktop') test(`password fallback works after a canceled biometric prompt on ${platform}`, async ({ page, browserName }, testInfo) => {
         const mock = await bootTDrive(page, {
             EncryptionStatus: resolves(locked),
-            BiometricStatus: resolves({ ...biometric, kind: platform === 'android' ? 'biometric' : 'windows_hello', enrolled: true }),
+            BiometricStatus: resolves({ ...biometric, kind: 'windows_hello', enrolled: true }),
             UseBiometricUnlock: resolves({ ok: false, error: { code: 'biometric_canceled', message: 'Native details must stay private' } }),
-            UseEncryptionPassword: resolves({ ok: true }), GetPhotoBackupState: resolves({ ...backup, platform }),
+            UseEncryptionPassword: resolves({ ok: true }), GetPhotoBackupState: resolves({ ...backup, platform: 'desktop' }),
             RunPhotoBackup: resolves({ ok: true }),
-        }, { url: platform === 'android' ? '/?mobile=android' : '/' });
-        let panel;
-        if (platform === 'android') {
-            await page.getByRole('navigation', { name: 'Primary' }).getByRole('button', { name: 'Account', exact: true }).click();
-            await page.getByRole('button', { name: /Photo & video backup/ }).click();
-            panel = page.getByRole('region', { name: 'Photo and video backup' });
-        } else panel = await openBackup(page);
+        });
+        const panel = await openBackup(page);
         await panel.getByRole('button', { name: 'Unlock and back up', exact: true }).click();
         const prompt = page.getByRole('dialog', { name: 'Unlock encrypted files' });
-        const native = prompt.getByRole('button', { name: platform === 'android' ? 'Use biometrics' : 'Use Windows Hello', exact: true });
+        const native = prompt.getByRole('button', { name: 'Use Windows Hello', exact: true });
         await expect(native).toBeVisible();
         const password = prompt.getByLabel('Encryption password', { exact: true });
         expect(await prompt.evaluate((element) => {
@@ -386,7 +386,7 @@ for (const platform of ['desktop', 'android'] as const) {
         await expect.poll(async () => {
             const bounds = (await prompt.boundingBox())!;
             return bounds.y + bounds.height;
-        }).toBeLessThanOrEqual(platform === 'android' ? 844 : 800);
+        }).toBeLessThanOrEqual(800);
         await page.screenshot({ path: `/tmp/tdrive-biometric-unlock-${platform}-password-first.png` });
         await native.click();
         await expect(prompt.getByRole('alert')).toHaveText('Biometric unlock was canceled. Enter your password or try again.');
