@@ -63,3 +63,6 @@ node_modules/
 /assets/app desgin mockup .png
 
 frontend/e2e/test-results/
+
+__pycache__/
+*.pyc

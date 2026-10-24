@@ -89,4 +89,5 @@ export interface ToolStatus {
     "found": boolean;
     "path": string;
     "source": string;
+    "version"?: string;
 }

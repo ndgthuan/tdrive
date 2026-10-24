@@ -123,6 +123,8 @@ tasks:
   mediadl:stage:
     internal: true
     summary: Copy the embedded Python runtime and yt-dlp into the app bundle
+    vars:
+      MEDIADL_CACHE: build/ios/mediadl/cache
     deps:
       - task: mediadl:fetch
     cmds:
