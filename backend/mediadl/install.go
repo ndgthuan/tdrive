@@ -278,6 +278,11 @@ func verify_file_sha256(file_path string, expected string) error {
 	return verify_digest(hex.EncodeToString(hasher.Sum(nil)), expected)
 }
 
+// FFMPEG_ARCHIVE_EXE is the file name inside FFMPEG_ASSET. The archive is always
+// the Windows build, so the entry is "ffmpeg.exe" on every host OS. It must not
+// come from exe_name, which would make extraction depend on the machine running it.
+const FFMPEG_ARCHIVE_EXE = "ffmpeg.exe"
+
 // extract_ffmpeg_binary copies only bin/ffmpeg.exe out of the release archive.
 // Other entries are never written, and the name check is on the base name, so a
 // crafted path cannot escape the bin directory.
@@ -289,7 +294,7 @@ func extract_ffmpeg_binary(zip_path string, dest string, bin_dir string) error {
 	defer func() { _ = reader.Close() }()
 	for _, entry := range reader.File {
 		name := strings.ReplaceAll(entry.Name, "\\", "/")
-		if path.Base(name) != exe_name(TOOL_FFMPEG) || !strings.Contains(name, "/bin/") {
+		if path.Base(name) != FFMPEG_ARCHIVE_EXE || !strings.Contains(name, "/bin/") {
 			continue
 		}
 		if entry.UncompressedSize64 > MAX_FFMPEG_BINARY_BYTES {
