@@ -1,0 +1,22 @@
+{
+    "title": "Настройки",
+    "close": "Закрыть",
+    "nav_label": "Разделы настроек",
+    "nav_general": "Общие",
+    "nav_appearance": "Оформление",
+    "nav_language": "Язык",
+    "nav_ai": "Модели ИИ",
+    "nav_updates": "Обновления",
+    "nav_account": "Аккаунт",
+    "menu_settings": "Настройки",
+    "menu_backup": "Резервное копирование фото и видео",
+    "menu_logout": "Выйти",
+    "general_title": "Общие",
+    "general_subtitle": "Сведения о TDrive на этом устройстве.",
+    "app_version": "Версия",
+    "platform": "Платформа",
+    "account_title": "Аккаунт",
+    "account_subtitle": "Аккаунт Telegram, в который выполнен вход на этом устройстве.",
+    "account_loading": "Загрузка аккаунта…",
+    "account_default_name": "Аккаунт Telegram"
+}

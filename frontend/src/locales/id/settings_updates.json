@@ -1,0 +1,13 @@
+{
+  "title": "Pembaruan",
+  "subtitle": "Pastikan TDrive selalu di versi terbaru.",
+  "current_version": "Versi saat ini",
+  "check_button": "Periksa pembaruan",
+  "auto_update_label": "Unduh pembaruan secara otomatis",
+  "download": "Unduh",
+  "restart": "Mulai ulang untuk memperbarui",
+  "restart_confirm": "Tetap mulai ulang",
+  "downloading": "Mengunduh {version}…",
+  "ready_detail": "Mulai ulang TDrive untuk menyelesaikan pemasangan {version}.",
+  "available_detail": "Versi yang lebih baru siap untuk diunduh."
+}

@@ -1,0 +1,22 @@
+{
+  "title": "Configurações",
+  "close": "Fechar",
+  "nav_label": "Seções de configurações",
+  "nav_general": "Geral",
+  "nav_appearance": "Aparência",
+  "nav_language": "Idioma",
+  "nav_ai": "Modelos de IA",
+  "nav_updates": "Atualizações",
+  "nav_account": "Conta",
+  "menu_settings": "Configurações",
+  "menu_backup": "Backup de fotos e vídeos",
+  "menu_logout": "Sair",
+  "general_title": "Geral",
+  "general_subtitle": "Sobre o TDrive neste dispositivo.",
+  "app_version": "Versão",
+  "platform": "Plataforma",
+  "account_title": "Conta",
+  "account_subtitle": "A conta do Telegram com a qual este dispositivo está conectado.",
+  "account_loading": "Carregando conta…",
+  "account_default_name": "Conta do Telegram"
+}

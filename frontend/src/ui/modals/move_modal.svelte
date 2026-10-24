@@ -134,7 +134,7 @@
                     onclick={() => onOpenFolder(folder)}
                 >
                     <span class="move-item-icon" aria-hidden="true">
-                        <FolderIcon size={16} aria-hidden="true" />
+                        <FolderIcon size={20} weight="fill" aria-hidden="true" />
                     </span>
                     <span class="move-item-name">{folder.name}</span>
                     {#if $browse.blocked.has(folder.id)}

@@ -1,0 +1,17 @@
+{
+    "ok": "OK",
+    "cancel": "Скасувати",
+    "save": "Зберегти",
+    "delete": "Видалити",
+    "close": "Закрити",
+    "retry": "Повторити",
+    "done": "Готово",
+    "back": "Назад",
+    "loading": "Завантаження…",
+    "search_placeholder": "Пошук",
+    "error_generic": "Щось пішло не так.",
+    "items_one": "{count} елемент",
+    "items_few": "{count} елементи",
+    "items_many": "{count} елементів",
+    "items_other": "{count} елемента"
+}

@@ -1,0 +1,11 @@
+{
+  "untitled": "未命名",
+  "pending_request": "待处理的请求",
+  "waiting_error": "等待批准 - {error}",
+  "waiting_admin": "等待管理员批准",
+  "my_drive": "我的云盘",
+  "loading": "正在加载...",
+  "no_shared": "还没有共享云盘",
+  "actions_for": "{title} 的操作",
+  "pending_tag": "待处理"
+}

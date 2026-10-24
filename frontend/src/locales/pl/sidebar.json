@@ -1,0 +1,11 @@
+{
+  "untitled": "Bez nazwy",
+  "pending_request": "Oczekująca prośba",
+  "waiting_error": "Oczekiwanie na zatwierdzenie - {error}",
+  "waiting_admin": "Oczekiwanie na zatwierdzenie przez administratora",
+  "my_drive": "Mój dysk",
+  "loading": "Wczytywanie...",
+  "no_shared": "Brak dysków udostępnionych",
+  "actions_for": "Działania dla: {title}",
+  "pending_tag": "oczekuje"
+}

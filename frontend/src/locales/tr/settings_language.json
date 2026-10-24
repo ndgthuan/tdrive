@@ -1,0 +1,8 @@
+{
+  "title": "Dil",
+  "option_system": "Sistem ({language})",
+  "note": "Değişiklikler hemen uygulanır, yeniden başlatma gerekmez.",
+  "date_format_label": "Tarih biçimi",
+  "interface_label": "Arayüz dili",
+  "date_format_note": "Tarih ve saatlerin bu dilde nasıl göründüğüne dair bir örnek."
+}

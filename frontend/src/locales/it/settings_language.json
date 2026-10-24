@@ -1,0 +1,8 @@
+{
+  "title": "Lingua",
+  "option_system": "Sistema ({language})",
+  "note": "Le modifiche si applicano subito, senza riavviare.",
+  "date_format_label": "Formato data",
+  "interface_label": "Lingua dell’interfaccia",
+  "date_format_note": "Esempio di come appaiono date e ore in questa lingua."
+}

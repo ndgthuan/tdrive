@@ -22,6 +22,48 @@ function placeholders_of(text: string): string[] {
     return [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort();
 }
 
+const PLURAL_KEY = /^(.+)_(zero|one|two|few|many|other)$/;
+
+/**
+ * Compares one namespace of a locale against English and returns human-readable problems.
+ * Plural groups are keys `base_other` in English; the locale must have `base_<category>` for every
+ * category Intl.PluralRules lists for it, plus `_other`. Extra keys are only allowed as plural variants.
+ */
+function parity_problems(locale: string, en: Record<string, string>, target: Record<string, string>): string[] {
+    const problems: string[] = [];
+    const plural_bases = new Set(Object.keys(en).filter((key) => key.endsWith('_other')).map((key) => key.slice(0, -'_other'.length)));
+    const is_en_plural_variant = (key: string): boolean => {
+        const match = PLURAL_KEY.exec(key);
+        return match !== null && plural_bases.has(match[1]);
+    };
+    const categories = [...new Set([...new Intl.PluralRules(locale).resolvedOptions().pluralCategories, 'other'])];
+
+    for (const key of Object.keys(en)) {
+        if (is_en_plural_variant(key)) continue;
+        if (!(key in target)) problems.push(`missing ${key}`);
+    }
+    for (const base of plural_bases) {
+        for (const category of categories) {
+            if (!(`${base}_${category}` in target)) problems.push(`missing ${base}_${category}`);
+        }
+    }
+    for (const [key, value] of Object.entries(target)) {
+        if (typeof value !== 'string' || value.trim() === '') {
+            problems.push(`empty or non-string ${key}`);
+            continue;
+        }
+        if (!(key in en) && !is_en_plural_variant(key)) {
+            problems.push(`extra key ${key}`);
+            continue;
+        }
+        const english_key = key in en ? key : `${PLURAL_KEY.exec(key)?.[1]}_other`;
+        if (english_key in en && JSON.stringify(placeholders_of(value)) !== JSON.stringify(placeholders_of(en[english_key]))) {
+            problems.push(`placeholders differ for ${key}`);
+        }
+    }
+    return problems;
+}
+
 let storage: Map<string, string>;
 let i18n: I18nModule;
 
@@ -143,8 +185,17 @@ describe('set_locale', () => {
         expect(get(i18n.current_locale)).toBe('vi');
     });
 
-    it('treats any non-Vietnamese navigator language as English', async () => {
-        stub_navigator('fr-FR');
+    it('resolves a regional system language to its translated folder', async () => {
+        stub_navigator('de-AT');
+        await i18n.set_locale('system');
+
+        expect(i18n.resolve_locale('system')).toBe('de');
+        expect(get(i18n.current_locale)).toBe('de');
+        expect(document.documentElement.lang).toBe('de');
+    });
+
+    it('shows English for a language that is not supported at all', async () => {
+        stub_navigator('klingon-QO');
         await i18n.set_locale('system');
         expect(get(i18n.current_locale)).toBe('en');
     });
@@ -232,21 +283,108 @@ describe('formatting', () => {
     });
 });
 
+describe('system resolution', () => {
+    it.each<[string[], string]>([
+        [['zh-HK'], 'zh-TW'],
+        [['zh-MO'], 'zh-TW'],
+        [['zh-Hant-SG'], 'zh-TW'],
+        [['zh-TW'], 'zh-TW'],
+        [['zh-SG'], 'zh-CN'],
+        [['zh-Hans-HK'], 'zh-CN'],
+        [['zh'], 'zh-CN'],
+        [['pt-PT'], 'pt-BR'],
+        [['pt'], 'pt-BR'],
+        [['pt-BR'], 'pt-BR'],
+        [['es-MX'], 'es'],
+        [['en-GB'], 'en'],
+        [['fr-CA'], 'fr'],
+        [['ja-JP'], 'ja'],
+        [['klingon', 'vi'], 'vi'],
+        [['xx-YY'], 'en'],
+        [[], 'en'],
+    ])('maps %j to %s', (languages, expected) => {
+        expect(i18n.resolve_system_locale(languages)).toBe(expected);
+    });
+
+    it('walks navigator.languages in preference order', () => {
+        vi.stubGlobal('navigator', { language: 'de-AT', languages: ['de-AT', 'vi'] });
+        expect(i18n.resolve_locale('system')).toBe('de');
+        vi.stubGlobal('navigator', { language: 'xx', languages: ['xx', 'ko-KR'] });
+        expect(i18n.resolve_locale('system')).toBe('ko');
+    });
+
+    it('exposes metadata for every supported locale', () => {
+        expect(i18n.SUPPORTED_LOCALES.map((info) => info.code)).toContain('zh-CN');
+        expect(i18n.locale_info('pt-BR').native_name).toBe('Português (Brasil)');
+        expect(i18n.locale_info('vi').english_name).toBe('Vietnamese');
+    });
+});
+
+describe('plural categories', () => {
+    it('uses few and many for Russian counts', () => {
+        const dictionaries = {
+            ru: { 'demo.x_one': 'one', 'demo.x_few': 'few', 'demo.x_many': 'many', 'demo.x_other': 'other' },
+        };
+        const form = (count: number) => i18n.translate_message(dictionaries, 'ru', 'demo.x', { count });
+        expect(form(1)).toBe('one');
+        expect(form(21)).toBe('one');
+        expect(form(3)).toBe('few');
+        expect(form(22)).toBe('few');
+        expect(form(5)).toBe('many');
+        expect(form(11)).toBe('many');
+    });
+
+    it('uses only _other for Japanese, which has no plural distinction', () => {
+        const dictionaries = { ja: { 'demo.x_other': '{count}件' } };
+        expect(i18n.translate_message(dictionaries, 'ja', 'demo.x', { count: 1 })).toBe('1件');
+        expect(i18n.translate_message(dictionaries, 'ja', 'demo.x', { count: 9 })).toBe('9件');
+    });
+});
+
 describe('locale dictionaries', () => {
-    it('keeps vi keys and placeholders in parity with en for every namespace', () => {
-        const en_namespaces = namespaces_in('en');
-        expect(namespaces_in('vi')).toEqual(en_namespaces);
+    const en_namespaces = namespaces_in('en');
+    const locale_folders = readdirSync(locales_dir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && entry.name !== 'en')
+        .map((entry) => entry.name)
+        .sort();
+
+    it('has English namespaces and only supported locale folders', () => {
         expect(en_namespaces.length).toBeGreaterThan(0);
+        const supported = new Set<string>(i18n.SUPPORTED_LOCALES.map((info) => info.code));
+        for (const folder of [...locale_folders, 'en']) {
+            expect(supported.has(folder), `folder ${folder} is not in SUPPORTED_LOCALES`).toBe(true);
+        }
+    });
 
-        for (const namespace of en_namespaces) {
-            const en = load_json(`${locales_dir}/en/${namespace}.json`);
-            const vi = load_json(`${locales_dir}/vi/${namespace}.json`);
+    it('lists only valid BCP-47 codes', () => {
+        for (const info of i18n.SUPPORTED_LOCALES) {
+            expect(() => Intl.getCanonicalLocales(info.code), info.code).not.toThrow();
+        }
+    });
 
-            expect(Object.keys(vi).sort(), `keys in ${namespace}`).toEqual(Object.keys(en).sort());
-
-            for (const key of Object.keys(en)) {
-                expect(placeholders_of(vi[key]), `placeholders of ${namespace}.${key}`).toEqual(placeholders_of(en[key]));
+    it('keeps every existing locale folder complete against en', () => {
+        const problems: string[] = [];
+        for (const locale of locale_folders) {
+            expect(namespaces_in(locale), `namespaces of ${locale}`).toEqual(en_namespaces);
+            for (const namespace of en_namespaces) {
+                const en = load_json(`${locales_dir}/en/${namespace}.json`);
+                const target = load_json(`${locales_dir}/${locale}/${namespace}.json`);
+                for (const problem of parity_problems(locale, en, target)) {
+                    problems.push(`${locale}/${namespace}: ${problem}`);
+                }
             }
         }
+        expect(problems).toEqual([]);
+    });
+
+    it('catches missing plural categories and placeholder drift in the checker itself', () => {
+        const en = { 'a_one': '{count} file', 'a_other': '{count} files', 'b': 'Hi {name}' };
+        const ok_ru = { 'a_one': '{count} f', 'a_few': '{count} f', 'a_many': '{count} f', 'a_other': '{count} f', 'b': 'Hi {name}' };
+        expect(parity_problems('ru', en, ok_ru)).toEqual([]);
+        expect(parity_problems('ru', en, { 'a_one': '{count} f', 'a_other': '{count} f', 'b': 'Hi {name}' }).sort())
+            .toEqual(['missing a_few', 'missing a_many']);
+        expect(parity_problems('ja', en, { 'a_other': '{count}', 'b': 'Hi {name}' })).toEqual([]);
+        expect(parity_problems('ja', en, { 'a_other': '{count}', 'b': 'Hi {user}' })).toEqual(['placeholders differ for b']);
+        expect(parity_problems('ja', en, { 'a_other': '{count}', 'b': 'Hi {name}', 'c': 'x' })).toEqual(['extra key c']);
     });
 });

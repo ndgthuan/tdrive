@@ -1,0 +1,22 @@
+{
+  "title": "Setelan",
+  "close": "Tutup",
+  "nav_label": "Bagian setelan",
+  "nav_general": "Umum",
+  "nav_appearance": "Tampilan",
+  "nav_language": "Bahasa",
+  "nav_ai": "Model AI",
+  "nav_updates": "Pembaruan",
+  "nav_account": "Akun",
+  "menu_settings": "Setelan",
+  "menu_backup": "Cadangan foto & video",
+  "menu_logout": "Keluar",
+  "general_title": "Umum",
+  "general_subtitle": "Tentang TDrive di perangkat ini.",
+  "app_version": "Versi",
+  "platform": "Platform",
+  "account_title": "Akun",
+  "account_subtitle": "Akun Telegram yang digunakan untuk masuk di perangkat ini.",
+  "account_loading": "Memuat akun…",
+  "account_default_name": "Akun Telegram"
+}

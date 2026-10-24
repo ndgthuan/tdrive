@@ -1,0 +1,16 @@
+{
+  "ok": "OK",
+  "cancel": "Annuler",
+  "save": "Enregistrer",
+  "delete": "Supprimer",
+  "close": "Fermer",
+  "retry": "Réessayer",
+  "done": "Terminé",
+  "back": "Retour",
+  "loading": "Chargement…",
+  "search_placeholder": "Rechercher",
+  "error_generic": "Une erreur s’est produite.",
+  "items_one": "{count} élément",
+  "items_many": "{count} éléments",
+  "items_other": "{count} éléments"
+}

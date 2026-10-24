@@ -1,0 +1,14 @@
+{
+    "ok": "ตกลง",
+    "cancel": "ยกเลิก",
+    "save": "บันทึก",
+    "delete": "ลบ",
+    "close": "ปิด",
+    "retry": "ลองอีกครั้ง",
+    "done": "เสร็จสิ้น",
+    "back": "กลับ",
+    "loading": "กำลังโหลด…",
+    "search_placeholder": "ค้นหา",
+    "error_generic": "เกิดข้อผิดพลาดบางอย่าง",
+    "items_other": "{count} รายการ"
+}

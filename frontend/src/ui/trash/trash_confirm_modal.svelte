@@ -60,9 +60,9 @@
         <!-- What is about to go, as the row it is: a bare name in a frame read
              as a text field waiting to be typed into. -->
         <div class="trash-confirm-target">
-            <span class="trash-confirm-icon" aria-hidden="true">
+            <span class="trash-confirm-icon" class:is-folder={target.isFolder} aria-hidden="true">
                 {#if target.isFolder}
-                    <FolderIcon size={16} />
+                    <FolderIcon size={20} weight="fill" />
                 {:else}
                     <FileIcon size={16} />
                 {/if}
@@ -101,6 +101,10 @@
         flex: 0 0 auto;
         display: inline-flex;
         color: var(--text-muted);
+    }
+
+    .trash-confirm-icon.is-folder {
+        color: var(--folder-glyph);
     }
 
     .trash-confirm-name {

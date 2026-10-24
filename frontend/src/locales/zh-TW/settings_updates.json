@@ -1,0 +1,13 @@
+{
+  "title": "更新",
+  "subtitle": "讓 TDrive 保持最新版本。",
+  "current_version": "目前版本",
+  "check_button": "檢查更新",
+  "auto_update_label": "自動下載更新",
+  "download": "下載",
+  "restart": "重新啟動以更新",
+  "restart_confirm": "仍要重新啟動",
+  "downloading": "正在下載 {version}…",
+  "ready_detail": "重新啟動 TDrive 以完成 {version} 的安裝。",
+  "available_detail": "有較新的版本可供下載。"
+}

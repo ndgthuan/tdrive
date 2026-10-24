@@ -1,0 +1,13 @@
+{
+    "title": "การอัปเดต",
+    "subtitle": "ใช้ TDrive เวอร์ชันล่าสุดเสมอ",
+    "current_version": "เวอร์ชันปัจจุบัน",
+    "check_button": "ตรวจสอบการอัปเดต",
+    "auto_update_label": "ดาวน์โหลดการอัปเดตโดยอัตโนมัติ",
+    "download": "ดาวน์โหลด",
+    "restart": "เริ่มใหม่เพื่ออัปเดต",
+    "restart_confirm": "เริ่มใหม่ต่อไป",
+    "downloading": "กำลังดาวน์โหลด {version}…",
+    "ready_detail": "เริ่ม TDrive ใหม่เพื่อติดตั้ง {version} ให้เสร็จสมบูรณ์",
+    "available_detail": "มีเวอร์ชันใหม่พร้อมให้ดาวน์โหลด"
+}

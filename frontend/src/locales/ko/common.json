@@ -1,0 +1,14 @@
+{
+    "ok": "확인",
+    "cancel": "취소",
+    "save": "저장",
+    "delete": "삭제",
+    "close": "닫기",
+    "retry": "다시 시도",
+    "done": "완료",
+    "back": "뒤로",
+    "loading": "로드 중…",
+    "search_placeholder": "검색",
+    "error_generic": "문제가 발생했습니다.",
+    "items_other": "항목 {count}개"
+}

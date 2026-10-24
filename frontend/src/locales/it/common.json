@@ -1,0 +1,16 @@
+{
+  "ok": "OK",
+  "cancel": "Annulla",
+  "save": "Salva",
+  "delete": "Elimina",
+  "close": "Chiudi",
+  "retry": "Riprova",
+  "done": "Fine",
+  "back": "Indietro",
+  "loading": "Caricamento…",
+  "search_placeholder": "Cerca",
+  "error_generic": "Si è verificato un errore.",
+  "items_one": "{count} elemento",
+  "items_many": "{count} elementi",
+  "items_other": "{count} elementi"
+}

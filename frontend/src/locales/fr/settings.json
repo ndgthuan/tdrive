@@ -1,0 +1,22 @@
+{
+  "title": "Paramètres",
+  "close": "Fermer",
+  "nav_label": "Sections des paramètres",
+  "nav_general": "Général",
+  "nav_appearance": "Apparence",
+  "nav_language": "Langue",
+  "nav_ai": "Modèles d’IA",
+  "nav_updates": "Mises à jour",
+  "nav_account": "Compte",
+  "menu_settings": "Paramètres",
+  "menu_backup": "Sauvegarde photo et vidéo",
+  "menu_logout": "Se déconnecter",
+  "general_title": "Général",
+  "general_subtitle": "À propos de TDrive sur cet appareil.",
+  "app_version": "Version",
+  "platform": "Plateforme",
+  "account_title": "Compte",
+  "account_subtitle": "Le compte Telegram avec lequel cet appareil est connecté.",
+  "account_loading": "Chargement du compte…",
+  "account_default_name": "Compte Telegram"
+}

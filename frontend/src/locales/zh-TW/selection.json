@@ -1,0 +1,12 @@
+{
+  "count_one": "已選取 {count} 項",
+  "count_other": "已選取 {count} 項",
+  "download": "下載",
+  "move": "移動",
+  "delete": "刪除",
+  "done": "完成",
+  "too_many_title": "下載項目過多",
+  "too_many_body": "一次最多選取 {count} 項。",
+  "unavailable_title": "無法下載",
+  "unavailable_body": "請重新整理雲端硬碟，然後再次選取這些項目。"
+}

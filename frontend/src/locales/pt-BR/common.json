@@ -1,0 +1,16 @@
+{
+  "ok": "OK",
+  "cancel": "Cancelar",
+  "save": "Salvar",
+  "delete": "Excluir",
+  "close": "Fechar",
+  "retry": "Tentar novamente",
+  "done": "Concluído",
+  "back": "Voltar",
+  "loading": "Carregando…",
+  "search_placeholder": "Pesquisar",
+  "error_generic": "Algo deu errado.",
+  "items_one": "{count} item",
+  "items_many": "{count} itens",
+  "items_other": "{count} itens"
+}

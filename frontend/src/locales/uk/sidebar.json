@@ -1,0 +1,11 @@
+{
+    "untitled": "Без назви",
+    "pending_request": "Запит очікує",
+    "waiting_error": "Очікування схвалення — {error}",
+    "waiting_admin": "Очікування схвалення адміністратора",
+    "my_drive": "Мій диск",
+    "loading": "Завантаження...",
+    "no_shared": "Спільних дисків поки немає",
+    "actions_for": "Дії для «{title}»",
+    "pending_tag": "очікує"
+}

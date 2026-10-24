@@ -1,0 +1,22 @@
+{
+  "title": "設定",
+  "close": "閉じる",
+  "nav_label": "設定のセクション",
+  "nav_general": "一般",
+  "nav_appearance": "外観",
+  "nav_language": "言語",
+  "nav_ai": "AI モデル",
+  "nav_updates": "アップデート",
+  "nav_account": "アカウント",
+  "menu_settings": "設定",
+  "menu_backup": "写真と動画のバックアップ",
+  "menu_logout": "ログアウト",
+  "general_title": "一般",
+  "general_subtitle": "この端末の TDrive について。",
+  "app_version": "バージョン",
+  "platform": "プラットフォーム",
+  "account_title": "アカウント",
+  "account_subtitle": "この端末でサインインしている Telegram アカウントです。",
+  "account_loading": "アカウントを読み込み中…",
+  "account_default_name": "Telegram アカウント"
+}

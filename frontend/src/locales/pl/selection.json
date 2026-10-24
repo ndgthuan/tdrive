@@ -1,0 +1,14 @@
+{
+  "count_one": "Zaznaczono: {count}",
+  "count_few": "Zaznaczono: {count}",
+  "count_many": "Zaznaczono: {count}",
+  "count_other": "Zaznaczono: {count}",
+  "download": "Pobierz",
+  "move": "Przenieś",
+  "delete": "Usuń",
+  "done": "Gotowe",
+  "too_many_title": "Zbyt wiele pobrań",
+  "too_many_body": "Zaznacz naraz maksymalnie {count} elementów.",
+  "unavailable_title": "Pobieranie niedostępne",
+  "unavailable_body": "Odśwież dysk i zaznacz elementy ponownie."
+}

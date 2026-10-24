@@ -1,0 +1,11 @@
+{
+    "untitled": "ไม่มีชื่อ",
+    "pending_request": "คำขอที่รอดำเนินการ",
+    "waiting_error": "รอการอนุมัติ - {error}",
+    "waiting_admin": "รอผู้ดูแลระบบอนุมัติ",
+    "my_drive": "ไดรฟ์ของฉัน",
+    "loading": "กำลังโหลด...",
+    "no_shared": "ยังไม่มีไดรฟ์ที่แชร์",
+    "actions_for": "การดำเนินการสำหรับ {title}",
+    "pending_tag": "รอดำเนินการ"
+}

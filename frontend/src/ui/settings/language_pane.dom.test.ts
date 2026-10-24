@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import LanguagePane from './language_pane.svelte';
-import { current_locale, locale_preference, set_locale } from '../../i18n/i18n';
+import { current_locale, locale_preference, set_locale, SUPPORTED_LOCALES } from '../../i18n/i18n';
 
 let component: Record<string, unknown> | null = null;
 let host: HTMLElement | null = null;
@@ -65,7 +65,7 @@ describe('language pane', () => {
         expect(host.textContent).toContain('Ngôn ngữ giao diện');
     });
 
-    it('offers System, Tiếng Việt and English, and shows a date example', async () => {
+    it('offers System and every supported language by native name, and shows a date example', async () => {
         await set_locale('en');
         host = document.createElement('div');
         document.body.appendChild(host);
@@ -73,7 +73,10 @@ describe('language pane', () => {
         await settle();
 
         const values = Array.from(host.querySelectorAll<HTMLInputElement>('input[type="radio"]')).map((input) => input.value);
-        expect(values).toEqual(['system', 'vi', 'en']);
+        expect(values).toEqual(['system', ...SUPPORTED_LOCALES.map((info) => info.code)]);
+        expect(host.textContent).toContain('Tiếng Việt');
+        expect(host.textContent).toContain('Vietnamese');
+        expect(host.textContent).toContain('日本語');
         expect(host.querySelector('.date-example')?.textContent?.trim()).not.toBe('');
     });
 });

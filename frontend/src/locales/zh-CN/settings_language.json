@@ -1,0 +1,8 @@
+{
+  "title": "语言",
+  "option_system": "跟随系统（{language}）",
+  "note": "更改将立即生效，无需重启。",
+  "date_format_label": "日期格式",
+  "interface_label": "界面语言",
+  "date_format_note": "以下为该语言下日期和时间的显示示例。"
+}

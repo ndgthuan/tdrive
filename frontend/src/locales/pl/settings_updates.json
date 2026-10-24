@@ -1,0 +1,13 @@
+{
+  "title": "Aktualizacje",
+  "subtitle": "Zawsze korzystaj z najnowszej wersji TDrive.",
+  "current_version": "Bieżąca wersja",
+  "check_button": "Sprawdź aktualizacje",
+  "auto_update_label": "Pobieraj aktualizacje automatycznie",
+  "download": "Pobierz",
+  "restart": "Uruchom ponownie, aby zaktualizować",
+  "restart_confirm": "Uruchom ponownie mimo to",
+  "downloading": "Pobieranie {version}…",
+  "ready_detail": "Uruchom ponownie TDrive, aby zakończyć instalację wersji {version}.",
+  "available_detail": "Nowsza wersja jest gotowa do pobrania."
+}

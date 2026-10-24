@@ -1,0 +1,11 @@
+{
+  "count_other": "{count} 件を選択中",
+  "download": "ダウンロード",
+  "move": "移動",
+  "delete": "削除",
+  "done": "完了",
+  "too_many_title": "ダウンロードの上限を超えています",
+  "too_many_body": "一度に選択できるのは {count} 件までです。",
+  "unavailable_title": "ダウンロードできません",
+  "unavailable_body": "ドライブを更新してから、項目をもう一度選択してください。"
+}

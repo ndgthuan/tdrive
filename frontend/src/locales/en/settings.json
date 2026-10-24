@@ -18,7 +18,5 @@
     "account_title": "Account",
     "account_subtitle": "The Telegram account this device is signed in with.",
     "account_loading": "Loading account…",
-    "account_default_name": "Telegram account",
-    "account_logout": "Log out",
-    "account_logout_note": "You choose what happens to data stored on this device."
+    "account_default_name": "Telegram account"
 }

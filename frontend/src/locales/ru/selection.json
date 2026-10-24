@@ -1,0 +1,14 @@
+{
+    "count_one": "Выбрано: {count}",
+    "count_few": "Выбрано: {count}",
+    "count_many": "Выбрано: {count}",
+    "count_other": "Выбрано: {count}",
+    "download": "Скачать",
+    "move": "Переместить",
+    "delete": "Удалить",
+    "done": "Готово",
+    "too_many_title": "Слишком много файлов для скачивания",
+    "too_many_body": "За раз можно выбрать не более {count} элементов.",
+    "unavailable_title": "Скачивание недоступно",
+    "unavailable_body": "Обновите диск и выберите элементы снова."
+}

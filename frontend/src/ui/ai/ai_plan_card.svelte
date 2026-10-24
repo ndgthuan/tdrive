@@ -75,7 +75,7 @@
         <ul class="ai-folders">
             {#each folders as folder (folder.name)}
                 <li class="ai-folder">
-                    <span class="ai-folder-tile" aria-hidden="true"><FolderIcon size={16} weight="fill" /></span>
+                    <span class="ai-folder-tile" aria-hidden="true"><FolderIcon size={20} weight="fill" /></span>
                     <span class="ai-folder-text">
                         <span class="ai-folder-name">
                             {folder.name}
@@ -201,16 +201,17 @@
         min-height: 40px;
     }
 
+    /* A bare folder glyph, no tile: same calm folder colour as the file list. */
     .ai-folder-tile {
         width: 28px;
         height: 28px;
         flex: none;
         display: grid;
         place-items: center;
-        border-radius: var(--radius-sm);
-        background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-        color: var(--color-accent);
+        color: var(--folder-glyph);
     }
+
+    .ai-folder-tile :global(svg) { width: 20px; height: 20px; }
 
     .ai-folder-text {
         flex: 1;

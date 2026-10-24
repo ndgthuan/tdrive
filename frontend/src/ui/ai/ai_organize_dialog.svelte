@@ -72,7 +72,7 @@
                 {#each preview.plan.folders ?? [] as folder (folder.name)}
                     <section class="ai-group" aria-label={folder.name}>
                         <header class="ai-group-head">
-                            <span class="ai-group-tile" aria-hidden="true"><FolderIcon size={16} weight="fill" /></span>
+                            <span class="ai-group-tile" aria-hidden="true"><FolderIcon size={20} weight="fill" /></span>
                             <span class="ai-group-name">{folder.name}</span>
                             <span class="ai-group-count">{$t_store('ai_organize.files_count', { count: folder.files?.length ?? 0 })}</span>
                             {#if folder.is_new}
@@ -244,16 +244,17 @@
         white-space: nowrap;
     }
 
+    /* A bare folder glyph, no tile: same calm folder colour as the file list. */
     .ai-group-tile {
         width: 26px;
         height: 26px;
         display: grid;
         place-items: center;
-        border-radius: var(--radius-sm);
-        background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-        color: var(--color-accent);
+        color: var(--folder-glyph);
         flex: none;
     }
+
+    .ai-group-tile :global(svg) { width: 20px; height: 20px; }
 
     .ai-group-name {
         font-size: var(--type-base);

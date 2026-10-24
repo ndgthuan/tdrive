@@ -1,0 +1,12 @@
+{
+  "count_one": "{count} चुना गया",
+  "count_other": "{count} चुने गए",
+  "download": "डाउनलोड",
+  "move": "ले जाएं",
+  "delete": "हटाएं",
+  "done": "हो गया",
+  "too_many_title": "बहुत अधिक डाउनलोड",
+  "too_many_body": "एक समय में अधिकतम {count} आइटम चुनें।",
+  "unavailable_title": "डाउनलोड उपलब्ध नहीं",
+  "unavailable_body": "ड्राइव रीफ़्रेश करें और आइटम फिर से चुनें।"
+}

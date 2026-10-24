@@ -1,0 +1,11 @@
+{
+  "untitled": "未命名",
+  "pending_request": "待處理的要求",
+  "waiting_error": "等待核准 - {error}",
+  "waiting_admin": "等待管理員核准",
+  "my_drive": "我的雲端硬碟",
+  "loading": "正在載入...",
+  "no_shared": "尚無共用雲端硬碟",
+  "actions_for": "{title} 的動作",
+  "pending_tag": "待處理"
+}

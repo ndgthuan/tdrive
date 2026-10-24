@@ -1,0 +1,11 @@
+{
+    "untitled": "Zonder titel",
+    "pending_request": "Openstaand verzoek",
+    "waiting_error": "Wacht op goedkeuring - {error}",
+    "waiting_admin": "Wacht op goedkeuring door een beheerder",
+    "my_drive": "Mijn drive",
+    "loading": "Laden...",
+    "no_shared": "Nog geen gedeelde drives",
+    "actions_for": "Acties voor {title}",
+    "pending_tag": "in behandeling"
+}

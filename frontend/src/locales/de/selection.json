@@ -1,0 +1,12 @@
+{
+    "count_one": "{count} ausgewählt",
+    "count_other": "{count} ausgewählt",
+    "download": "Herunterladen",
+    "move": "Verschieben",
+    "delete": "Löschen",
+    "done": "Fertig",
+    "too_many_title": "Zu viele Downloads",
+    "too_many_body": "Höchstens {count} Elemente gleichzeitig auswählen.",
+    "unavailable_title": "Download nicht verfügbar",
+    "unavailable_body": "Das Laufwerk aktualisieren und die Elemente erneut auswählen."
+}

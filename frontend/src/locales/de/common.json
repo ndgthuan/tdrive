@@ -1,0 +1,15 @@
+{
+    "ok": "OK",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "retry": "Erneut versuchen",
+    "done": "Fertig",
+    "back": "Zurück",
+    "loading": "Wird geladen…",
+    "search_placeholder": "Suchen",
+    "error_generic": "Etwas ist schiefgelaufen.",
+    "items_one": "{count} Element",
+    "items_other": "{count} Elemente"
+}

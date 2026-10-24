@@ -1,0 +1,13 @@
+{
+  "count_one": "{count} selecionado",
+  "count_many": "{count} selecionados",
+  "count_other": "{count} selecionados",
+  "download": "Baixar",
+  "move": "Mover",
+  "delete": "Excluir",
+  "done": "Concluído",
+  "too_many_title": "Downloads demais",
+  "too_many_body": "Selecione até {count} itens por vez.",
+  "unavailable_title": "Download indisponível",
+  "unavailable_body": "Atualize a unidade e selecione os itens novamente."
+}

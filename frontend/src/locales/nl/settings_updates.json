@@ -1,0 +1,13 @@
+{
+    "title": "Updates",
+    "subtitle": "Houd TDrive op de nieuwste versie.",
+    "current_version": "Huidige versie",
+    "check_button": "Controleren op updates",
+    "auto_update_label": "Updates automatisch downloaden",
+    "download": "Downloaden",
+    "restart": "Opnieuw starten om bij te werken",
+    "restart_confirm": "Toch opnieuw starten",
+    "downloading": "{version} downloaden…",
+    "ready_detail": "Start TDrive opnieuw om {version} af te ronden.",
+    "available_detail": "Er is een nieuwere versie om te downloaden."
+}

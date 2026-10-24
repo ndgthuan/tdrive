@@ -381,7 +381,7 @@
     <div class="file-row drive-row new-folder-row" data-type="new-folder" role="row">
         <div class="row-name" role="gridcell" aria-colindex="1">
             <span class="folder-chip" aria-hidden="true">
-                <FolderIcon size={16} aria-hidden="true" />
+                <FolderIcon size={20} weight="fill" aria-hidden="true" />
             </span>
             <div class="new-folder-field">
                 <input
@@ -427,7 +427,7 @@
                 <div class="row-swipe-content">
                     <div class="row-name" title={row.name}>
                         <span class="folder-chip" aria-hidden="true">
-                            <FolderIcon size={20} aria-hidden="true" />
+                            <FolderIcon size={20} weight="fill" aria-hidden="true" />
                         </span>
                         <span class="row-text">
                             {@render phoneLabel(row.name, false)}
@@ -472,7 +472,7 @@
                         {/if}
                         {#if row.kind === 'folder'}
                             <span class="folder-chip" aria-hidden="true">
-                                <FolderIcon size={20} aria-hidden="true" />
+                                <FolderIcon size={20} weight="fill" aria-hidden="true" />
                             </span>
                         {:else}
                             {@render fileIcon(row)}
@@ -564,7 +564,7 @@
             >
                 <div class="row-name" role="gridcell" aria-colindex="1" title={row.name}>
                     <span class="folder-chip" aria-hidden="true">
-                        <FolderIcon size={16} aria-hidden="true" />
+                        <FolderIcon size={20} weight="fill" aria-hidden="true" />
                     </span>
                     <span class="row-label">{row.name}</span>
                     <span class="pending-indicator" aria-hidden="true"><LoaderCircleIcon size={12} aria-hidden="true" weight="bold" /></span>
@@ -613,7 +613,7 @@
                     {/if}
                     {#if row.kind === 'folder'}
                         <span class="folder-chip" aria-hidden="true">
-                            <FolderIcon size={16} aria-hidden="true" />
+                            <FolderIcon size={20} weight="fill" aria-hidden="true" />
                         </span>
                         <span class="row-label">{row.name}</span>
                     {:else}

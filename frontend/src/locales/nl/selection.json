@@ -1,0 +1,12 @@
+{
+    "count_one": "{count} geselecteerd",
+    "count_other": "{count} geselecteerd",
+    "download": "Downloaden",
+    "move": "Verplaatsen",
+    "delete": "Verwijderen",
+    "done": "Klaar",
+    "too_many_title": "Te veel downloads",
+    "too_many_body": "Selecteer maximaal {count} items tegelijk.",
+    "unavailable_title": "Download niet beschikbaar",
+    "unavailable_body": "Vernieuw de drive en selecteer de items opnieuw."
+}

@@ -1,0 +1,11 @@
+{
+  "untitled": "Sin título",
+  "pending_request": "Solicitud pendiente",
+  "waiting_error": "Esperando aprobación - {error}",
+  "waiting_admin": "Esperando la aprobación del administrador",
+  "my_drive": "Mi unidad",
+  "loading": "Cargando...",
+  "no_shared": "Aún no hay unidades compartidas",
+  "actions_for": "Acciones para {title}",
+  "pending_tag": "pendiente"
+}

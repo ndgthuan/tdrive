@@ -1,0 +1,11 @@
+{
+  "untitled": "Adsız",
+  "pending_request": "Bekleyen istek",
+  "waiting_error": "Onay bekleniyor - {error}",
+  "waiting_admin": "Yönetici onayı bekleniyor",
+  "my_drive": "Benim Sürücüm",
+  "loading": "Yükleniyor...",
+  "no_shared": "Henüz paylaşılan sürücü yok",
+  "actions_for": "{title} için işlemler",
+  "pending_tag": "bekliyor"
+}

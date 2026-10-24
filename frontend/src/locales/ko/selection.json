@@ -1,0 +1,11 @@
+{
+    "count_other": "{count}개 선택됨",
+    "download": "다운로드",
+    "move": "이동",
+    "delete": "삭제",
+    "done": "완료",
+    "too_many_title": "다운로드 항목이 너무 많습니다",
+    "too_many_body": "한 번에 최대 {count}개 항목을 선택하세요.",
+    "unavailable_title": "다운로드할 수 없습니다",
+    "unavailable_body": "드라이브를 새로 고친 후 항목을 다시 선택하세요."
+}

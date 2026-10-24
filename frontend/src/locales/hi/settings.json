@@ -1,0 +1,22 @@
+{
+  "title": "सेटिंग्स",
+  "close": "बंद करें",
+  "nav_label": "सेटिंग्स के भाग",
+  "nav_general": "सामान्य",
+  "nav_appearance": "दिखावट",
+  "nav_language": "भाषा",
+  "nav_ai": "AI मॉडल",
+  "nav_updates": "अपडेट",
+  "nav_account": "खाता",
+  "menu_settings": "सेटिंग्स",
+  "menu_backup": "फ़ोटो और वीडियो बैकअप",
+  "menu_logout": "लॉग आउट",
+  "general_title": "सामान्य",
+  "general_subtitle": "इस डिवाइस पर TDrive के बारे में।",
+  "app_version": "संस्करण",
+  "platform": "प्लेटफ़ॉर्म",
+  "account_title": "खाता",
+  "account_subtitle": "वह Telegram खाता जिससे इस डिवाइस पर साइन इन है।",
+  "account_loading": "खाता लोड हो रहा है…",
+  "account_default_name": "Telegram खाता"
+}

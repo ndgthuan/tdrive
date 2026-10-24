@@ -18,7 +18,5 @@
     "account_title": "Tài khoản",
     "account_subtitle": "Tài khoản Telegram mà thiết bị này đang đăng nhập.",
     "account_loading": "Đang tải tài khoản…",
-    "account_default_name": "Tài khoản Telegram",
-    "account_logout": "Đăng xuất",
-    "account_logout_note": "Bạn chọn cách xử lý dữ liệu lưu trên thiết bị này."
+    "account_default_name": "Tài khoản Telegram"
 }

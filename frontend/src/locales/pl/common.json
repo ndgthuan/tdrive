@@ -1,0 +1,17 @@
+{
+  "ok": "OK",
+  "cancel": "Anuluj",
+  "save": "Zapisz",
+  "delete": "Usuń",
+  "close": "Zamknij",
+  "retry": "Ponów",
+  "done": "Gotowe",
+  "back": "Wstecz",
+  "loading": "Wczytywanie…",
+  "search_placeholder": "Szukaj",
+  "error_generic": "Coś poszło nie tak.",
+  "items_one": "{count} element",
+  "items_few": "{count} elementy",
+  "items_many": "{count} elementów",
+  "items_other": "{count} elementu"
+}

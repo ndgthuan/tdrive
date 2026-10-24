@@ -1,0 +1,14 @@
+{
+  "ok": "OK",
+  "cancel": "Batal",
+  "save": "Simpan",
+  "delete": "Hapus",
+  "close": "Tutup",
+  "retry": "Coba lagi",
+  "done": "Selesai",
+  "back": "Kembali",
+  "loading": "Memuat…",
+  "search_placeholder": "Telusuri",
+  "error_generic": "Terjadi kesalahan.",
+  "items_other": "{count} item"
+}

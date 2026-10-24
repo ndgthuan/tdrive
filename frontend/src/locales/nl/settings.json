@@ -1,0 +1,22 @@
+{
+    "title": "Instellingen",
+    "close": "Sluiten",
+    "nav_label": "Instellingenonderdelen",
+    "nav_general": "Algemeen",
+    "nav_appearance": "Weergave",
+    "nav_language": "Taal",
+    "nav_ai": "AI-modellen",
+    "nav_updates": "Updates",
+    "nav_account": "Account",
+    "menu_settings": "Instellingen",
+    "menu_backup": "Foto- en videoback-up",
+    "menu_logout": "Afmelden",
+    "general_title": "Algemeen",
+    "general_subtitle": "Over TDrive op dit apparaat.",
+    "app_version": "Versie",
+    "platform": "Platform",
+    "account_title": "Account",
+    "account_subtitle": "Het Telegram-account waarmee dit apparaat is aangemeld.",
+    "account_loading": "Account laden…",
+    "account_default_name": "Telegram-account"
+}

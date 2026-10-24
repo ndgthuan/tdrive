@@ -1,0 +1,15 @@
+{
+  "ok": "確定",
+  "cancel": "取消",
+  "save": "儲存",
+  "delete": "刪除",
+  "close": "關閉",
+  "retry": "重試",
+  "done": "完成",
+  "back": "返回",
+  "loading": "載入中…",
+  "search_placeholder": "搜尋",
+  "error_generic": "發生問題。",
+  "items_one": "{count} 項",
+  "items_other": "{count} 項"
+}
