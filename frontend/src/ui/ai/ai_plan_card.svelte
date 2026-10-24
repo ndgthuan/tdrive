@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import ArrowClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
     import FolderIcon from 'phosphor-svelte/lib/FolderIcon';

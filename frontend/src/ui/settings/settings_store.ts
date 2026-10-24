@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 import { writable } from 'svelte/store';
 
 export type settings_pane = 'general' | 'appearance' | 'language' | 'ai' | 'account';

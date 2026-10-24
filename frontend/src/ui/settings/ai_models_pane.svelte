@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import DotsIcon from 'phosphor-svelte/lib/DotsThreeIcon';
     import PlusIcon from 'phosphor-svelte/lib/PlusIcon';

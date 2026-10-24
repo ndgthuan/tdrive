@@ -38,6 +38,7 @@ import (
 	"time"
 
 	"TDrive/backend/daemon"
+	"TDrive/internal/buildinfo"
 
 	"golang.org/x/term"
 )
@@ -84,6 +85,8 @@ func run(args []string) error {
 		}
 		info := cliBuildInfo()
 		fmt.Printf("tdrive %s (%s), daemon protocol %d\n", info.Version, info.Commit, info.Protocol)
+		fmt.Println(buildinfo.Attribution())
+		fmt.Println(buildinfo.Repository)
 		return nil
 	case "commands":
 		printUsage()

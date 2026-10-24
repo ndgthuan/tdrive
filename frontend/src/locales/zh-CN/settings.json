@@ -17,5 +17,12 @@
   "account_title": "账号",
   "account_subtitle": "此设备登录所使用的 Telegram 账号。",
   "account_loading": "正在加载账号…",
-  "account_default_name": "Telegram 账号"
+  "account_default_name": "Telegram 账号",
+    "about_title": "关于",
+    "about_name": "应用",
+    "about_made_by": "由 {author} 制作",
+    "about_based_on": "基于 {upstream} 的 TDrive",
+    "about_github": "GitHub",
+    "about_licenses": "许可证",
+    "about_licenses_title": "许可证与声明"
 }

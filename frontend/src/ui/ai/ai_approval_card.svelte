@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import FileIcon from 'phosphor-svelte/lib/FileIcon';
     import FolderIcon from 'phosphor-svelte/lib/FolderIcon';

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Photo organize flow: plan (with progress), preview, apply and undo. Nothing
 // moves until apply, and apply only moves files, so undo always has a target.
 import { get } from 'svelte/store';

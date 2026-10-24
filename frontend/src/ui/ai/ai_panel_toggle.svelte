@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import SparkleIcon from 'phosphor-svelte/lib/SparkleIcon';
     import { panel_open } from './ai_store';

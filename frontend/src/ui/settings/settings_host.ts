@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Mounts the settings dialog once, into a body-level overlay of its own. A
 // body-level host keeps the dialog out of the account menu's popover, which is
 // positioned inside the header and must not clip or trap a full-window dialog.

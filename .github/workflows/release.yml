@@ -13,7 +13,7 @@ on:
       android_tag:
         description: Version to stamp into the Android signing check
         type: string
-        default: v2.2.0
+        default: v3.0.0
 
 permissions:
   contents: read
@@ -254,6 +254,116 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+  # Unsigned iOS IPA for sideloading (TrollStore, Sideloadly, AltStore). The
+  # app is ad-hoc signed by the build (CODESIGN_IDENTITY is "-") and carries no
+  # Apple developer certificate or provisioning profile. Marked
+  # continue-on-error so an iOS toolchain failure cannot block the other
+  # platforms; the release job then ships without the IPA.
+  ios-unsigned:
+    name: Unsigned iOS IPA
+    needs: validate-release-ref
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.verify_android_signing }}
+    runs-on: macos-15
+    timeout-minutes: 45
+    continue-on-error: true
+    env:
+      GOFLAGS: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Sanitize artifact version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(printf '%s' "$GITHUB_REF_NAME" | sed 's/[^[:alnum:]._-]/-/g')"
+          test -n "$version"
+          echo "TDRIVE_ARTIFACT_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Keep the packaged iOS bundle version in step with the tag. Values are
+      # rewritten in place with sed so the XML layout that
+      # build/ios/Taskfile.yml reads with awk stays unchanged.
+      - name: Stamp iOS bundle version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Stable tag required for the iOS bundle version: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          plist="build/ios/Info.plist"
+          sed -i.bak -E "/<key>CFBundleShortVersionString<\/key>/{n;s|<string>[^<]*</string>|<string>${version}</string>|}" "$plist"
+          sed -i.bak -E "/<key>CFBundleVersion<\/key>/{n;s|<string>[^<]*</string>|<string>${version}</string>|}" "$plist"
+          rm -f "$plist.bak"
+          grep -Fq "<string>${version}</string>" "$plist"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build embedded frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Install Wails CLI
+        env:
+          CGO_ENABLED: 0
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      # Device SDK build, ad-hoc signed, packaged as build/bin/TDrive.ipa with
+      # the Payload/TDrive.app layout. No Apple identity is involved.
+      - name: Build unsigned device IPA
+        run: wails3 task ios:package:ipa IOS_PLATFORM=device CODESIGN_IDENTITY=-
+
+      - name: Stage and verify unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          ipa="build/bin/TDrive.ipa"
+          test -s "$ipa"
+          entries="$(unzip -Z1 "$ipa")"
+          grep -Fxq 'Payload/TDrive.app/TDrive' <<<"$entries"
+          grep -Fxq 'Payload/TDrive.app/Info.plist' <<<"$entries"
+          if grep -Fxq 'Payload/TDrive.app/embedded.mobileprovision' <<<"$entries"; then
+            echo "The unsigned IPA unexpectedly embeds a provisioning profile" >&2
+            exit 1
+          fi
+          tmp="$RUNNER_TEMP/tdrive-ipa-check"
+          rm -rf "$tmp"
+          mkdir -p "$tmp"
+          unzip -q "$ipa" 'Payload/TDrive.app/Info.plist' -d "$tmp"
+          short="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$tmp/Payload/TDrive.app/Info.plist")"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$short" != "${GITHUB_REF_NAME#v}" ]; then
+            echo "IPA version $short does not match $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          mkdir -p dist
+          cp "$ipa" "dist/TDrive-${TDRIVE_ARTIFACT_VERSION}-ios-unsigned.ipa"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: binary-ios-unsigned
+          path: dist/*
+          if-no-files-found: error
+
   android-signing-check:
     name: Verify signed Android APK
     needs: validate-release-ref
@@ -392,7 +502,9 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-22.04
     timeout-minutes: 45
-    needs: build
+    # ios-unsigned is continue-on-error, so a failed iOS job still lets this
+    # job run; it then ships without the IPA.
+    needs: [build, ios-unsigned]
     if: startsWith(github.ref, 'refs/tags/')
     environment: release-signing
     permissions:

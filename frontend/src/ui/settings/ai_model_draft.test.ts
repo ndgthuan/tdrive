@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 import { describe, expect, it } from 'vitest';
 import { Provider, type ModelView } from '../../../bindings/TDrive/backend/ai/models';
 import {

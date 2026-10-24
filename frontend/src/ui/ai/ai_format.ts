@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Time labels for the session list and messages. Timestamps from the backend
 // are Unix milliseconds.
 import { get } from 'svelte/store';

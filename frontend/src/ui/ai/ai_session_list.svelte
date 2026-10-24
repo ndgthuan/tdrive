@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
     import { format_relative_time } from './ai_format';

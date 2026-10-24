@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import { t_store } from '../../i18n/i18n';
     import AppearancePanel from '../theme/appearance_panel.svelte';

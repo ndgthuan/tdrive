@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Shared state for the AI panel. Plain writable stores: the panel, the toggle
 // in the top bar and the controllers all read the same values.
 import { writable } from 'svelte/store';

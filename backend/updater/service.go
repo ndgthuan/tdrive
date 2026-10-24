@@ -21,7 +21,7 @@ import (
 )
 
 // DefaultRepo is the GitHub repository whose releases carry desktop builds.
-const DefaultRepo = "jeetrex17/TDrive"
+const DefaultRepo = "ndgthuan/tdrive"
 
 // Phase is where the updater is in the check → download → install lifecycle.
 // Errors do not get a phase of their own: a failed step reports its message

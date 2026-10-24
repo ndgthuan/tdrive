@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // The configured model list, shared by Settings > AI Models and the AI panel.
 // Every add, edit, delete and default change in Settings reloads it through
 // refresh_configured_models(), so the composer never shows a stale list. The

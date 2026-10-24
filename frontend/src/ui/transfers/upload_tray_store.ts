@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 import { derived, get, writable } from 'svelte/store';
 import { cancelUpload, cancelUploadById, onRuntimeEvent, retryUploadToDriveFs, type RuntimeUnsubscribe } from '../../api';
 import { appActions } from '../../modules/app_actions';

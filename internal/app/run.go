@@ -7,6 +7,7 @@ import (
 
 	"TDrive/backend/processlock"
 	"TDrive/backend/updater"
+	"TDrive/internal/buildinfo"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
@@ -31,7 +32,7 @@ func Run(assets fs.FS, version string) error {
 		Name: "TDrive",
 		// The default About panel reads Name/Description/Icon (there is no
 		// v2-style mac.AboutInfo any more), so the version lives here.
-		Description: "Version " + version + "\nTelegram-backed desktop drive.",
+		Description: "Version " + version + "\nTelegram-backed desktop drive.\n" + buildinfo.Attribution(),
 		Services:    app.services(),
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

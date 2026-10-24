@@ -17,5 +17,12 @@
     "account_title": "Обліковий запис",
     "account_subtitle": "Обліковий запис Telegram, з яким виконано вхід на цьому пристрої.",
     "account_loading": "Завантаження облікового запису…",
-    "account_default_name": "Обліковий запис Telegram"
+    "account_default_name": "Обліковий запис Telegram",
+    "about_title": "Про застосунок",
+    "about_name": "Застосунок",
+    "about_made_by": "Автор: {author}",
+    "about_based_on": "Засновано на TDrive від {upstream}",
+    "about_github": "GitHub",
+    "about_licenses": "Ліцензії",
+    "about_licenses_title": "Ліцензії та повідомлення"
 }

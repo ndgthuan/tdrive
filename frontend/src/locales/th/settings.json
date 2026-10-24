@@ -17,5 +17,12 @@
     "account_title": "บัญชี",
     "account_subtitle": "บัญชี Telegram ที่ลงชื่อเข้าใช้บนอุปกรณ์นี้",
     "account_loading": "กำลังโหลดบัญชี…",
-    "account_default_name": "บัญชี Telegram"
+    "account_default_name": "บัญชี Telegram",
+    "about_title": "เกี่ยวกับ",
+    "about_name": "แอป",
+    "about_made_by": "สร้างโดย {author}",
+    "about_based_on": "พัฒนาต่อจาก TDrive ของ {upstream}",
+    "about_github": "GitHub",
+    "about_licenses": "ใบอนุญาต",
+    "about_licenses_title": "ใบอนุญาตและประกาศ"
 }

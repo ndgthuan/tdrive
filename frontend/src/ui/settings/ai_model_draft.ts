@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Pure helpers for the add/edit model form. No DOM, no backend calls.
 import { Provider, type ModelInput, type ModelView } from '../../../bindings/TDrive/backend/ai/models';
 

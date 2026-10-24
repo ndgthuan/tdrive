@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import { onMount } from 'svelte';
     import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';

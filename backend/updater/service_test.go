@@ -135,7 +135,7 @@ func newFixture(t *testing.T, current, latest string) *fixture {
 	f.source = &fakeSource{release: Release{
 		Tag:         "v" + latest,
 		Version:     mustVersion(t, latest),
-		PageURL:     "https://github.com/jeetrex17/TDrive/releases/tag/v" + latest,
+		PageURL:     "https://github.com/ndgthuan/tdrive/releases/tag/v" + latest,
 		PublishedAt: time.Date(2026, 8, 25, 9, 18, 39, 0, time.UTC),
 		Assets: []Asset{
 			{Name: f.assetName, Size: int64(len(f.payload)), URL: f.server.URL + "/" + f.assetName},
@@ -242,7 +242,7 @@ func TestFullLifecycle(t *testing.T) {
 	if got.Latest.PublishedAt != "2026-08-25T09:18:39Z" {
 		t.Fatalf("published_at = %q", got.Latest.PublishedAt)
 	}
-	if f.service.ReleasePageURL() != "https://github.com/jeetrex17/TDrive/releases/tag/v1.7.0" {
+	if f.service.ReleasePageURL() != "https://github.com/ndgthuan/tdrive/releases/tag/v1.7.0" {
 		t.Fatalf("ReleasePageURL = %q", f.service.ReleasePageURL())
 	}
 

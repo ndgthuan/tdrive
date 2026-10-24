@@ -1,5 +1,9 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
+    import { openExternalUrl } from '../../api';
     import { humanizeBackendError } from '../../modules/errors';
+    import { author, notice_text, repository_url, upstream_name } from './about_notice';
     import { formatBytes } from '../../utils';
     import { t_store } from '../../i18n/i18n';
     import {
@@ -20,6 +24,7 @@
     let confirming = $state(false);
     let risks = $state<string[]>([]);
     let preparing_restart = $state(false);
+    let show_licenses = $state(false);
 
     const version = $derived($appVersionInfo?.version ?? '');
     const platform = $derived(formatPlatform($appVersionInfo));
@@ -144,6 +149,45 @@
             </button>
         </div>
     {/if}
+
+    <div class="about-block">
+        <h4 class="about-title">{$t_store('settings.about_title')}</h4>
+        <dl class="settings-facts">
+            <div class="settings-fact">
+                <dt>{$t_store('settings.about_name')}</dt>
+                <dd>TDrive</dd>
+            </div>
+            <div class="settings-fact">
+                <dt>{$t_store('settings.app_version')}</dt>
+                <dd>{version || '—'}</dd>
+            </div>
+        </dl>
+        <p class="settings-note">{$t_store('settings.about_made_by', { author })}</p>
+        <p class="settings-note">{$t_store('settings.about_based_on', { upstream: upstream_name })}</p>
+        <div class="update-row">
+            <button class="settings-btn ghost" type="button" onclick={() => openExternalUrl(repository_url)}>
+                {$t_store('settings.about_github')}
+            </button>
+            <button
+                class="settings-btn ghost"
+                type="button"
+                aria-expanded={show_licenses}
+                aria-controls="about-licenses"
+                onclick={() => (show_licenses = !show_licenses)}
+            >
+                {$t_store('settings.about_licenses')}
+            </button>
+        </div>
+        {#if show_licenses}
+            <section id="about-licenses" class="about-licenses" aria-labelledby="about-licenses-title">
+                <h5 id="about-licenses-title" class="about-title">{$t_store('settings.about_licenses_title')}</h5>
+                <pre class="about-notice">{notice_text}</pre>
+                <div>
+                    <button class="settings-btn" type="button" onclick={() => (show_licenses = false)}>{$t_store('settings.close')}</button>
+                </div>
+            </section>
+        {/if}
+    </div>
 </section>
 
 <style>
@@ -208,5 +252,42 @@
         align-items: center;
         justify-content: space-between;
         gap: var(--space-3);
+    }
+
+    .about-block {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--color-border-soft);
+    }
+
+    .about-title {
+        margin: 0;
+        color: var(--color-text);
+        font-size: var(--type-base);
+        font-weight: var(--weight-semibold);
+    }
+
+    .about-licenses {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .about-notice {
+        max-height: 320px;
+        margin: 0;
+        padding: var(--space-3) var(--space-4);
+        overflow: auto;
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-1);
+        color: var(--color-text-muted);
+        font-family: inherit;
+        font-size: var(--type-sm);
+        line-height: var(--leading-snug);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
     }
 </style>

@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import CloudUploadIcon from 'phosphor-svelte/lib/CloudArrowUpIcon';
     import { dropOverlayState } from './drop_overlay_store';

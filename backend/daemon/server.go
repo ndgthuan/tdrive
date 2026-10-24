@@ -42,6 +42,7 @@ import (
 	"TDrive/backend/core"
 	"TDrive/backend/mountlifecycle"
 	"TDrive/backend/processlock"
+	"TDrive/internal/buildinfo"
 	"context"
 	"errors"
 	"fmt"
@@ -137,6 +138,7 @@ func Run(ctx context.Context, cfg ServerConfig) error {
 	}()
 	applog.Init()
 	defer applog.Close()
+	slog.Info("daemon: starting", "attribution", buildinfo.Attribution(), "repository", buildinfo.Repository)
 
 	engine, err := core.New(runCtx, cfg.CoreConfig)
 	if err != nil {

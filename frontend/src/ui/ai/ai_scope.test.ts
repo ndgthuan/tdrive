@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { get } from 'svelte/store';
 import { state } from '../../state';
