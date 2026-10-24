@@ -1,7 +1,4 @@
 {
-  "title": "アップデート",
-  "subtitle": "TDrive を最新バージョンに保ちます。",
-  "current_version": "現在のバージョン",
   "check_button": "アップデートを確認",
   "auto_update_label": "アップデートを自動でダウンロード",
   "download": "ダウンロード",

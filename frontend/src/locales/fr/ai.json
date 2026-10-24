@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "Trouver les fichiers en double",
   "composer_placeholder": "Demander à TDrive…",
   "context_label": "Contexte",
-  "scope_drive_root": "Utiliser tout le lecteur",
   "scope_remove_folder": "Retirer ce dossier du contexte",
   "send": "Envoyer",
   "voice_label": "Saisie vocale",
@@ -38,5 +37,10 @@
   "error_invalid_key": "Le modèle a rejeté sa clé API. Vérifiez la clé dans les paramètres.",
   "error_rate_limit": "Le modèle est occupé ou la limite de requêtes est atteinte. Réessayez dans un instant.",
   "error_generic": "La réponse n’a pas pu être terminée.",
-  "retry": "Réessayer"
+  "retry": "Réessayer",
+  "model_manage": "Gérer les modèles…",
+  "scope_menu_label": "Lecteur et dossier de ce chat",
+  "scope_current_folder": "Dossier actuel",
+  "scope_root_item": "Racine du lecteur",
+  "scope_drives_heading": "Lecteurs"
 }

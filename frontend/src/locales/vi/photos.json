@@ -19,7 +19,6 @@
     "locked_pill": "Đã khóa",
     "loading_albums": "Đang tải album",
     "albums_list_label": "Album",
-    "drive_root": "Thư mục gốc của ổ đĩa",
     "untitled_folder": "Thư mục chưa đặt tên",
     "album_count_one": "{number} ảnh",
     "album_count_other": "{number} ảnh",
@@ -29,7 +28,6 @@
     "photos_view_label": "Chế độ xem ảnh",
     "albums_tab": "Album",
     "all_photos": "Tất cả ảnh",
-
     "backup_card_label": "Sao lưu ảnh và video",
     "switch_title": "Sao lưu ảnh và video",
     "in_this_drive": "Trong ổ đĩa này",
@@ -51,7 +49,6 @@
     "wifi_only_note": "Không bao giờ dùng dữ liệu di động.",
     "try_again": "Thử lại",
     "loading_settings": "Đang tải cài đặt sao lưu…",
-
     "action_back_up_now": "Sao lưu ngay",
     "action_unlock_back_up": "Mở khóa và sao lưu",
     "action_resume": "Tiếp tục",
@@ -91,7 +88,6 @@
     "choose_body": "Thêm một thư mục hoặc thư viện ảnh bên dưới để bắt đầu.",
     "ready_title": "Sẵn sàng",
     "nothing_backed_up": "Chưa sao lưu mục nào.",
-
     "activity_scanning": "Đang quét ảnh và video",
     "activity_backup": "Sao lưu ảnh",
     "activity_preparing": "Đang chuẩn bị sao lưu ảnh",
@@ -100,7 +96,6 @@
     "result_paused": "Đã tạm dừng sao lưu ảnh",
     "result_completed_one": "Đã hoàn tất sao lưu ảnh · {count} mục",
     "result_completed_other": "Đã hoàn tất sao lưu ảnh · {count} mục",
-
     "notice_title": "Đang sao lưu ảnh",
     "notice_text": "Đang hoàn tất mục hiện tại",
     "attention_title": "Sao lưu ảnh cần được xem lại",
@@ -110,7 +105,6 @@
     "background_cleanup_failed": "Không thể hoàn tất dọn dẹp sao lưu nền. Hệ thống sẽ thử lại khi trạng thái sao lưu thay đổi.",
     "background_unavailable": "Bản dựng này không hỗ trợ sao lưu nền. Giữ TDrive mở để tiếp tục.",
     "background_start_failed": "Không thể bắt đầu sao lưu nền. Giữ TDrive mở để tiếp tục.",
-
     "unlock_message": "Mở khóa mã hóa để tiếp tục sao lưu ảnh.",
     "backup_unavailable": "Sao lưu ảnh hiện không khả dụng. Hãy thử lại.",
     "wifi_check_failed": "Không thể kiểm tra Wi-Fi. Việc sao lưu sẽ thử kiểm tra kết nối lại.",
@@ -127,7 +121,6 @@
     "photo_not_read": "Không thể đọc ảnh.",
     "media_not_read": "Không thể đọc phương tiện.",
     "cleanup_failed": "Dọn dẹp tệp tạm thời thất bại. Mở lại TDrive để thử dọn dẹp lại.",
-
     "library_unavailable": "Không thể truy cập thư viện ảnh.",
     "picker_unavailable": "Bản dựng này không thể mở trình chọn thư mục.",
     "media_unavailable": "Bản dựng này không thể đọc phương tiện đã chọn.",

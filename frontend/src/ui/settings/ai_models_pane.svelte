@@ -2,15 +2,18 @@
     import DotsIcon from 'phosphor-svelte/lib/DotsThreeIcon';
     import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
     import { onMount } from 'svelte';
-    import { delete_model, list_models, Provider, set_default_model, type ModelView } from '../../api/ai';
+    import { delete_model, Provider, set_default_model, type ModelView } from '../../api/ai';
+    import { configured_models, refresh_configured_models } from '../ai/ai_models_store';
+    import BrandIcon from '../ai/brand_icon.svelte';
     import { humanizeBackendError } from '../../modules/errors';
     import { t, t_store } from '../../i18n/i18n';
-    import { provider_brand_label, provider_mark } from './ai_model_draft';
+    import { provider_brand_label } from './ai_model_draft';
     import AiModelForm from './ai_model_form.svelte';
 
     type view = { kind: 'list' } | { kind: 'form'; model: ModelView | null };
 
-    let models = $state<ModelView[]>([]);
+    // The list lives in the shared store, so the AI panel sees every change made here.
+    const models = $derived($configured_models);
     let loading = $state(true);
     let error = $state('');
     let view = $state<view>({ kind: 'list' });
@@ -25,7 +28,7 @@
     async function refresh(): Promise<void> {
         loading = true;
         try {
-            models = await list_models();
+            await refresh_configured_models();
             error = '';
         } catch (cause) {
             error = humanizeBackendError(cause) || t('settings_ai.load_failed');
@@ -120,7 +123,9 @@
                 {#each models as model (model.id)}
                     <li class="ai-card-wrap">
                         <div class="ai-card">
-                            <div class="ai-mark" aria-hidden="true">{provider_mark(model.provider)}</div>
+                            <div class="ai-mark">
+                                <BrandIcon provider={model.provider} size={20} />
+                            </div>
                             <div class="ai-card-main">
                                 <div class="ai-card-title">
                                     <span class="ai-card-name">{model.display_name}</span>

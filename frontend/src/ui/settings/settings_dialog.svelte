@@ -1,5 +1,4 @@
 <script lang="ts">
-    import ArrowsClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
     import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
     import PaletteIcon from 'phosphor-svelte/lib/PaletteIcon';
     import SlidersIcon from 'phosphor-svelte/lib/SlidersIcon';
@@ -7,7 +6,6 @@
     import UserCircleIcon from 'phosphor-svelte/lib/UserCircleIcon';
     import XIcon from 'phosphor-svelte/lib/XIcon';
     import type { Component } from 'svelte';
-    import { isMobilePlatform } from '../../api';
     import { t_store } from '../../i18n/i18n';
     import ModalShell from '../modals/modal_shell.svelte';
     import AccountPane from './account_pane.svelte';
@@ -15,7 +13,6 @@
     import AppearancePane from './appearance_pane.svelte';
     import GeneralPane from './general_pane.svelte';
     import LanguagePane from './language_pane.svelte';
-    import UpdatesPane from './updates_pane.svelte';
     import { close_settings, settings_view, type settings_pane } from './settings_store';
     import './settings.css';
 
@@ -25,18 +22,13 @@
         icon: typeof SlidersIcon;
     }
 
-    // Updates only exist where the desktop updater runs; phones use their stores.
-    const navItems = $derived.by((): NavItem[] => {
-        const items: NavItem[] = [
-            { id: 'general', label: $t_store('settings.nav_general'), icon: SlidersIcon },
-            { id: 'appearance', label: $t_store('settings.nav_appearance'), icon: PaletteIcon },
-            { id: 'language', label: $t_store('settings.nav_language'), icon: GlobeIcon },
-            { id: 'ai', label: $t_store('settings.nav_ai'), icon: SparkleIcon },
-        ];
-        if (!isMobilePlatform()) items.push({ id: 'updates', label: $t_store('settings.nav_updates'), icon: ArrowsClockwiseIcon });
-        items.push({ id: 'account', label: $t_store('settings.nav_account'), icon: UserCircleIcon });
-        return items;
-    });
+    const navItems = $derived.by((): NavItem[] => [
+        { id: 'general', label: $t_store('settings.nav_general'), icon: SlidersIcon },
+        { id: 'appearance', label: $t_store('settings.nav_appearance'), icon: PaletteIcon },
+        { id: 'language', label: $t_store('settings.nav_language'), icon: GlobeIcon },
+        { id: 'ai', label: $t_store('settings.nav_ai'), icon: SparkleIcon },
+        { id: 'account', label: $t_store('settings.nav_account'), icon: UserCircleIcon },
+    ]);
 
     const activePane = $derived(
         navItems.some((item) => item.id === $settings_view.pane) ? $settings_view.pane : 'general',
@@ -47,7 +39,6 @@
         appearance: AppearancePane,
         language: LanguagePane,
         ai: AiModelsPane,
-        updates: UpdatesPane,
         account: AccountPane,
     };
     const ActivePane = $derived(paneComponents[activePane]);

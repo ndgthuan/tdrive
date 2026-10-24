@@ -5,7 +5,6 @@ import {
     draft_from_model,
     empty_draft,
     model_suggestions,
-    provider_mark,
     provider_requires_base_url,
     provider_takes_base_url,
     to_model_input,
@@ -39,16 +38,6 @@ describe('provider rules', () => {
         expect(model_suggestions(Provider.ProviderGemini)).toContain('gemini-2.5-flash');
         expect(model_suggestions(Provider.ProviderCustom)).toEqual([]);
         expect(base_url_placeholder(Provider.ProviderCustom)).toBe('https://api.example.com/v1');
-    });
-
-    it('gives each provider a one-letter mark', () => {
-        expect([
-            Provider.ProviderOpenAI,
-            Provider.ProviderAnthropic,
-            Provider.ProviderGemini,
-            Provider.ProviderOpenRouter,
-            Provider.ProviderCustom,
-        ].map(provider_mark)).toEqual(['O', 'A', 'G', 'R', 'C']);
     });
 });
 

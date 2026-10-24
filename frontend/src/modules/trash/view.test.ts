@@ -73,7 +73,7 @@ describe('trashRow', () => {
         expect(row.ariaLabel).toContain('Trips/Iceland');
         expect(row.ariaLabel).toContain('6 days left');
         // An item deleted from the drive's root still says where it was.
-        expect(trashRow(entry({ parentPath: '' }), NOW, 41).ariaLabel).toContain('Drive root');
+        expect(trashRow(entry({ parentPath: '' }), NOW, 41).ariaLabel).toContain('from My Drive');
     });
 
     it('renders a trashed folder as a folder, weightless and openable by nothing', () => {

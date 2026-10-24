@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "查找重复文件",
   "composer_placeholder": "向 TDrive 提问…",
   "context_label": "上下文",
-  "scope_drive_root": "使用整个云盘",
   "scope_remove_folder": "将此文件夹移出上下文",
   "send": "发送",
   "voice_label": "语音输入",
@@ -38,5 +37,10 @@
   "error_invalid_key": "模型拒绝了该 API 密钥。请在设置中检查密钥。",
   "error_rate_limit": "模型繁忙或已达到速率限制。请稍后再试。",
   "error_generic": "无法完成回复。",
-  "retry": "重试"
+  "retry": "重试",
+  "model_manage": "管理模型…",
+  "scope_menu_label": "本次对话的云盘与文件夹",
+  "scope_current_folder": "当前文件夹",
+  "scope_root_item": "云盘根目录",
+  "scope_drives_heading": "云盘"
 }

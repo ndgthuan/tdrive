@@ -67,6 +67,14 @@ function buttonByText(text: string): HTMLButtonElement {
     return found;
 }
 
+// The provider is a grid of brand buttons, not a select: pick it by its name.
+function providerButton(name: string): HTMLButtonElement {
+    const found = Array.from(host?.querySelectorAll<HTMLButtonElement>('.ai-provider') ?? [])
+        .find((item) => item.textContent?.trim() === name);
+    if (!found) throw new Error(`missing provider "${name}"`);
+    return found;
+}
+
 function field(label: string): HTMLInputElement | HTMLSelectElement {
     const wrapper = Array.from(host?.querySelectorAll<HTMLElement>('.settings-field') ?? [])
         .find((item) => item.querySelector('.settings-field-label')?.textContent?.trim() === label);
@@ -153,7 +161,8 @@ describe('AI models pane', () => {
         flushSync();
 
         typeInto(field('Display name'), 'Internal');
-        typeInto(field('Provider'), Provider.ProviderCustom);
+        providerButton('Custom (OpenAI-compatible)').click();
+        flushSync();
         typeInto(field('Base URL'), 'https://llm.internal/v1');
         typeInto(field('API key'), 'sk-test-value');
         typeInto(field('Model'), 'my-model');

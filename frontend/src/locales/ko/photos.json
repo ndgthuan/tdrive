@@ -19,7 +19,6 @@
     "locked_pill": "잠김",
     "loading_albums": "앨범 로드 중",
     "albums_list_label": "앨범",
-    "drive_root": "드라이브 루트",
     "untitled_folder": "제목 없는 폴더",
     "album_count_other": "사진 {number}장",
     "album_tile_label": "{name}, {count_label}",
@@ -27,7 +26,6 @@
     "photos_view_label": "사진 보기",
     "albums_tab": "앨범",
     "all_photos": "모든 사진",
-
     "backup_card_label": "사진 및 동영상 백업",
     "switch_title": "사진 및 동영상 백업",
     "in_this_drive": "이 드라이브에",
@@ -49,7 +47,6 @@
     "wifi_only_note": "모바일 데이터는 사용하지 않습니다.",
     "try_again": "다시 시도",
     "loading_settings": "백업 설정 로드 중…",
-
     "action_back_up_now": "지금 백업",
     "action_unlock_back_up": "잠금 해제 후 백업",
     "action_resume": "재개",
@@ -87,7 +84,6 @@
     "choose_body": "시작하려면 아래에서 폴더 또는 사진 보관함을 추가하세요.",
     "ready_title": "준비됨",
     "nothing_backed_up": "아직 백업된 항목이 없습니다.",
-
     "activity_scanning": "사진과 동영상 검색 중",
     "activity_backup": "사진 백업",
     "activity_preparing": "사진 백업 준비 중",
@@ -95,7 +91,6 @@
     "result_attention": "사진 백업 확인 필요 · 실패 {failed}개",
     "result_paused": "사진 백업이 일시 중지되었습니다",
     "result_completed_other": "사진 백업 완료 · 항목 {count}개",
-
     "notice_title": "사진 백업 중",
     "notice_text": "현재 항목을 마무리하는 중",
     "attention_title": "사진 백업 확인 필요",
@@ -104,7 +99,6 @@
     "background_cleanup_failed": "백그라운드 백업 정리를 완료하지 못했습니다. 백업 상태가 바뀌면 다시 시도합니다.",
     "background_unavailable": "이 빌드에서는 백그라운드 백업을 사용할 수 없습니다. 계속하려면 TDrive를 열어 두세요.",
     "background_start_failed": "백그라운드 백업을 시작할 수 없습니다. 계속하려면 TDrive를 열어 두세요.",
-
     "unlock_message": "사진 백업을 계속하려면 암호화를 잠금 해제하세요.",
     "backup_unavailable": "사진 백업을 사용할 수 없습니다. 다시 시도하세요.",
     "wifi_check_failed": "Wi-Fi를 확인할 수 없습니다. 백업이 연결 확인을 다시 시도합니다.",
@@ -121,7 +115,6 @@
     "photo_not_read": "사진을 읽을 수 없습니다.",
     "media_not_read": "미디어를 읽을 수 없습니다.",
     "cleanup_failed": "임시 미디어 정리에 실패했습니다. TDrive를 다시 열어 정리를 다시 시도하세요.",
-
     "library_unavailable": "사진 보관함에 접근할 수 없습니다.",
     "picker_unavailable": "이 빌드에서는 폴더 선택 창을 열 수 없습니다.",
     "media_unavailable": "이 빌드에서는 선택한 미디어를 읽을 수 없습니다.",

@@ -19,7 +19,6 @@
   "locked_pill": "लॉक",
   "loading_albums": "एल्बम लोड हो रहे हैं",
   "albums_list_label": "एल्बम",
-  "drive_root": "ड्राइव रूट",
   "untitled_folder": "बिना शीर्षक का फ़ोल्डर",
   "album_count_one": "{number} फ़ोटो",
   "album_count_other": "{number} फ़ोटो",
@@ -29,7 +28,6 @@
   "photos_view_label": "फ़ोटो व्यू",
   "albums_tab": "एल्बम",
   "all_photos": "सभी फ़ोटो",
-
   "backup_card_label": "फ़ोटो और वीडियो बैकअप",
   "switch_title": "फ़ोटो और वीडियो का बैकअप लें",
   "in_this_drive": "इस ड्राइव में",
@@ -51,7 +49,6 @@
   "wifi_only_note": "मोबाइल डेटा का कभी उपयोग नहीं करता।",
   "try_again": "फिर से कोशिश करें",
   "loading_settings": "बैकअप सेटिंग्स लोड हो रही हैं…",
-
   "action_back_up_now": "अभी बैकअप लें",
   "action_unlock_back_up": "अनलॉक करें और बैकअप लें",
   "action_resume": "फिर शुरू करें",
@@ -91,7 +88,6 @@
   "choose_body": "शुरू करने के लिए नीचे कोई फ़ोल्डर या फ़ोटो लाइब्रेरी जोड़ें।",
   "ready_title": "तैयार",
   "nothing_backed_up": "अभी तक कुछ भी बैकअप नहीं हुआ है।",
-
   "activity_scanning": "फ़ोटो और वीडियो स्कैन हो रहे हैं",
   "activity_backup": "फ़ोटो बैकअप",
   "activity_preparing": "फ़ोटो बैकअप तैयार हो रहा है",
@@ -100,7 +96,6 @@
   "result_paused": "फ़ोटो बैकअप रोका गया",
   "result_completed_one": "फ़ोटो बैकअप पूरा हुआ · {count} आइटम",
   "result_completed_other": "फ़ोटो बैकअप पूरा हुआ · {count} आइटम",
-
   "notice_title": "फ़ोटो का बैकअप हो रहा है",
   "notice_text": "मौजूदा आइटम पूरा हो रहा है",
   "attention_title": "फ़ोटो बैकअप पर ध्यान देने की ज़रूरत है",
@@ -110,7 +105,6 @@
   "background_cleanup_failed": "बैकग्राउंड बैकअप की सफ़ाई पूरी नहीं हो सकी। बैकअप की स्थिति बदलने पर यह फिर से कोशिश करेगा।",
   "background_unavailable": "इस बिल्ड पर बैकग्राउंड बैकअप उपलब्ध नहीं है। जारी रखने के लिए TDrive खुला रखें।",
   "background_start_failed": "बैकग्राउंड बैकअप शुरू नहीं हो सका। जारी रखने के लिए TDrive खुला रखें।",
-
   "unlock_message": "फ़ोटो बैकअप जारी रखने के लिए एन्क्रिप्शन अनलॉक करें।",
   "backup_unavailable": "फ़ोटो बैकअप उपलब्ध नहीं है। फिर से कोशिश करें।",
   "wifi_check_failed": "Wi-Fi जांचा नहीं जा सका। बैकअप कनेक्टिविटी जांच फिर से करेगा।",
@@ -127,7 +121,6 @@
   "photo_not_read": "फ़ोटो पढ़ी नहीं जा सकी।",
   "media_not_read": "मीडिया पढ़ा नहीं जा सका।",
   "cleanup_failed": "अस्थायी मीडिया की सफ़ाई विफल रही। फिर से कोशिश के लिए TDrive दोबारा खोलें।",
-
   "library_unavailable": "फ़ोटो लाइब्रेरी की पहुंच उपलब्ध नहीं है।",
   "picker_unavailable": "यह बिल्ड फ़ोल्डर पिकर नहीं खोल सकता।",
   "media_unavailable": "यह बिल्ड चुना गया मीडिया नहीं पढ़ सकता।",

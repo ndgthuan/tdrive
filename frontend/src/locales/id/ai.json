@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "Temukan file duplikat",
   "composer_placeholder": "Tanya TDrive…",
   "context_label": "Konteks",
-  "scope_drive_root": "Gunakan seluruh drive",
   "scope_remove_folder": "Hapus folder ini dari konteks",
   "send": "Kirim",
   "voice_label": "Input suara",
@@ -38,5 +37,10 @@
   "error_invalid_key": "Model menolak kunci API-nya. Periksa kunci tersebut di Setelan.",
   "error_rate_limit": "Model sedang sibuk atau dibatasi. Coba lagi sebentar lagi.",
   "error_generic": "Balasan tidak dapat diselesaikan.",
-  "retry": "Coba lagi"
+  "retry": "Coba lagi",
+  "model_manage": "Kelola model…",
+  "scope_menu_label": "Drive dan folder untuk chat ini",
+  "scope_current_folder": "Folder saat ini",
+  "scope_root_item": "Akar drive",
+  "scope_drives_heading": "Drive"
 }

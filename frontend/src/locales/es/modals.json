@@ -154,7 +154,6 @@
   "failed_detail_canceled": "Este archivo se ha cancelado.",
   "move_title_default": "Mover elemento",
   "move_subtitle": "Selecciona la carpeta de destino",
-  "move_root_name": "Mi unidad",
   "move_loading": "Cargando carpetas…",
   "move_empty": "No hay carpetas aquí.",
   "move_cant_move_here": "No se puede mover aquí",

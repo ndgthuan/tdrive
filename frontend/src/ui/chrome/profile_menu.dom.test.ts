@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import ProfileMenu from './profile_menu.svelte';
 import { encryptionEntryVisible, profileLoaded, profileUser } from './profile_store';
-import { requestUpdatesPanel, updatesPanelRequest } from '../updates/update_store';
 import { settings_view } from '../settings/settings_store';
 import { set_locale } from '../../i18n/i18n';
 
@@ -39,7 +38,6 @@ afterEach(async () => {
     profileLoaded.set(false);
     encryptionEntryVisible.set(false);
     settings_view.set({ open: false, pane: 'general' });
-    updatesPanelRequest.set(0);
     // Flush the dialog's close now, so its focus trap cannot swallow the next test's keys.
     flushSync();
     await tick();
@@ -102,16 +100,5 @@ describe('ProfileMenu items', () => {
         click('#profile-trigger');
 
         expect(host?.querySelector('#profile-menu-encryption-settings')).not.toBeNull();
-    });
-
-    it('routes an update request to the Settings Updates pane', () => {
-        setup();
-        requestUpdatesPanel();
-        flushSync();
-
-        let current: { open: boolean; pane: string } = { open: false, pane: '' };
-        const stop = settings_view.subscribe((value) => { current = value; });
-        stop();
-        expect(current).toEqual({ open: true, pane: 'updates' });
     });
 });

@@ -7,7 +7,6 @@
   "check_again": "再次检查",
   "check_now": "立即检查",
   "check_prompt": "检查更新，以保持 TDrive 为最新版本。",
-  "checked_at": "检查时间：{time}",
   "checking": "正在检查更新…",
   "checking_short": "检查中…",
   "confirm_restart": "确认重启",
@@ -21,7 +20,6 @@
   "macos_intel": "macOS · Intel",
   "managed_by_store": "更新由 Microsoft Store 管理。",
   "newer_available": "有更新的版本可用。",
-  "not_checked": "尚未检查",
   "open_store": "打开 Microsoft Store",
   "ready_detail": "TDrive {version} 将在重启后完成更新。",
   "ready_title": "已准备好安装",
@@ -38,6 +36,5 @@
   "undo_skip": "撤销跳过",
   "up_to_date": "TDrive 已是最新版本。",
   "version": "版本 {version}",
-  "version_unknown": "版本未知",
   "whats_new": "新增内容"
 }

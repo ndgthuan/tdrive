@@ -19,7 +19,6 @@
     "suggest_find_duplicates": "Doppelte Dateien finden",
     "composer_placeholder": "TDrive fragen…",
     "context_label": "Kontext",
-    "scope_drive_root": "Gesamtes Laufwerk verwenden",
     "scope_remove_folder": "Diesen Ordner aus dem Kontext entfernen",
     "send": "Senden",
     "voice_label": "Spracheingabe",
@@ -38,5 +37,10 @@
     "error_invalid_key": "Das Modell hat den API-Schlüssel abgelehnt. Schlüssel in den Einstellungen prüfen.",
     "error_rate_limit": "Das Modell ist ausgelastet oder hat ein Limit erreicht. Gleich noch einmal versuchen.",
     "error_generic": "Die Antwort konnte nicht abgeschlossen werden.",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "model_manage": "Modelle verwalten…",
+    "scope_menu_label": "Laufwerk und Ordner für diesen Chat",
+    "scope_current_folder": "Aktueller Ordner",
+    "scope_root_item": "Laufwerkswurzel",
+    "scope_drives_heading": "Laufwerke"
 }

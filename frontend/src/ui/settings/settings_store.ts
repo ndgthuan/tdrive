@@ -1,6 +1,10 @@
 import { writable } from 'svelte/store';
 
-export type settings_pane = 'general' | 'appearance' | 'language' | 'ai' | 'updates' | 'account';
+export type settings_pane = 'general' | 'appearance' | 'language' | 'ai' | 'account';
+
+// Window event any component dispatches to open Settings on a pane. A missing
+// section means the General pane. settings_host listens for it.
+export const OPEN_SETTINGS_EVENT = 'tdrive:open_settings';
 
 export interface settings_view_state {
     open: boolean;

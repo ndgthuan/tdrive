@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "尋找重複的檔案",
   "composer_placeholder": "向 TDrive 提問…",
   "context_label": "內容範圍",
-  "scope_drive_root": "使用整個雲端硬碟",
   "scope_remove_folder": "將此資料夾移出內容範圍",
   "send": "傳送",
   "voice_label": "語音輸入",
@@ -38,5 +37,10 @@
   "error_invalid_key": "模型拒絕了其 API 金鑰。請在設定中檢查金鑰。",
   "error_rate_limit": "模型忙碌或已達速率限制。請稍後再試。",
   "error_generic": "無法完成回覆。",
-  "retry": "重試"
+  "retry": "重試",
+  "model_manage": "管理模型…",
+  "scope_menu_label": "本次對話的雲端硬碟與資料夾",
+  "scope_current_folder": "目前的資料夾",
+  "scope_root_item": "雲端硬碟根目錄",
+  "scope_drives_heading": "雲端硬碟"
 }

@@ -1,7 +1,4 @@
 {
-  "title": "更新",
-  "subtitle": "讓 TDrive 保持最新版本。",
-  "current_version": "目前版本",
   "check_button": "檢查更新",
   "auto_update_label": "自動下載更新",
   "download": "下載",

@@ -136,7 +136,6 @@
     "failed_detail_canceled": "ไฟล์นี้ถูกยกเลิกแล้ว",
     "move_title_default": "ย้ายรายการ",
     "move_subtitle": "เลือกโฟลเดอร์ปลายทาง",
-    "move_root_name": "ไดรฟ์ของฉัน",
     "move_loading": "กำลังโหลดโฟลเดอร์…",
     "move_empty": "ไม่มีโฟลเดอร์ที่นี่",
     "move_cant_move_here": "ย้ายมาที่นี่ไม่ได้",

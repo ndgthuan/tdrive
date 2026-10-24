@@ -7,7 +7,6 @@
     "check_again": "Перевірити ще раз",
     "check_now": "Перевірити зараз",
     "check_prompt": "Перевіряйте оновлення, щоб TDrive був актуальним.",
-    "checked_at": "Перевірено о {time}",
     "checking": "Перевірка оновлень…",
     "checking_short": "Перевірка…",
     "confirm_restart": "Підтвердити перезапуск",
@@ -21,7 +20,6 @@
     "macos_intel": "macOS · Intel",
     "managed_by_store": "Оновленнями керує Microsoft Store.",
     "newer_available": "Доступна новіша версія.",
-    "not_checked": "Ще не перевірялось",
     "open_store": "Відкрити Microsoft Store",
     "ready_detail": "TDrive {version} завершить оновлення після перезапуску.",
     "ready_title": "Готово до встановлення",
@@ -38,6 +36,5 @@
     "undo_skip": "Скасувати пропуск",
     "up_to_date": "TDrive оновлено до останньої версії.",
     "version": "Версія {version}",
-    "version_unknown": "Версію невідомо",
     "whats_new": "Що нового"
 }

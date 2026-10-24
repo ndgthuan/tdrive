@@ -22,9 +22,9 @@ import { state } from '../state';
 import { notify } from './notifications';
 import { humanizeBackendError } from './errors';
 import { isVersionSkipped, type UpdateState } from '../ui/updates/update_model';
+import { OPEN_SETTINGS_EVENT } from '../ui/settings/settings_store';
 import {
     appVersionInfo,
-    requestUpdatesPanel,
     updatePrefs,
     updateState,
 } from '../ui/updates/update_store';
@@ -242,10 +242,10 @@ export async function getRestartRisks(): Promise<string[]> {
 }
 
 // openUpdatesUI is the shared entry point for explicit "check for updates"
-// gestures: reveal the panel where possible and always run a check so the
-// action answers even from the login screen, where the panel isn't mounted.
+// gestures: reveal the General pane, where the version and the check live, and
+// always run a check so the action answers even from the login screen.
 export async function openUpdatesUI(): Promise<void> {
     if (isMobilePlatform()) return;
-    requestUpdatesPanel();
+    window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT, { detail: { section: 'general' } }));
     await checkForUpdates({ explicit: true });
 }

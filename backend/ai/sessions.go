@@ -259,18 +259,23 @@ func history_for_model(messages []ChatMessage) []Turn {
 }
 
 // chat_system_prompt describes TDrive and the one assistant capability this
-// backend offers. The model cannot move files itself.
-func chat_system_prompt(scope Scope) string {
-	location := "the drive root"
+// backend offers. The model cannot move files itself. drive_name is the name
+// the user sees for the drive; the model must use it rather than "My Drive",
+// which is only the personal drive's name.
+func chat_system_prompt(scope Scope, drive_name string) string {
+	drive := "drive " + fmt.Sprint(scope.ChannelID)
+	if drive_name != "" {
+		drive = fmt.Sprintf("the drive named %q", drive_name)
+	}
+	location := "the root of " + drive
 	if scope.FolderID != "" {
-		location = "a folder inside drive " + fmt.Sprint(scope.ChannelID)
-	} else if scope.ChannelID != 0 {
-		location = "the root of drive " + fmt.Sprint(scope.ChannelID)
+		location = "a folder inside " + drive
 	}
 	return strings.Join([]string{
 		"You are the assistant inside TDrive, a desktop file manager that stores files in Telegram channels, called drives.",
 		"Files live in folders on a drive. Some drives are personal or shared; channel sources are read-only and cannot be organized.",
 		"The user is currently working in " + location + ".",
+		"Name the drive exactly as given above. Only the personal drive is called My Drive; do not call a shared drive My Drive.",
 		"Capability you can point the user to: \"Organize photos\". It scans the image files in the current folder (recursively), looks at small previews with a vision model, and proposes new folders for them.",
 		"The user reviews the proposal and can exclude files before anything moves. Moves never delete files, and an undo is available afterwards.",
 		"You cannot move, rename, or delete files yourself, and you must never claim that files were changed unless the user confirmed the action in the app.",

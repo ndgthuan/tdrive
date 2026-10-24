@@ -63,18 +63,6 @@ export function base_url_placeholder(provider: Provider): string {
     return BASE_URL_PLACEHOLDERS[provider] ?? '';
 }
 
-/** A single letter for the provider tile. */
-export function provider_mark(provider: Provider): string {
-    switch (provider) {
-        case Provider.ProviderOpenAI: return 'O';
-        case Provider.ProviderAnthropic: return 'A';
-        case Provider.ProviderGemini: return 'G';
-        case Provider.ProviderOpenRouter: return 'R';
-        case Provider.ProviderCustom: return 'C';
-        default: return '?';
-    }
-}
-
 export function empty_draft(defaults: { is_default: boolean }): ModelDraft {
     return {
         display_name: '',

@@ -145,7 +145,6 @@
     "failed_detail_canceled": "This file was canceled.",
     "move_title_default": "Move item",
     "move_subtitle": "Select destination folder",
-    "move_root_name": "My Drive",
     "move_loading": "Loading folders…",
     "move_empty": "No folders here.",
     "move_cant_move_here": "Can't move here",

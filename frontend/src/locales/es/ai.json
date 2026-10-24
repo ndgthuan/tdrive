@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "Buscar archivos duplicados",
   "composer_placeholder": "Pregunta a TDrive…",
   "context_label": "Contexto",
-  "scope_drive_root": "Usar toda la unidad",
   "scope_remove_folder": "Quitar esta carpeta del contexto",
   "send": "Enviar",
   "voice_label": "Entrada de voz",
@@ -38,5 +37,10 @@
   "error_invalid_key": "El modelo rechazó su clave de API. Revisa la clave en Ajustes.",
   "error_rate_limit": "El modelo está ocupado o ha alcanzado el límite de uso. Inténtalo de nuevo en un momento.",
   "error_generic": "No se pudo completar la respuesta.",
-  "retry": "Reintentar"
+  "retry": "Reintentar",
+  "model_manage": "Administrar modelos…",
+  "scope_menu_label": "Unidad y carpeta de este chat",
+  "scope_current_folder": "Carpeta actual",
+  "scope_root_item": "Raíz de la unidad",
+  "scope_drives_heading": "Unidades"
 }

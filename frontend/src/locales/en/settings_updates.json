@@ -1,7 +1,4 @@
 {
-    "title": "Updates",
-    "subtitle": "Keep TDrive on the latest version.",
-    "current_version": "Current version",
     "check_button": "Check for updates",
     "auto_update_label": "Download updates automatically",
     "download": "Download",

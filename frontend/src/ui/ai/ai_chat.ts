@@ -5,16 +5,14 @@ import * as api from './ai_api';
 import type { ChatMessage, MessageDeltaPayload, SessionSummary } from './ai_api';
 import { classify_ai_error, subscribe_ai_event } from './ai_api';
 import { build_scope } from './ai_scope';
+import { adopt_new_chat_choice, refresh_configured_models, reset_new_chat_choice, selected_model_id } from './ai_models_store';
 import { is_organize_request, title_from_text } from './ai_intent';
 import { start_organize } from './ai_organize';
 import {
     active_session_id,
     busy,
-    include_folder,
     mode,
-    models,
     next_item_id,
-    selected_model_id,
     sessions,
     sessions_loading,
     streaming_text,
@@ -41,14 +39,12 @@ function push(item: TranscriptItem): void {
     transcript.update((list) => [...list, item]);
 }
 
+/** Reloads the shared model list; a failed load leaves the list empty rather than stale. */
 export async function refresh_models(): Promise<void> {
     try {
-        const list = await api.list_models();
-        models.set(list);
-        const current = get(selected_model_id);
-        if (current && !list.some((model) => model.id === current)) selected_model_id.set('');
+        await refresh_configured_models();
     } catch {
-        models.set([]);
+        // The Settings pane reports load failures; the composer just offers no models.
     }
 }
 
@@ -64,6 +60,7 @@ export async function refresh_sessions(): Promise<void> {
 }
 
 export function start_new_chat(): void {
+    reset_new_chat_choice();
     active_session_id.set(null);
     transcript.set([]);
     streaming_text.set('');
@@ -99,13 +96,14 @@ async function send_chat_turn(text: string): Promise<void> {
     busy.set(true);
     streaming_text.set('');
     push({ kind: 'text', id: next_item_id('user'), role: 'user', text, created_at: Date.now() });
-    const scope = build_scope(get(include_folder));
+    const scope = build_scope();
     let unsubscribe: () => void = () => {};
     try {
         let session_id = get(active_session_id);
         if (!session_id) {
             const session = await api.create_session(title_from_text(text), scope);
             session_id = session.id;
+            adopt_new_chat_choice(session_id);
             active_session_id.set(session_id);
         }
         const active = session_id;

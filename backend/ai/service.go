@@ -280,7 +280,7 @@ func (s *Service) SendMessage(ctx context.Context, req SendMessageRequest) (Chat
 	turns := history_for_model(session.Messages)
 	turns = append(turns, Turn{Role: "user", Text: text})
 	reply, err := completer.Complete(ctx, Request{
-		System:    chat_system_prompt(scope),
+		System:    chat_system_prompt(scope, s.drive_name(scope.ChannelID)),
 		Turns:     turns,
 		MaxTokens: 2048,
 	})
@@ -351,6 +351,16 @@ func (s *Service) drive() (Drive, error) {
 		return nil, errors.New("ai: drive access is not available")
 	}
 	return s.opts.Drive()
+}
+
+// drive_name is the root name of a drive for the model prompt. It is empty when
+// the drive cannot be read, so the prompt falls back to the drive id.
+func (s *Service) drive_name(channel_id int64) string {
+	drive, err := s.drive()
+	if err != nil || drive == nil {
+		return ""
+	}
+	return drive.DriveName(channel_id)
 }
 
 func (s *Service) now() time.Time {

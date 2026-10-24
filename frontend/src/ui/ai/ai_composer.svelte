@@ -4,17 +4,30 @@
     import PaperPlaneRightIcon from 'phosphor-svelte/lib/PaperPlaneRightIcon';
     import MicrophoneIcon from 'phosphor-svelte/lib/MicrophoneIcon';
     import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
+    import CheckIcon from 'phosphor-svelte/lib/CheckIcon';
     import { breadcrumbPath } from '../chrome/breadcrumb_store';
+    import { drive_root_name, sidebar_drives } from '../chrome/drive_root_name';
+    import { sidebarState } from '../sidebar/sidebar_store';
     import { send_text } from './ai_chat';
-    import { drive_name } from './ai_scope';
-    import { busy, include_folder, mode, models, selected_model_id } from './ai_store';
+    import { open_drive_id, pick_scope, scope_drive } from './ai_scope';
+    import AiModelPicker from './ai_model_picker.svelte';
+    import { busy, mode } from './ai_store';
     import { t_store } from '../../i18n/i18n';
 
     let text = $state('');
     let input = $state<HTMLTextAreaElement | null>(null);
+    let scope_open = $state(false);
+    let scope_root = $state<HTMLElement | null>(null);
+    let scope_trigger = $state<HTMLButtonElement | null>(null);
 
     const folder = $derived($breadcrumbPath.length > 0 ? $breadcrumbPath[$breadcrumbPath.length - 1] : null);
     const can_send = $derived(text.trim() !== '' && !$busy);
+    // Drives the user can change: the personal drive and every shared drive the sidebar lists.
+    const drives = $derived(sidebar_drives($sidebarState));
+    const chosen_drive_name = $derived(drive_root_name($scope_drive.drive, $t_store));
+    // The folder chip only means something inside the open drive.
+    const folder_in_scope = $derived(Boolean(folder) && $scope_drive.folder && $scope_drive.drive_id === open_drive_id());
+    const folder_is_open = $derived(Boolean(folder) && $scope_drive.drive_id === open_drive_id());
 
     // The textarea grows with its content up to a limit, then scrolls.
     function autosize(): void {
@@ -37,38 +50,98 @@
         void submit();
     }
 
-    function drive_chip(): void {
-        include_folder.set(false);
+    function toggle_scope(): void {
+        scope_open = !scope_open;
+    }
+
+    function pick_drive(drive_id: number): void {
+        pick_scope(drive_id, false);
+        scope_open = false;
+    }
+
+    function pick_folder(): void {
+        pick_scope(open_drive_id(), true);
+        scope_open = false;
+    }
+
+    function pick_root(): void {
+        pick_scope($scope_drive.drive_id, false);
+        scope_open = false;
+    }
+
+    function on_pointer_down(event: PointerEvent): void {
+        if (scope_open && scope_root && !scope_root.contains(event.target as Node)) scope_open = false;
+    }
+
+    function on_key_down(event: KeyboardEvent): void {
+        if (!scope_open || event.key !== 'Escape') return;
+        scope_open = false;
+        scope_trigger?.focus();
     }
 
     function remove_folder_chip(): void {
-        include_folder.set(false);
+        pick_scope($scope_drive.drive_id, false);
     }
 
     function add_folder_chip(): void {
-        include_folder.set(true);
-    }
-
-    function open_settings(): void {
-        window.dispatchEvent(new CustomEvent('tdrive:open_settings', { detail: { section: 'ai' } }));
+        pick_scope(open_drive_id(), true);
     }
 
 </script>
 
+<svelte:window onpointerdown={on_pointer_down} onkeydown={on_key_down} />
+
 <form class="ai-composer" onsubmit={(event) => { event.preventDefault(); void submit(); }}>
     <div class="ai-context" aria-label={$t_store('ai.context_label')}>
-        <button
-            type="button"
-            class="ai-chip"
-            class:is-current={!$include_folder || !folder}
-            aria-pressed={!$include_folder || !folder ? 'true' : 'false'}
-            title={$t_store('ai.scope_drive_root')}
-            onclick={drive_chip}
-        >
-            <FolderIcon size={12} aria-hidden="true" />
-            {drive_name()}
-        </button>
-        {#if folder && $include_folder}
+        <div class="ai-scope" bind:this={scope_root}>
+            <button
+                bind:this={scope_trigger}
+                type="button"
+                class="ai-chip is-current"
+                aria-haspopup="menu"
+                aria-expanded={scope_open ? 'true' : 'false'}
+                aria-label={$t_store('ai.scope_menu_label')}
+                title={$t_store('ai.scope_menu_label')}
+                onclick={toggle_scope}
+            >
+                <FolderIcon size={12} aria-hidden="true" />
+                <span class="ai-chip-name">{chosen_drive_name}</span>
+            </button>
+
+            {#if scope_open}
+                <div class="ai-scope-menu" role="menu" aria-label={$t_store('ai.scope_menu_label')}>
+                    {#if folder_is_open}
+                        <button type="button" class="ai-scope-item" role="menuitemradio" aria-checked={folder_in_scope ? 'true' : 'false'} onclick={pick_folder}>
+                            <span class="ai-scope-check" aria-hidden="true">{#if folder_in_scope}<CheckIcon size={12} />{/if}</span>
+                            <span class="ai-scope-name">{$t_store('ai.scope_current_folder')}</span>
+                            <span class="ai-scope-sub">{folder?.name}</span>
+                        </button>
+                    {/if}
+                    <button
+                        type="button"
+                        class="ai-scope-item"
+                        role="menuitemradio"
+                        aria-checked={!folder_in_scope ? 'true' : 'false'}
+                        onclick={pick_root}
+                    >
+                        <span class="ai-scope-check" aria-hidden="true">{#if !folder_in_scope}<CheckIcon size={12} />{/if}</span>
+                        <span class="ai-scope-name">{$t_store('ai.scope_root_item')}</span>
+                        <span class="ai-scope-sub">{chosen_drive_name}</span>
+                    </button>
+
+                    <div class="ai-scope-heading" role="presentation">{$t_store('ai.scope_drives_heading')}</div>
+                    {#each drives as drive (drive.id)}
+                        {@const checked = drive.id === $scope_drive.drive_id}
+                        <button type="button" class="ai-scope-item" role="menuitemradio" aria-checked={checked ? 'true' : 'false'} onclick={() => pick_drive(drive.id)}>
+                            <span class="ai-scope-check" aria-hidden="true">{#if checked}<CheckIcon size={12} />{/if}</span>
+                            <span class="ai-scope-name">{drive_root_name(drive, $t_store)}</span>
+                        </button>
+                    {/each}
+                </div>
+            {/if}
+        </div>
+
+        {#if folder && folder_in_scope}
             <span class="ai-chip is-current">
                 <FolderIcon size={12} aria-hidden="true" />
                 <span class="ai-chip-name">{folder.name}</span>
@@ -76,13 +149,13 @@
                     type="button"
                     class="ai-chip-x"
                     aria-label={$t_store('ai.scope_remove_folder')}
-                    title={$t_store('ai.scope_drive_root')}
+                    title={$t_store('ai.scope_root_item')}
                     onclick={remove_folder_chip}
                 >
                     <XIcon size={10} aria-hidden="true" />
                 </button>
             </span>
-        {:else if folder}
+        {:else if folder && folder_is_open}
             <button type="button" class="ai-chip is-add" onclick={add_folder_chip}>
                 <PlusIcon size={10} aria-hidden="true" />
                 {folder.name}
@@ -107,18 +180,7 @@
             <option value="ask">{$t_store('ai.mode_ask')}</option>
         </select>
 
-        {#if $models.length > 0}
-            <select class="ai-select" bind:value={$selected_model_id} aria-label={$t_store('ai.model_label')}>
-                <option value="">{$t_store('ai.model_auto')}</option>
-                {#each $models as model (model.id)}
-                    <option value={model.id}>
-                        {model.display_name}{model.is_default ? ` (${$t_store('ai.model_default_tag')})` : ''}
-                    </option>
-                {/each}
-            </select>
-        {:else}
-            <button type="button" class="ai-cta" onclick={open_settings}>{$t_store('ai.add_model_cta')}</button>
-        {/if}
+        <AiModelPicker />
 
         <span class="ai-spacer"></span>
 
@@ -161,6 +223,12 @@
         flex-wrap: wrap;
         gap: var(--space-1-5);
         min-width: 0;
+    }
+
+    .ai-scope {
+        position: relative;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .ai-chip {
@@ -208,6 +276,80 @@
         cursor: pointer;
     }
 
+    .ai-scope-menu {
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 0;
+        z-index: 20;
+        width: max-content;
+        min-width: 220px;
+        max-width: min(300px, 80vw);
+        max-height: 60vh;
+        overflow-y: auto;
+        padding: var(--space-1);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-1);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+    }
+
+    .ai-scope-item {
+        width: 100%;
+        min-height: 32px;
+        padding: var(--space-1) var(--space-2);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-main);
+        font: inherit;
+        font-size: var(--type-sm);
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .ai-scope-item:hover {
+        background: var(--color-surface-2);
+    }
+
+    .ai-scope-check {
+        width: 12px;
+        flex: none;
+        color: var(--color-accent);
+        font-size: var(--type-xs);
+    }
+
+    .ai-scope-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ai-scope-sub {
+        margin-left: auto;
+        padding-left: var(--space-2);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-muted);
+        font-size: var(--type-xs);
+    }
+
+    .ai-scope-heading {
+        margin-top: var(--space-1);
+        padding: var(--space-1) var(--space-2) 2px;
+        color: var(--text-muted);
+        font-size: var(--type-xs);
+        font-weight: var(--weight-medium);
+    }
+
     .ai-composer:focus-within {
         border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border-soft));
     }
@@ -217,7 +359,7 @@
     .ai-icon-btn:focus-visible,
     .ai-send:focus-visible,
     .ai-select:focus-visible,
-    .ai-cta:focus-visible {
+    .ai-scope-item:focus-visible {
         outline: none;
         box-shadow: 0 0 0 2px var(--color-accent);
     }
@@ -265,20 +407,6 @@
     .ai-select:hover {
         color: var(--text-main);
         background: var(--color-surface-2);
-    }
-
-    .ai-cta {
-        height: 24px;
-        padding: 0 var(--space-2);
-        border: 0;
-        border-radius: var(--radius-sm);
-        background: transparent;
-        color: var(--color-accent);
-        font: inherit;
-        font-size: var(--type-xs);
-        font-weight: var(--weight-medium);
-        cursor: pointer;
-        white-space: nowrap;
     }
 
     .ai-spacer {

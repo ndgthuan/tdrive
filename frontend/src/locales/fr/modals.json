@@ -154,7 +154,6 @@
   "failed_detail_canceled": "Ce fichier a été annulé.",
   "move_title_default": "Déplacer l’élément",
   "move_subtitle": "Choisissez le dossier de destination",
-  "move_root_name": "Mon Drive",
   "move_loading": "Chargement des dossiers…",
   "move_empty": "Aucun dossier ici.",
   "move_cant_move_here": "Impossible de déplacer ici",

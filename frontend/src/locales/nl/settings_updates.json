@@ -1,7 +1,4 @@
 {
-    "title": "Updates",
-    "subtitle": "Houd TDrive op de nieuwste versie.",
-    "current_version": "Huidige versie",
     "check_button": "Controleren op updates",
     "auto_update_label": "Updates automatisch downloaden",
     "download": "Downloaden",

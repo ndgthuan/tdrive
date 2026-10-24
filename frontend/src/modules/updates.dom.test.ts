@@ -20,6 +20,7 @@ vi.mock('../../bindings/TDrive/internal/app/updateservice', () => bindings);
 vi.mock('./notifications', () => ({ notify: notifyMock }));
 
 import { initialUpdateState } from '../ui/updates/update_model';
+import { OPEN_SETTINGS_EVENT } from '../ui/settings/settings_store';
 
 function available(version = '1.7.0') {
     return {
@@ -173,6 +174,8 @@ describe('activation', () => {
     it('leaves Store-managed updates to Microsoft Store', async () => {
         bindings.AppVersion.mockResolvedValueOnce({ version: '1.6.0', os: 'windows', arch: 'amd64', dev_build: false, store_managed: true });
         const { mod, store } = await loadModule();
+        const opened = vi.fn();
+        window.addEventListener(OPEN_SETTINGS_EVENT, opened);
         vi.useFakeTimers();
         try {
             const teardown = mod.activateUpdates();
@@ -182,10 +185,12 @@ describe('activation', () => {
             await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000 + 10_000);
             teardown();
 
-            expect(get(store.updatesPanelRequest)).toBe(1);
+            expect(opened).toHaveBeenCalledOnce();
+            expect((opened.mock.calls[0][0] as CustomEvent).detail).toEqual({ section: 'general' });
             expect(bindings.CheckForUpdate).not.toHaveBeenCalled();
             expect(bindings.DownloadUpdate).not.toHaveBeenCalled();
         } finally {
+            window.removeEventListener(OPEN_SETTINGS_EVENT, opened);
             mod.teardownUpdates();
             vi.useRealTimers();
         }
@@ -197,16 +202,19 @@ describe('activation', () => {
         const previous = window._wails;
         window._wails = { ...previous, environment: { OS: 'android', Arch: 'arm64', Debug: false } };
         try {
-            const { mod, store } = await loadModule();
+            const { mod } = await loadModule();
+            const opened = vi.fn();
+            window.addEventListener(OPEN_SETTINGS_EVENT, opened);
 
             const teardown = mod.activateUpdates();
             await mod.openUpdatesUI();
             teardown();
+            window.removeEventListener(OPEN_SETTINGS_EVENT, opened);
 
             expect(bindings.GetUpdateState).not.toHaveBeenCalled();
             expect(bindings.AppVersion).not.toHaveBeenCalled();
             expect(bindings.CheckForUpdate).not.toHaveBeenCalled();
-            expect(get(store.updatesPanelRequest)).toBe(0);
+            expect(opened).not.toHaveBeenCalled();
         } finally {
             window._wails = previous;
         }

@@ -2,9 +2,10 @@
     import ChevronLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
     import { breadcrumbPath, type BreadcrumbDrag } from './breadcrumb_store';
     import { t_store } from '../../i18n/i18n';
+    import { active_drive_root_name } from './drive_root_name';
 
     interface Props {
-        // index -1 targets the root ("My Drive"), otherwise a folderPath index.
+        // index -1 targets the root (the open drive's name), otherwise a folderPath index.
         onNavigate: (index: number) => void;
         onBack: () => void;
         drag: BreadcrumbDrag;
@@ -19,7 +20,7 @@
     }
 
     const items = $derived<CrumbItem[]>([
-        { id: '', name: $t_store('chrome.my_drive'), index: -1 },
+        { id: '', name: $active_drive_root_name, index: -1 },
         ...$breadcrumbPath.map((f, i) => ({ id: f.id, name: f.name, index: i })),
     ]);
     const atRoot = $derived($breadcrumbPath.length === 0);

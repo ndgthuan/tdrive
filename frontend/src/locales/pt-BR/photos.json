@@ -19,7 +19,6 @@
   "locked_pill": "Bloqueada",
   "loading_albums": "Carregando álbuns",
   "albums_list_label": "Álbuns",
-  "drive_root": "Raiz da unidade",
   "untitled_folder": "Pasta sem título",
   "album_count_one": "{number} foto",
   "album_count_many": "{number} fotos",
@@ -31,7 +30,6 @@
   "photos_view_label": "Visualização de fotos",
   "albums_tab": "Álbuns",
   "all_photos": "Todas as fotos",
-
   "backup_card_label": "Backup de fotos e vídeos",
   "switch_title": "Fazer backup de fotos e vídeos",
   "in_this_drive": "Nesta unidade",
@@ -53,7 +51,6 @@
   "wifi_only_note": "Nunca usa dados móveis.",
   "try_again": "Tentar novamente",
   "loading_settings": "Carregando configurações de backup…",
-
   "action_back_up_now": "Fazer backup agora",
   "action_unlock_back_up": "Desbloquear e fazer backup",
   "action_resume": "Retomar",
@@ -95,7 +92,6 @@
   "choose_body": "Adicione uma pasta ou uma biblioteca de fotos abaixo para começar.",
   "ready_title": "Pronto",
   "nothing_backed_up": "Nada teve backup feito ainda.",
-
   "activity_scanning": "Procurando fotos e vídeos",
   "activity_backup": "Backup de fotos",
   "activity_preparing": "Preparando o backup de fotos",
@@ -105,7 +101,6 @@
   "result_completed_one": "Backup de fotos concluído · {count} item",
   "result_completed_many": "Backup de fotos concluído · {count} itens",
   "result_completed_other": "Backup de fotos concluído · {count} itens",
-
   "notice_title": "Fazendo backup de fotos",
   "notice_text": "Concluindo o item atual",
   "attention_title": "O backup de fotos precisa de atenção",
@@ -116,7 +111,6 @@
   "background_cleanup_failed": "A limpeza do backup em segundo plano não pôde ser concluída. Ela será repetida quando o estado do backup mudar.",
   "background_unavailable": "O backup em segundo plano não está disponível nesta versão. Mantenha o TDrive aberto para continuar.",
   "background_start_failed": "O backup em segundo plano não pôde ser iniciado. Mantenha o TDrive aberto para continuar.",
-
   "unlock_message": "Desbloqueie a criptografia para continuar o backup de fotos.",
   "backup_unavailable": "O backup de fotos não está disponível. Tente novamente.",
   "wifi_check_failed": "Não foi possível verificar o Wi-Fi. O backup repetirá a verificação de conexão.",
@@ -133,7 +127,6 @@
   "photo_not_read": "Não foi possível ler a foto.",
   "media_not_read": "Não foi possível ler a mídia.",
   "cleanup_failed": "Falha ao limpar a mídia temporária. Reabra o TDrive para tentar a limpeza novamente.",
-
   "library_unavailable": "O acesso à biblioteca de fotos não está disponível.",
   "picker_unavailable": "Esta versão não consegue abrir um seletor de pastas.",
   "media_unavailable": "Esta versão não consegue ler a mídia selecionada.",

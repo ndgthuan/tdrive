@@ -19,7 +19,6 @@
     "suggest_find_duplicates": "Find duplicate files",
     "composer_placeholder": "Ask TDrive…",
     "context_label": "Context",
-    "scope_drive_root": "Use the whole drive",
     "scope_remove_folder": "Remove this folder from context",
     "send": "Send",
     "voice_label": "Voice input",
@@ -38,5 +37,10 @@
     "error_invalid_key": "The model rejected its API key. Check the key in Settings.",
     "error_rate_limit": "The model is busy or rate limited. Try again in a moment.",
     "error_generic": "The reply could not be completed.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "model_manage": "Manage models…",
+    "scope_menu_label": "Drive and folder for this chat",
+    "scope_current_folder": "Current folder",
+    "scope_root_item": "Drive root",
+    "scope_drives_heading": "Drives"
 }

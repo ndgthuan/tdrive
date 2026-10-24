@@ -19,7 +19,6 @@
     "locked_pill": "Locked",
     "loading_albums": "Loading albums",
     "albums_list_label": "Albums",
-    "drive_root": "Drive root",
     "untitled_folder": "Untitled folder",
     "album_count_one": "{number} photo",
     "album_count_other": "{number} photos",
@@ -29,7 +28,6 @@
     "photos_view_label": "Photos view",
     "albums_tab": "Albums",
     "all_photos": "All photos",
-
     "backup_card_label": "Photo and video backup",
     "switch_title": "Back up photos & videos",
     "in_this_drive": "In this drive",
@@ -51,7 +49,6 @@
     "wifi_only_note": "Never uses mobile data.",
     "try_again": "Try again",
     "loading_settings": "Loading backup settings…",
-
     "action_back_up_now": "Back up now",
     "action_unlock_back_up": "Unlock and back up",
     "action_resume": "Resume",
@@ -91,7 +88,6 @@
     "choose_body": "Add a folder or a photo library below to get started.",
     "ready_title": "Ready",
     "nothing_backed_up": "Nothing has been backed up yet.",
-
     "activity_scanning": "Scanning photos and videos",
     "activity_backup": "Photo backup",
     "activity_preparing": "Preparing photo backup",
@@ -100,7 +96,6 @@
     "result_paused": "Photo backup paused",
     "result_completed_one": "Photo backup completed · {count} item",
     "result_completed_other": "Photo backup completed · {count} items",
-
     "notice_title": "Backing up photos",
     "notice_text": "Finishing the current item",
     "attention_title": "Photo backup needs attention",
@@ -110,7 +105,6 @@
     "background_cleanup_failed": "Background backup cleanup could not finish. It will retry when backup state changes.",
     "background_unavailable": "Background backup is unavailable on this build. Keep TDrive open to continue.",
     "background_start_failed": "Background backup could not start. Keep TDrive open to continue.",
-
     "unlock_message": "Unlock encryption to continue photo backup.",
     "backup_unavailable": "Photo backup is unavailable. Try again.",
     "wifi_check_failed": "Could not check Wi-Fi. Backup will retry the connectivity check.",
@@ -127,7 +121,6 @@
     "photo_not_read": "The photo could not be read.",
     "media_not_read": "The media could not be read.",
     "cleanup_failed": "Temporary media cleanup failed. Reopen TDrive to retry cleanup.",
-
     "library_unavailable": "Photo library access is unavailable.",
     "picker_unavailable": "This build cannot open a folder picker.",
     "media_unavailable": "This build cannot read the selected media.",

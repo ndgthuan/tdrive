@@ -20,9 +20,19 @@
         panel_open.update((open) => !open);
     }
 
+    // Coming back to the app (a model added in another window, or Settings
+    // closed) reloads the model list while the panel is open.
+    function on_focus(): void {
+        if ($panel_open) void refresh_models();
+    }
+
     onMount(() => {
         window.addEventListener('keydown', on_key_down);
-        return () => window.removeEventListener('keydown', on_key_down);
+        window.addEventListener('focus', on_focus);
+        return () => {
+            window.removeEventListener('keydown', on_key_down);
+            window.removeEventListener('focus', on_focus);
+        };
     });
 
     // Models and sessions load each time the panel opens, so a model added in

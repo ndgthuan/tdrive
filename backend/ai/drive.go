@@ -10,6 +10,10 @@ type Drive interface {
 	// CanOrganize returns nil when the drive may be reorganized. Channel
 	// sources are read-only and must return an error.
 	CanOrganize(channel_id int64) error
+	// DriveName returns the name the user sees for the drive's root: "My Drive"
+	// for the personal drive, otherwise the shared drive's title. Empty when the
+	// drive is unknown, in which case prompts fall back to the drive id.
+	DriveName(channel_id int64) string
 	// ListFolder returns the direct child folders and files of folder_id.
 	// An empty folder_id is the drive root.
 	ListFolder(ctx context.Context, channel_id int64, folder_id string) ([]FolderNode, []FileNode, error)

@@ -7,7 +7,6 @@
     "check_again": "ตรวจสอบอีกครั้ง",
     "check_now": "ตรวจสอบตอนนี้",
     "check_prompt": "ตรวจสอบการอัปเดตเพื่อให้ TDrive เป็นเวอร์ชันล่าสุดอยู่เสมอ",
-    "checked_at": "ตรวจสอบเมื่อ {time}",
     "checking": "กำลังตรวจสอบการอัปเดต…",
     "checking_short": "กำลังตรวจสอบ…",
     "confirm_restart": "ยืนยันการเริ่มใหม่",
@@ -21,7 +20,6 @@
     "macos_intel": "macOS · Intel",
     "managed_by_store": "การอัปเดตถูกจัดการโดย Microsoft Store",
     "newer_available": "มีเวอร์ชันที่ใหม่กว่าให้ใช้งาน",
-    "not_checked": "ยังไม่ได้ตรวจสอบ",
     "open_store": "เปิด Microsoft Store",
     "ready_detail": "TDrive {version} จะอัปเดตให้เสร็จหลังจากเริ่มใหม่",
     "ready_title": "พร้อมติดตั้ง",
@@ -38,6 +36,5 @@
     "undo_skip": "ยกเลิกการข้าม",
     "up_to_date": "TDrive เป็นเวอร์ชันล่าสุดแล้ว",
     "version": "เวอร์ชัน {version}",
-    "version_unknown": "ไม่ทราบเวอร์ชัน",
     "whats_new": "มีอะไรใหม่"
 }

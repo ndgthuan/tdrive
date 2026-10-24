@@ -1,7 +1,7 @@
 // Shared state for the AI panel. Plain writable stores: the panel, the toggle
 // in the top bar and the controllers all read the same values.
 import { writable } from 'svelte/store';
-import type { AiErrorKind, ModelView, Plan, Scope, SessionSummary } from './ai_api';
+import type { AiErrorKind, Plan, Scope, SessionSummary } from './ai_api';
 
 export type AiView = 'list' | 'chat';
 export type AiMode = 'agent' | 'ask';
@@ -41,10 +41,7 @@ export const active_session_id = writable<string | null>(null);
 export const transcript = writable<TranscriptItem[]>([]);
 export const busy = writable(false);
 export const streaming_text = writable('');
-export const models = writable<ModelView[]>([]);
-export const selected_model_id = writable('');
 export const mode = writable<AiMode>('agent');
-export const include_folder = writable(true);
 export const organize_preview = writable<OrganizePreview | null>(null);
 
 let item_sequence = 0;
