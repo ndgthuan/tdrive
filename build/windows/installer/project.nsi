@@ -90,7 +90,7 @@ Section
 
     !insertmacro wails.files
 
-    # mpv, the native video player. scripts/package-mpv-windows.ps1 lays it
+    # mpv, the native video player. scripts/package_mpv_windows.ps1 lays it
     # out in build/bin/media before the installer is built, and the app looks
     # for it in the media folder next to its exe.
     !if /FileExists "..\..\bin\media\mpv.exe"

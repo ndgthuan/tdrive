@@ -75,15 +75,15 @@ tasks:
         set -eu
         tools="$(mktemp -d /tmp/tdrive-appimage-tools.XXXXXX)"
         trap 'rm -rf "$tools"' EXIT
-        bash scripts/acquire-appimage-tools.sh "$tools"
+        bash scripts/acquire_appimage_tools.sh "$tools"
         export TDRIVE_LINUXDEPLOY="$tools/linuxdeploy-x86_64.AppImage"
         export TDRIVE_APPIMAGETOOL="$tools/appimagetool-x86_64.AppImage"
         touch "$tools/runtime.env"
-        RUNNER_TEMP="$tools" GITHUB_ENV="$tools/runtime.env" bash scripts/prepare-mpv-runtime.sh
+        RUNNER_TEMP="$tools" GITHUB_ENV="$tools/runtime.env" bash scripts/prepare_mpv_runtime.sh
         while IFS='=' read -r name value; do
           export "$name=$value"
         done < "$tools/runtime.env"
-        bash scripts/package-appimage.sh "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.VERSION | default "dev"}}" "{{.BIN_DIR}}"
+        bash scripts/package_appimage.sh "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.VERSION | default "dev"}}" "{{.BIN_DIR}}"
 
   generate:dotdesktop:
     summary: Regenerates build/linux/TDrive.desktop from scratch (NOT run automatically - see note)

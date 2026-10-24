@@ -35,7 +35,7 @@ jobs:
 
       - name: Validate stable release tag
         if: startsWith(github.ref, 'refs/tags/')
-        run: bash scripts/android-version-code.sh "$GITHUB_REF_NAME" >/dev/null
+        run: bash scripts/android_version_code.sh "$GITHUB_REF_NAME" >/dev/null
 
   build:
     name: Build (${{ matrix.platform }})
@@ -115,7 +115,7 @@ jobs:
           TDRIVE_MACOS_MPV_RUNTIME_SHA256: ${{ vars.TDRIVE_MACOS_MPV_RUNTIME_SHA256 }}
           TDRIVE_WINDOWS_MPV_RUNTIME_URL: ${{ vars.TDRIVE_WINDOWS_MPV_RUNTIME_URL }}
           TDRIVE_WINDOWS_MPV_RUNTIME_SHA256: ${{ vars.TDRIVE_WINDOWS_MPV_RUNTIME_SHA256 }}
-        run: bash scripts/prepare-mpv-runtime.sh
+        run: bash scripts/prepare_mpv_runtime.sh
 
       - name: Install Wails
         shell: bash
@@ -166,13 +166,13 @@ jobs:
           APPIMAGETOOL_URL: ${{ vars.TDRIVE_APPIMAGETOOL_URL }}
           APPIMAGETOOL_SHA256: ${{ vars.TDRIVE_APPIMAGETOOL_SHA256 }}
         run: |
-          bash scripts/acquire-appimage-tools.sh "$RUNNER_TEMP/appimage-tools"
+          bash scripts/acquire_appimage_tools.sh "$RUNNER_TEMP/appimage-tools"
           echo "TDRIVE_LINUXDEPLOY=$RUNNER_TEMP/appimage-tools/linuxdeploy-x86_64.AppImage" >> "$GITHUB_ENV"
           echo "TDRIVE_APPIMAGETOOL=$RUNNER_TEMP/appimage-tools/appimagetool-x86_64.AppImage" >> "$GITHUB_ENV"
 
       - name: Package Linux AppImage
         if: runner.os == 'Linux'
-        run: bash scripts/package-appimage.sh build/bin/TDrive "$TDRIVE_ARTIFACT_VERSION" dist
+        run: bash scripts/package_appimage.sh build/bin/TDrive "$TDRIVE_ARTIFACT_VERSION" dist
 
       - name: Smoke test AppImage without host WebKitGTK
         if: runner.os == 'Linux'
@@ -212,7 +212,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          ./scripts/package-mpv-windows.ps1 "build/bin/TDrive.exe"
+          ./scripts/package_mpv_windows.ps1 "build/bin/TDrive.exe"
           Compress-Archive -Force -Path "build/bin/TDrive.exe", "build/bin/media" -DestinationPath "dist/TDrive-$env:TDRIVE_ARTIFACT_VERSION-windows-amd64.zip"
 
           # Per-user installer with the same exe and media folder. Its version
@@ -227,7 +227,7 @@ jobs:
       - name: Package CLI (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/package-cli-release-windows.ps1 -Version $env:TDRIVE_ARTIFACT_VERSION
+        run: ./scripts/package_cli_release_windows.ps1 -Version $env:TDRIVE_ARTIFACT_VERSION
 
       - name: Package (macOS)
         if: runner.os == 'macOS'
@@ -237,14 +237,14 @@ jobs:
           APP_PATH="build/bin/TDrive.app"
 
           echo "Packaging application from: $APP_PATH"
-          ./scripts/package-mpv-darwin.sh "$APP_PATH"
+          ./scripts/package_mpv_darwin.sh "$APP_PATH"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "dist/TDrive-${TDRIVE_ARTIFACT_VERSION}-macos-arm64.zip"
 
       - name: Package CLI (macOS/Linux)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          ./scripts/package-cli-release.sh "$TDRIVE_ARTIFACT_VERSION"
+          ./scripts/package_cli_release.sh "$TDRIVE_ARTIFACT_VERSION"
 
       - name: Upload Artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -271,7 +271,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Validate Android version
-        run: bash scripts/android-version-code.sh "$ANDROID_TAG" >/dev/null
+        run: bash scripts/android_version_code.sh "$ANDROID_TAG" >/dev/null
 
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
@@ -334,7 +334,7 @@ jobs:
           test -s "$keystore"
           export ANDROID_KEYSTORE_FILE="$keystore"
           export ANDROID_VERSION_NAME="${ANDROID_TAG#v}"
-          export ANDROID_VERSION_CODE="$(bash scripts/android-version-code.sh "$ANDROID_TAG")"
+          export ANDROID_VERSION_CODE="$(bash scripts/android_version_code.sh "$ANDROID_TAG")"
           wails3 task android:assemble:apk:release
 
       - name: Verify signed Android APK
@@ -354,7 +354,7 @@ jobs:
             exit 1
           fi
           certificates="$("$tools_dir/apksigner" verify --verbose --print-certs "$apk")"
-          actual="$(printf '%s\n' "$certificates" | bash scripts/android-signer-digests.sh)"
+          actual="$(printf '%s\n' "$certificates" | bash scripts/android_signer_digests.sh)"
           if [ "$actual" != "$expected" ] || [[ "$certificates" == *"CN=Android Debug"* ]]; then
             echo "Android APK was not signed with the expected release certificate" >&2
             printf 'Expected signer SHA-256: %s\nActual signer SHA-256: %s\n' "$expected" "${actual:-unavailable}" >&2
@@ -363,7 +363,7 @@ jobs:
             exit 1
           fi
 
-          code="$(bash scripts/android-version-code.sh "$ANDROID_TAG")"
+          code="$(bash scripts/android_version_code.sh "$ANDROID_TAG")"
           package="$("$tools_dir/aapt" dump badging "$apk" | sed -n '1p')"
           if [[ "$package" != *"name='com.jeetraj.tdrive'"* \
              || "$package" != *"versionCode='$code'"* \
@@ -471,7 +471,7 @@ jobs:
           test -s "$keystore"
           export ANDROID_KEYSTORE_FILE="$keystore"
           export ANDROID_VERSION_NAME="${GITHUB_REF_NAME#v}"
-          export ANDROID_VERSION_CODE="$(bash scripts/android-version-code.sh "$GITHUB_REF_NAME")"
+          export ANDROID_VERSION_CODE="$(bash scripts/android_version_code.sh "$GITHUB_REF_NAME")"
           wails3 task android:assemble:apk:release
 
       - name: Verify and stage Android APK
@@ -491,7 +491,7 @@ jobs:
             exit 1
           fi
           certificates="$("$tools_dir/apksigner" verify --verbose --print-certs "$apk")"
-          actual="$(printf '%s\n' "$certificates" | bash scripts/android-signer-digests.sh)"
+          actual="$(printf '%s\n' "$certificates" | bash scripts/android_signer_digests.sh)"
           if [ "$actual" != "$expected" ] || [[ "$certificates" == *"CN=Android Debug"* ]]; then
             echo "Android APK was not signed with the expected release certificate" >&2
             printf 'Expected signer SHA-256: %s\nActual signer SHA-256: %s\n' "$expected" "${actual:-unavailable}" >&2
@@ -500,7 +500,7 @@ jobs:
             exit 1
           fi
 
-          code="$(bash scripts/android-version-code.sh "$GITHUB_REF_NAME")"
+          code="$(bash scripts/android_version_code.sh "$GITHUB_REF_NAME")"
           package="$("$tools_dir/aapt" dump badging "$apk" | sed -n '1p')"
           if [[ "$package" != *"name='com.jeetraj.tdrive'"* \
              || "$package" != *"versionCode='$code'"* \

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/tdrive-banner-loop-main.gif" alt="TDrive: your Telegram-powered drive" width="100%">
+  <img src="assets/tdrive_banner_loop_main.gif" alt="TDrive: your Telegram-powered drive" width="100%">
 </p>
 
 <h1 align="center">TDrive</h1>
@@ -91,9 +91,9 @@ TDrive stores your API credentials locally; it does not ship a shared project-wi
 
 <table>
   <tr>
-    <td width="33%"><img alt="Photos gallery" src="assets/screenshot-gallery.png"></td>
-    <td width="33%"><img alt="Photo viewer" src="assets/screenshot-viewer.png"></td>
-    <td width="33%"><img alt="Encrypted photo unlock" src="assets/screenshot-unlock.png"></td>
+    <td width="33%"><img alt="Photos gallery" src="assets/screenshot_gallery.png"></td>
+    <td width="33%"><img alt="Photo viewer" src="assets/screenshot_viewer.png"></td>
+    <td width="33%"><img alt="Encrypted photo unlock" src="assets/screenshot_unlock.png"></td>
   </tr>
   <tr>
     <td align="center">Gallery</td>
@@ -190,11 +190,11 @@ For the detailed recovery, staging, and platform limits, see the [backup documen
 1. **My Drive** is a private Telegram channel owned by you.
 2. **Shared drives** are Telegram megagroups whose members can collaborate.
 3. File bodies are sent as Telegram document messages. Large files use multiple immutable parts.
-4. Folders, moves, renames, deletes, policies, and encryption information are represented by small `TDX1|...` metadata messages.
+4. Folders, moves, renames, deletes, policies, and encryption information are represented by small readable metadata messages such as `TDrive | type=rename | object=f:42 | name=new.png`. Keys are full words and timestamps are ISO-8601 UTC. Older `TDX1|...` messages remain readable. Moving a file to Trash keeps its messages; permanently deleting it removes its file bodies and all of its messages from Telegram, leaving no delete record behind.
 5. SQLite is a rebuildable local projection of that Telegram-backed state. TDrive replays Telegram history to synchronize or recover it.
 
 > [!WARNING]
-> `TDX1|...` messages are part of the drive history. Do not edit or delete them in the Telegram app; doing so can damage or desynchronize the projected filesystem.
+> `TDrive | ...` messages (and legacy `TDX1|...` messages) are part of the drive history. Do not edit or delete them in the Telegram app; doing so can damage or desynchronize the projected filesystem. Permanent deletion is the only operation that removes them, and TDrive does it for you.
 
 ## Privacy and encryption
 
@@ -228,7 +228,7 @@ The GUI and CLI daemon cannot use the same backend state simultaneously. Close t
 Download and extract the CLI archive for your platform. Open a terminal in the extracted `TDrive-...-cli` directory, then run:
 
 ```bash
-./install-cli.sh
+./install_cli.sh
 ```
 
 Reload the shell if the installer updated its configuration, then set up and log in:
@@ -381,8 +381,8 @@ npm --prefix frontend run typecheck
 npm --prefix frontend run lint
 npm --prefix frontend run test:coverage
 npm --prefix frontend run build
-bash scripts/test-android-version-code.sh
-bash scripts/test-android-signer-digests.sh
+bash scripts/test_android_version_code.sh
+bash scripts/test_android_signer_digests.sh
 ```
 
 On Linux, add `-tags=gtk3` to Go build, test, and vet commands to match this project's desktop configuration.

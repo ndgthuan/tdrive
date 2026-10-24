@@ -22,14 +22,14 @@ protecting, sharing, mounting, and automating files.
 ## Assets
 
 - ../assets/icon.svg — primary TDrive app icon and brand mark.
-- ../assets/screenshot-gallery.png — real gallery screen for the photo browsing beat.
-- ../assets/screenshot-viewer.png — real image viewer for the preview beat.
-- ../assets/screenshot-unlock.png — real encrypted-file unlock screen.
-- ../assets/tdrive-banner-loop-main.gif — existing TDrive brand animation reference.
+- ../assets/screenshot_gallery.png — real gallery screen for the photo browsing beat.
+- ../assets/screenshot_viewer.png — real image viewer for the preview beat.
+- ../assets/screenshot_unlock.png — real encrypted-file unlock screen.
+- ../assets/tdrive_banner_loop_main.gif — existing TDrive brand animation reference.
 - ../tdrive-motion-concept-board.png — cloud, paper-plane, upload, unlock, and sync motion language.
 - ../tdrive-icons-illustrations-library.png — friendly folder, file, action, security, and collaboration motifs.
 - ../tdrive-ui-components-buttons-controls.png — reference for UI controls and state styling.
-- ../frontend/src/assets/fonts/nunito-latin-variable.woff2 — product typeface.
+- ../frontend/src/assets/fonts/nunito_latin_variable.woff2 — product typeface.
 
 ## Customizations
 

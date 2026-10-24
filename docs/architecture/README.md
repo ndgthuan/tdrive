@@ -6,12 +6,12 @@ branch and linked source before assuming a pending feature is available.
 
 | When working on | Read |
 | --- | --- |
-| Service wiring, GUI/CLI parity, mobile lifecycle or frontend boundaries | [Runtime and platforms](runtime-and-platforms.md) |
-| Telegram operations, SQLite replay or synchronization | [Storage and synchronization](storage-and-sync.md) |
-| Uploads, retries, mounted writes or deletion recovery | [Transfers and mounted writes](transfers-and-mounts.md) |
+| Service wiring, GUI/CLI parity, mobile lifecycle or frontend boundaries | [Runtime and platforms](runtime_and_platforms.md) |
+| Telegram operations, SQLite replay or synchronization | [Storage and synchronization](storage_and_sync.md) |
+| Uploads, retries, mounted writes or deletion recovery | [Transfers and mounted writes](transfers_and_mounts.md) |
 | Vault sessions, encrypted streams or authenticated range reads | [Encryption](encryption.md) |
-| Playback, multipart range reads or local media URLs | [Media streaming](media-streaming.md) |
-| Release verification, installation or previous-copy cleanup | [Desktop updates](desktop-updates.md) |
+| Playback, multipart range reads or local media URLs | [Media streaming](media_streaming.md) |
+| Release verification, installation or previous-copy cleanup | [Desktop updates](desktop_updates.md) |
 | Gallery pagination, virtualization, image leases and memory limits | [Gallery architecture and performance](../../frontend/src/ui/gallery/README.md) |
 | Durable photo backup, discovery, staging and platform restrictions | [Photo and video backup](../../backend/photobackup/README.md) |
 | Incremental Svelte migration and shared UI components | [Svelte UI foundation](../../frontend/src/ui/README.md) |
