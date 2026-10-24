@@ -34,7 +34,7 @@ import java.lang.ref.WeakReference;
  *
  * Every command re-posts the notification, so the one line the user is looking
  * at for the next several minutes keeps up with the work. Coalescing lives on
- * the caller's side (frontend/src/ui/mobile/background-transfers.ts), because
+ * the caller's side (frontend/src/ui/mobile/background_transfers.ts), because
  * progress arrives many times a second and a notification that redraws at that
  * rate is jank the user can see.
  */

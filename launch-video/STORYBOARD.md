@@ -39,7 +39,7 @@ keyMessage: Your digital life can feel personal and under your control.
 - persuasion: Category creation
 - beat: revelation + delight
 - blueprint: logo-assemble-lockup — the moving plane and cloud system resolve into the product identity
-- asset_candidates: assets/icon.svg — TDrive app mark; assets/tdrive-banner-loop-main.gif — cloud and logo motion reference
+- asset_candidates: assets/icon.svg — TDrive app mark; assets/tdrive_banner_loop_main.gif — cloud and logo motion reference
 
 narrativeRole: Land the full promise by the second beat and name the product.
 keyMessage: TDrive turns your own Telegram account into a private cross-platform drive.
@@ -57,7 +57,7 @@ keyMessage: TDrive turns your own Telegram account into a private cross-platform
 - persuasion: Friction reduction
 - beat: clarity + readiness
 - blueprint: device-surface-showcase — complete the setup loop inside one stable desktop window
-- asset_candidates: assets/tdrive-desktop-layouts-navigation.png — desktop shell and navigation reference; assets/tdrive-desktop-design-system-overview.png — desktop setup and component reference
+- asset_candidates: assets/tdrive_desktop_layouts_navigation.png — desktop shell and navigation reference; assets/tdrive_desktop_design_system_overview.png — desktop setup and component reference
 
 narrativeRole: Show the bridge from Telegram identity to a usable personal drive.
 keyMessage: Bring your own Telegram credentials and let TDrive create or rediscover My Drive.
@@ -75,7 +75,7 @@ keyMessage: Bring your own Telegram credentials and let TDrive create or redisco
 - persuasion: Show-don't-tell proof
 - beat: momentum + satisfaction
 - blueprint: agent-progress-theater — trigger upload, show resilient progress, then land on the completed receipt
-- asset_candidates: assets/tdrive-desktop-states-modals-feedback.png — upload, progress, success, and feedback states; assets/tdrive-desktop-icons-filetypes-illustrations.png — file-type and upload motifs; assets/tdrive-motion-concept-board.png — upload path motion reference
+- asset_candidates: assets/tdrive_desktop_states_modals_feedback.png — upload, progress, success, and feedback states; assets/tdrive_desktop_icons_filetypes_illustrations.png — file-type and upload motifs; assets/tdrive_motion_concept_board.png — upload path motion reference
 
 narrativeRole: Prove that sending complex desktop files can feel simple and observable.
 keyMessage: Upload files or folders with progress, cancellation, retries, and clear completion.
@@ -93,7 +93,7 @@ keyMessage: Upload files or folders with progress, cancellation, retries, and cl
 - persuasion: Feature-to-benefit translation
 - beat: ease + control
 - blueprint: cursor-ui-demo — one desktop organization workflow from folder creation to search result
-- asset_candidates: assets/tdrive-desktop-layouts-navigation.png — list, grid, sidebar, and navigation references; assets/tdrive-desktop-icons-filetypes-illustrations.png — folder, search, move, and file motifs
+- asset_candidates: assets/tdrive_desktop_layouts_navigation.png — list, grid, sidebar, and navigation references; assets/tdrive_desktop_icons_filetypes_illustrations.png — folder, search, move, and file motifs
 
 narrativeRole: Translate file operations into the feeling of an orderly, familiar drive.
 keyMessage: Organize nested folders with desktop interactions you already understand.
@@ -111,7 +111,7 @@ keyMessage: Organize nested folders with desktop interactions you already unders
 - persuasion: Show-don't-tell proof
 - beat: discovery + immersion
 - blueprint: camera-journey — fly from the gallery grid into a focused viewer and back to the preview ecosystem
-- asset_candidates: assets/screenshot-gallery.png — real TDrive gallery; assets/screenshot-viewer.png — real media viewer with metadata; assets/tdrive-desktop-icons-filetypes-illustrations.png — PDF, code, audio, and video motifs
+- asset_candidates: assets/screenshot_gallery.png — real TDrive gallery; assets/screenshot_viewer.png — real media viewer with metadata; assets/tdrive_desktop_icons_filetypes_illustrations.png — PDF, code, audio, and video motifs
 
 narrativeRole: Make rich preview and streaming capability feel immediate and cinematic.
 keyMessage: Browse, preview, and stream media directly inside TDrive.
@@ -129,7 +129,7 @@ keyMessage: Browse, preview, and stream media directly inside TDrive.
 - persuasion: Risk reduction
 - beat: trust + relief
 - blueprint: comparison-split — protected state and usable state meet in one controlled reveal
-- asset_candidates: assets/screenshot-unlock.png — real encrypted-file unlock screen; assets/screenshot-gallery.png — encrypted thumbnail state; assets/tdrive-motion-concept-board.png — vault unlock motion reference
+- asset_candidates: assets/screenshot_unlock.png — real encrypted-file unlock screen; assets/screenshot_gallery.png — encrypted thumbnail state; assets/tdrive_motion_concept_board.png — vault unlock motion reference
 
 narrativeRole: Build trust without overselling or hiding the optional nature of encryption.
 keyMessage: Personal-drive file contents can be protected with optional client-side encryption.
@@ -147,7 +147,7 @@ keyMessage: Personal-drive file contents can be protected with optional client-s
 - persuasion: Collaborative utility
 - beat: belonging + confidence
 - blueprint: constellation-hub — shared-drive actions orbit one collaborative folder
-- asset_candidates: assets/tdrive-motion-concept-board.png — shared-drive invite and sync sequence; assets/tdrive-desktop-icons-filetypes-illustrations.png — shared folder, people, invite, and sync motifs
+- asset_candidates: assets/tdrive_motion_concept_board.png — shared-drive invite and sync sequence; assets/tdrive_desktop_icons_filetypes_illustrations.png — shared folder, people, invite, and sync motifs
 
 narrativeRole: Expand the personal-drive promise into deliberate collaboration.
 keyMessage: Shared drives support invitations, approvals, attribution, and organization.
@@ -165,7 +165,7 @@ keyMessage: Shared drives support invitations, approvals, attribution, and organ
 - persuasion: Workflow fit
 - beat: power + possibility
 - blueprint: comparison-split — desktop mount and CLI automation carry equal weight
-- asset_candidates: assets/tdrive-desktop-design-system-overview.png — desktop controls and product chrome; assets/tdrive-desktop-icons-filetypes-illustrations.png — mount, settings, sync, and folder motifs
+- asset_candidates: assets/tdrive_desktop_design_system_overview.png — desktop controls and product chrome; assets/tdrive_desktop_icons_filetypes_illustrations.png — mount, settings, sync, and folder motifs
 
 narrativeRole: Show that TDrive fits both graphical and terminal-based workflows.
 keyMessage: Mount TDrive in the operating system or control it from the CLI.
@@ -183,7 +183,7 @@ keyMessage: Mount TDrive in the operating system or control it from the CLI.
 - persuasion: Resilience assurance
 - beat: reassurance + calm
 - blueprint: grid-card-assemble — sync, local state, and rebuild receipts accumulate into one clear system
-- asset_candidates: assets/tdrive-desktop-states-modals-feedback.png — sync and feedback states; assets/tdrive-desktop-icons-filetypes-illustrations.png — sync, shield, and drive motifs
+- asset_candidates: assets/tdrive_desktop_states_modals_feedback.png — sync and feedback states; assets/tdrive_desktop_icons_filetypes_illustrations.png — sync, shield, and drive motifs
 
 narrativeRole: End the proof sequence on resilience rather than spectacle.
 keyMessage: TDrive keeps a local projection that can be rebuilt from Telegram history.
@@ -201,7 +201,7 @@ keyMessage: TDrive keeps a local projection that can be rebuilt from Telegram hi
 - persuasion: Direct action
 - beat: triumph + urgency-to-act
 - blueprint: cta-morph-press — brand identity condenses into one clear action
-- asset_candidates: assets/icon.svg — TDrive app mark; assets/tdrive-banner-loop-main.gif — cloud and logo motion reference
+- asset_candidates: assets/icon.svg — TDrive app mark; assets/tdrive_banner_loop_main.gif — cloud and logo motion reference
 
 narrativeRole: Convert the product promise into a single launch action.
 keyMessage: Download TDrive and make your Telegram account work like a private drive.

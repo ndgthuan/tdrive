@@ -61,3 +61,5 @@ node_modules/
 # same rule as the planning docs.
 /simpler better app desgin.png
 /assets/app desgin mockup .png
+
+frontend/e2e/test-results/

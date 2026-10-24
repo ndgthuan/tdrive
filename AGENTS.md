@@ -16,12 +16,12 @@ The [architecture index](docs/architecture/README.md) links all technical guides
 
 | Task | Starting point |
 | --- | --- |
-| App/CLI integration or mobile lifecycle | [Runtime and platforms](docs/architecture/runtime-and-platforms.md) |
-| Remote metadata, replay or sync | [Storage and synchronization](docs/architecture/storage-and-sync.md) |
-| Upload, retry, mount writes or deletion | [Transfers and mounted writes](docs/architecture/transfers-and-mounts.md) |
+| App/CLI integration or mobile lifecycle | [Runtime and platforms](docs/architecture/runtime_and_platforms.md) |
+| Remote metadata, replay or sync | [Storage and synchronization](docs/architecture/storage_and_sync.md) |
+| Upload, retry, mount writes or deletion | [Transfers and mounted writes](docs/architecture/transfers_and_mounts.md) |
 | Vault or encrypted reads | [Encryption](docs/architecture/encryption.md) |
-| Playback, byte ranges or native player | [Media streaming](docs/architecture/media-streaming.md) |
-| Update installation or packaging | [Desktop updates](docs/architecture/desktop-updates.md) |
+| Playback, byte ranges or native player | [Media streaming](docs/architecture/media_streaming.md) |
+| Update installation or packaging | [Desktop updates](docs/architecture/desktop_updates.md) |
 | Gallery or image caching | [Gallery architecture and performance](frontend/src/ui/gallery/README.md) |
 | Photo backup | [Backup lifecycle and ledger](backend/photobackup/README.md) |
 

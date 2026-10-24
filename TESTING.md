@@ -183,14 +183,14 @@ not establish browser layout, image decoding or video playback.
 
 - Assert user actions and visible outcomes with stable semantic selectors where
   available. Use retrying browser assertions rather than arbitrary delays.
-- Reuse [gallery fixtures](frontend/e2e/gallery-fixtures.ts) and the
+- Reuse [gallery fixtures](frontend/e2e/gallery_fixtures.ts) and the
   [video browser tests](frontend/e2e/video.spec.ts) when actual loaded image bytes
   or media readiness matter. Setting `src` alone does not prove successful loading.
 - Check the [gallery contract](frontend/src/ui/gallery/README.md) for bounded
   records, DOM, requests and leases. Exercise stale results after a generation,
   drive or viewport change when modifying asynchronous ownership.
 - Configure relevant Wails service responses explicitly and assert their effects.
-  The [browser mock](frontend/e2e/wails-mock.ts) rejects unknown or unconfigured
+  The [browser mock](frontend/e2e/wails_mock.ts) rejects unknown or unconfigured
   application calls and fails the journey even if the UI catches that error.
   Shared startup plans and an explicit native-housekeeping allowlist keep boot
   behavior repeatable; configure scenario-specific results rather than adding
@@ -220,7 +220,7 @@ and are examples to adapt to the changed behavior, not a checklist for every edi
 | Race check for changed concurrency | `go test -race -count=1 ./backend/mountwrite` |
 | Active fuzzing | `go test ./backend/crypto -run '^$' -fuzz '^FuzzRandomAccessDecryptorChunkBoundaries$' -fuzztime=30s` |
 | Gallery benchmark | `go test ./backend/projection -run '^$' -bench '^BenchmarkGallery100K$' -benchmem -count=5` |
-| Focused frontend file | In `frontend/`: `npm test -- src/ui/gallery/gallery-source.test.ts` |
+| Focused frontend file | In `frontend/`: `npm test -- src/ui/gallery/gallery_source.test.ts` |
 | Frontend coverage gate | In `frontend/`: `npm run test:coverage` |
 | Browser media | In `frontend/`: `npm run test:e2e -- video.spec.ts` |
 | Gallery WebKit | In `frontend/`: `npx playwright test --config playwright.gallery-webkit.config.ts` |

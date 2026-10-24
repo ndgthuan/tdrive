@@ -8,7 +8,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 smoke
 
-COPY smoke-appimage.sh /usr/local/bin/smoke-appimage
+COPY smoke_appimage.sh /usr/local/bin/smoke-appimage
 RUN chmod 755 /usr/local/bin/smoke-appimage
 USER smoke
 WORKDIR /home/smoke

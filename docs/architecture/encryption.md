@@ -2,8 +2,8 @@
 
 TDrive encrypts personal-drive file contents with a password-unlocked master key.
 The security boundary includes the stream format, channel-scoped key access,
-and teardown of consumers when the vault locks. See [media playback](media-streaming.md)
-for the consumer pipeline and [mounting](transfers-and-mounts.md) for filesystem ownership.
+and teardown of consumers when the vault locks. See [media playback](media_streaming.md)
+for the consumer pipeline and [mounting](transfers_and_mounts.md) for filesystem ownership.
 
 ## Key hierarchy and ownership
 

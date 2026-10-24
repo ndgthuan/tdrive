@@ -101,7 +101,7 @@ tests run in the Windows CI matrix; they do not prove hardware authentication.
 - `wails3 task linux:package VERSION=v2.0.1` - build and package the application
   with the same scripts used by CI; the AppImage goes to `build/bin`.
 
-Release AppImages use `scripts/package-appimage.sh` to bundle GTK3, WebKitGTK 4.1, WebKit helpers, GTK/GIO resources, and the mpv media runtime. Build on Ubuntu 22.04 amd64 to preserve the glibc 2.35 minimum. In addition to the native build dependencies above, install `mpv`, `imagemagick`, `librsvg2-dev`, and `libgirepository1.0-dev`.
+Release AppImages use `scripts/package_appimage.sh` to bundle GTK3, WebKitGTK 4.1, WebKit helpers, GTK/GIO resources, and the mpv media runtime. Build on Ubuntu 22.04 amd64 to preserve the glibc 2.35 minimum. In addition to the native build dependencies above, install `mpv`, `imagemagick`, `librsvg2-dev`, and `libgirepository1.0-dev`.
 
 Run from the repository root on a Linux host:
 
