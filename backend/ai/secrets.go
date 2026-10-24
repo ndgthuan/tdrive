@@ -9,6 +9,8 @@ var ErrNoAPIKey = errors.New("ai: no API key stored for this model")
 
 // credential_target_prefix namespaces AI keys in the OS credential store. The
 // full target for a model is credential_target_prefix + model id.
+//
+//lint:ignore U1000 used only by secrets_windows.go, behind the windows build tag.
 const credential_target_prefix = "TDrive/ai/"
 
 // SecretStore keeps provider API keys outside the data directory. Keys are

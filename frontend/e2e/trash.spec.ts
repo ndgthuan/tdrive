@@ -55,8 +55,9 @@ for (const platform of ['desktop', 'android'] as const) {
         await expect(rows.nth(1)).toContainText('IMG_0042.jpg');
         await expect(rows.nth(1)).toHaveAttribute('aria-label', /Trips\/Iceland/);
         await expect(rows.nth(1)).toContainText('29 days left');
-        // An item deleted from the drive's own root says so rather than nothing.
-        await expect(rows.nth(2)).toHaveAttribute('aria-label', /Drive root/);
+        // An item deleted from the drive's own root names the drive it came from
+        // rather than nothing: the personal drive is called My Drive.
+        await expect(rows.nth(2)).toHaveAttribute('aria-label', /from My Drive/);
         // Hours, not a timestamp, once the deadline is close.
         await expect(rows.nth(2)).toContainText('6 hours left');
         await page.screenshot({ path: testInfo.outputPath(`trash-${platform}.png`), fullPage: true });

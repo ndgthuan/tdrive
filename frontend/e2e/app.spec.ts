@@ -440,10 +440,10 @@ test('albums open on the folder grid and scope the one gallery to a folder', asy
     await page.getByRole('button', { name: 'Photos' }).click();
 
     // More than one folder, so Photos opens on the grid. Each tile names
-    // itself fully, and the drive's own root is called what the trash calls it.
+    // itself fully, and the drive's own root is named after the drive: My Drive.
     const camera = page.getByRole('button', { name: 'Camera, 1 photo' });
     await expect(camera).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Drive root, 1 photo' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'My Drive, 1 photo' })).toBeVisible();
     await expect(camera.locator('img')).toHaveAttribute('src', /^blob:/);
     expect(requested).toContain('/mock-renditions/101/thumbnail');
     await page.screenshot({ path: testInfo.outputPath('albums-grid.png'), fullPage: true });
