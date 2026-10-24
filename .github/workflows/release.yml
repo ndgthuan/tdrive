@@ -13,7 +13,7 @@ on:
       android_tag:
         description: Version to stamp into the Android signing check
         type: string
-        default: v3.0.0
+        default: v3.0.1
       ios_only:
         description: Build only the unsigned iOS IPA as a workflow artifact, without a release
         type: boolean
@@ -21,7 +21,7 @@ on:
       ios_version:
         description: Version to stamp into the iOS IPA when ios_only is set
         type: string
-        default: v3.0.0
+        default: v3.0.1
 
 permissions:
   contents: read

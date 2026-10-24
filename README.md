@@ -22,7 +22,7 @@ Ready-made builds are on the [**Releases page**](https://github.com/ndgthuan/tdr
 | Windows 10/11 (64-bit) | `TDrive-<version>-windows-amd64-setup.exe` | Installer. A portable `...-windows-amd64.zip` is next to it. |
 | macOS (Apple silicon) | `TDrive-<version>-macos-arm64.zip` | Unzip and drag TDrive to Applications. See the first-launch note below. |
 | Linux (64-bit) | `TDrive-<version>-x86_64.AppImage` | `chmod +x` it, then run it. Needs glibc 2.35 or newer. |
-| Android (ARM64) | `TDrive-<version>-android-arm64.apk` | Allow installs from your browser or file manager when Android asks. |
+| Android 7.0 or newer (ARM64) | `TDrive-<version>-android-arm64.apk` | Allow installs from your browser or file manager when Android asks. |
 | iPhone / iPad | `TDrive-<version>-ios-unsigned.ipa` | Not signed. Install with TrollStore, Sideloadly or AltStore. |
 | Command line | `...-cli.zip` / `...-cli.tar.gz` | The `tdrive` CLI for scripting. |
 
