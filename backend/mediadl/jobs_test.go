@@ -3,6 +3,7 @@ package mediadl
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -55,25 +56,22 @@ func (f *fake_runner) Run(ctx context.Context, bin string, args []string, on_lin
 	return f.err
 }
 
-// fake_destination records uploads and can fail them.
+// fake_destination records target checks and uploads, and can fail either.
 type fake_destination struct {
-	mu            sync.Mutex
-	uploads       []string
-	channels      []int64
-	folder        string
-	upload_err    error
-	block         bool
-	folders_asked []string
+	mu         sync.Mutex
+	checks     []string
+	check_err  error
+	uploads    []string
+	channels   []int64
+	upload_err error
+	block      bool
 }
 
-func (d *fake_destination) ResolveFolder(ctx context.Context, channel_id int64, folder_id string) (string, error) {
+func (d *fake_destination) CheckTarget(ctx context.Context, channel_id int64, folder_id string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.folders_asked = append(d.folders_asked, folder_id)
-	if folder_id != "" {
-		return folder_id, nil
-	}
-	return d.folder, nil
+	d.checks = append(d.checks, fmt.Sprintf("%d:%s", channel_id, folder_id))
+	return d.check_err
 }
 
 func (d *fake_destination) UploadFile(ctx context.Context, channel_id int64, file_path string, folder_id string) error {
@@ -140,7 +138,7 @@ func new_job_manager(t *testing.T, runner Runner, dest Destination, log *event_l
 }
 
 func valid_request() StartRequest {
-	return StartRequest{URL: "https://example.com/watch?v=abc", PresetOrFormatID: PRESET_720P}
+	return StartRequest{URL: "https://example.com/watch?v=abc", PresetOrFormatID: PRESET_720P, TargetFolderID: "folder-9"}
 }
 
 func TestStateMachineAllowsOnlyForwardMoves(t *testing.T) {
@@ -173,7 +171,7 @@ func TestStateMachineAllowsOnlyForwardMoves(t *testing.T) {
 
 func TestSuccessfulJobUploadsAndRemovesTempFiles(t *testing.T) {
 	log := new_event_log()
-	dest := &fake_destination{folder: "downloads-folder"}
+	dest := &fake_destination{}
 	runner := &fake_runner{
 		lines: []string{
 			"[download] Destination: clip.mp4",
@@ -197,8 +195,11 @@ func TestSuccessfulJobUploadsAndRemovesTempFiles(t *testing.T) {
 	if !slices.Equal(stages, want) {
 		t.Fatalf("stages = %v, want %v", stages, want)
 	}
-	if len(dest.uploads) != 1 || dest.uploads[0] != "clip [abc].mp4@downloads-folder" || dest.channels[0] != 42 {
+	if len(dest.uploads) != 1 || dest.uploads[0] != "clip [abc].mp4@folder-9" || dest.channels[0] != 42 {
 		t.Fatalf("upload calls = %v %v", dest.uploads, dest.channels)
+	}
+	if !slices.Equal(dest.checks, []string{"42:folder-9"}) {
+		t.Fatalf("target checks = %v", dest.checks)
 	}
 	if _, err := os.Stat(filepath.Join(tools.paths.Tmp, id)); !os.IsNotExist(err) {
 		t.Fatalf("temp directory must be removed after success: %v", err)
@@ -208,10 +209,43 @@ func TestSuccessfulJobUploadsAndRemovesTempFiles(t *testing.T) {
 	}
 }
 
+func TestRootDestinationUploadsWithEmptyFolder(t *testing.T) {
+	log := new_event_log()
+	dest := &fake_destination{}
+	manager, _ := new_job_manager(t, &fake_runner{write: "clip.mp4"}, dest, log)
+	request := valid_request()
+	request.TargetFolderID = ""
+	if _, err := manager.Start(context.Background(), 7, request); err != nil {
+		t.Fatal(err)
+	}
+	if done := wait_terminal(t, log); done.Stage != STAGE_DONE {
+		t.Fatalf("terminal event = %+v", done)
+	}
+	if len(dest.uploads) != 1 || dest.uploads[0] != "clip.mp4@" || dest.channels[0] != 7 {
+		t.Fatalf("upload calls = %v %v", dest.uploads, dest.channels)
+	}
+	if !slices.Equal(dest.checks, []string{"7:"}) {
+		t.Fatalf("target checks = %v", dest.checks)
+	}
+}
+
+func TestRejectedTargetStartsNoJob(t *testing.T) {
+	log := new_event_log()
+	runner := &fake_runner{write: "clip.mp4"}
+	dest := &fake_destination{check_err: errors.New("that folder no longer exists")}
+	manager, _ := new_job_manager(t, runner, dest, log)
+	if _, err := manager.Start(context.Background(), 7, valid_request()); err == nil {
+		t.Fatal("a rejected destination must refuse the start")
+	}
+	if len(manager.ListJobs()) != 0 || runner.bin != "" || len(dest.uploads) != 0 {
+		t.Fatalf("rejected start left work behind: jobs=%d runner=%q uploads=%v", len(manager.ListJobs()), runner.bin, dest.uploads)
+	}
+}
+
 func TestDownloadErrorReportsYtDlpMessage(t *testing.T) {
 	log := new_event_log()
 	runner := &fake_runner{lines: []string{"ERROR: [youtube] abc: Video unavailable"}, err: errors.New("exit status 1")}
-	manager, _ := new_job_manager(t, runner, &fake_destination{folder: "f"}, log)
+	manager, _ := new_job_manager(t, runner, &fake_destination{}, log)
 	if _, err := manager.Start(context.Background(), 1, valid_request()); err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +257,7 @@ func TestDownloadErrorReportsYtDlpMessage(t *testing.T) {
 
 func TestUploadFailureMarksJobError(t *testing.T) {
 	log := new_event_log()
-	dest := &fake_destination{folder: "f", upload_err: errors.New("quota reached")}
+	dest := &fake_destination{upload_err: errors.New("quota reached")}
 	manager, tools := new_job_manager(t, &fake_runner{write: "clip.mp4"}, dest, log)
 	id, err := manager.Start(context.Background(), 1, valid_request())
 	if err != nil {
@@ -240,7 +274,7 @@ func TestUploadFailureMarksJobError(t *testing.T) {
 
 func TestMissingOutputFileIsAnError(t *testing.T) {
 	log := new_event_log()
-	manager, _ := new_job_manager(t, &fake_runner{}, &fake_destination{folder: "f"}, log)
+	manager, _ := new_job_manager(t, &fake_runner{}, &fake_destination{}, log)
 	if _, err := manager.Start(context.Background(), 1, valid_request()); err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +287,7 @@ func TestCancelStopsRunningJobAndCleansUp(t *testing.T) {
 	log := new_event_log()
 	started := make(chan struct{})
 	runner := &fake_runner{block: true, started: started}
-	manager, tools := new_job_manager(t, runner, &fake_destination{folder: "f"}, log)
+	manager, tools := new_job_manager(t, runner, &fake_destination{}, log)
 	id, err := manager.Start(context.Background(), 1, valid_request())
 	if err != nil {
 		t.Fatal(err)
@@ -278,7 +312,7 @@ func TestCancelStopsRunningJobAndCleansUp(t *testing.T) {
 
 func TestCancelDuringUploadIsCancelledNotError(t *testing.T) {
 	log := new_event_log()
-	dest := &fake_destination{folder: "f", block: true}
+	dest := &fake_destination{block: true}
 	manager, _ := new_job_manager(t, &fake_runner{write: "clip.mp4"}, dest, log)
 	id, err := manager.Start(context.Background(), 1, valid_request())
 	if err != nil {
@@ -306,7 +340,7 @@ func TestCancelDuringUploadIsCancelledNotError(t *testing.T) {
 func TestStartRefusesWithoutToolOrValidLink(t *testing.T) {
 	log := new_event_log()
 	tools := new_test_tools(t)
-	manager := NewManager(tools, &fake_runner{}, &fake_destination{folder: "f"}, log.emit)
+	manager := NewManager(tools, &fake_runner{}, &fake_destination{}, log.emit)
 	if _, err := manager.Start(context.Background(), 1, valid_request()); err == nil {
 		t.Fatal("start without yt-dlp must fail")
 	}
@@ -325,7 +359,7 @@ func TestStartRefusesWithoutToolOrValidLink(t *testing.T) {
 func TestProbeUsesRunnerAndParsesJSON(t *testing.T) {
 	log := new_event_log()
 	runner := &fake_runner{lines: []string{sample_probe_json}}
-	manager, _ := new_job_manager(t, runner, &fake_destination{folder: "f"}, log)
+	manager, _ := new_job_manager(t, runner, &fake_destination{}, log)
 	result, err := manager.Probe(context.Background(), "https://example.com/v")
 	if err != nil {
 		t.Fatal(err)

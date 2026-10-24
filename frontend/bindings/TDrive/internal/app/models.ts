@@ -51,6 +51,21 @@ export interface ChannelInfo {
 }
 
 /**
+ * DestinationFolder is one folder offered by the download destination picker.
+ */
+export interface DestinationFolder {
+    "id": string;
+    "name": string;
+}
+
+/**
+ * DestinationListing holds the subfolders of one folder, sorted by name.
+ */
+export interface DestinationListing {
+    "folders": DestinationFolder[] | null;
+}
+
+/**
  * DownloadResult adds the chosen destination to the common operation envelope.
  */
 export interface DownloadResult {

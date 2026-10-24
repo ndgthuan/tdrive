@@ -37,6 +37,8 @@ function row(overrides: Partial<download_row> = {}): download_row {
         error: '',
         file_name: '',
         folder_id: '',
+        drive_id: 0,
+        folder_name: '',
         started_at: 1,
         ...overrides,
     };
@@ -195,9 +197,18 @@ describe('job rows', () => {
     });
 
     it('attaches the url and quality the dialog sent to the started job', () => {
-        const rows = attach_request([], 'job7', 'https://example.com/a', 'audio_mp3');
-        expect(rows[0]).toMatchObject({ job_id: 'job7', url: 'https://example.com/a', choice: 'audio_mp3', stage: 'downloading' });
-        const updated = attach_request(rows, 'job7', 'https://example.com/b', 'best');
+        const target = { drive_id: 42, folder_id: 'folder-9', folder_name: 'Clips' };
+        const rows = attach_request([], 'job7', 'https://example.com/a', 'audio_mp3', target);
+        expect(rows[0]).toMatchObject({
+            job_id: 'job7',
+            url: 'https://example.com/a',
+            choice: 'audio_mp3',
+            stage: 'downloading',
+            drive_id: 42,
+            folder_id: 'folder-9',
+            folder_name: 'Clips',
+        });
+        const updated = attach_request(rows, 'job7', 'https://example.com/b', 'best', target);
         expect(updated).toHaveLength(1);
         expect(updated[0].url).toBe('https://example.com/b');
     });

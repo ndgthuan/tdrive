@@ -24,6 +24,8 @@ export type {
     AppVersionInfo,
     BiometricStatus,
     ChannelInfo,
+    DestinationFolder,
+    DestinationListing,
     DownloadResult,
     EncryptionStatus,
     GalleryItem,
