@@ -26,6 +26,7 @@ import (
 )
 
 func TestProductionControllerPinsDriveWithoutChangingEngineActiveDrive(t *testing.T) {
+	isolate_data_dir(t)
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("APPDATA", t.TempDir())
@@ -85,6 +86,7 @@ func TestProductionControllerPinsDriveWithoutChangingEngineActiveDrive(t *testin
 }
 
 func TestProductionControllerAutoMountsPersonalPlaintextReadWrite(t *testing.T) {
+	isolate_data_dir(t)
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("APPDATA", t.TempDir())
@@ -129,6 +131,7 @@ func TestProductionControllerAutoMountsPersonalPlaintextReadWrite(t *testing.T) 
 }
 
 func TestProductionControllerAutoMountsUnlockedEncryptedPersonalReadWrite(t *testing.T) {
+	isolate_data_dir(t)
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("APPDATA", t.TempDir())

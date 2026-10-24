@@ -19,6 +19,7 @@ func sha256Hex(b []byte) string {
 }
 
 func TestDownloadFileVerifiesAndRenames(t *testing.T) {
+	isolate_data_dir(t)
 	payload := make([]byte, 3*downloadBufferSize+17)
 	for i := range payload {
 		payload[i] = byte(i)
@@ -65,6 +66,7 @@ func TestDownloadFileVerifiesAndRenames(t *testing.T) {
 }
 
 func TestDownloadFileRejectsChecksumMismatch(t *testing.T) {
+	isolate_data_dir(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("tampered"))
 	}))
@@ -83,6 +85,7 @@ func TestDownloadFileRejectsChecksumMismatch(t *testing.T) {
 }
 
 func TestDownloadFileRejectsSizeMismatch(t *testing.T) {
+	isolate_data_dir(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("short"))
 	}))
@@ -98,6 +101,7 @@ func TestDownloadFileRejectsSizeMismatch(t *testing.T) {
 }
 
 func TestDownloadFileHonoursCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	release := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", "1000000")
@@ -134,12 +138,14 @@ func TestDownloadFileHonoursCancellation(t *testing.T) {
 }
 
 func TestDownloadFileRequiresChecksum(t *testing.T) {
+	isolate_data_dir(t)
 	if err := downloadFile(context.Background(), http.DefaultClient, "", "http://127.0.0.1:1", filepath.Join(t.TempDir(), "x"), 0, "", nil); err == nil {
 		t.Fatalf("download without an expected checksum must fail closed")
 	}
 }
 
 func TestDownloadFileTimesOutWaitingForResponseHeaders(t *testing.T) {
+	isolate_data_dir(t)
 	release := make(chan struct{})
 	requestCanceled := make(chan bool, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -197,6 +203,7 @@ func TestDownloadFileTimesOutWaitingForResponseHeaders(t *testing.T) {
 }
 
 func TestDownloadFileResponseHeaderTimeoutDoesNotBoundBody(t *testing.T) {
+	isolate_data_dir(t)
 	payload := []byte("body arrived after headers")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -226,6 +233,7 @@ func TestDownloadFileResponseHeaderTimeoutDoesNotBoundBody(t *testing.T) {
 }
 
 func TestDownloadFileRejectsExpectedSizeAboveHardCapBeforeRequest(t *testing.T) {
+	isolate_data_dir(t)
 	if maxDownloadBytes != 1<<30 {
 		t.Fatalf("maxDownloadBytes = %d, want 1 GiB", maxDownloadBytes)
 	}
@@ -257,6 +265,7 @@ func TestDownloadFileRejectsExpectedSizeAboveHardCapBeforeRequest(t *testing.T) 
 }
 
 func TestDownloadFileStopsChunkedResponseAtSizeLimit(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name     string
 		wantSize int64
@@ -359,6 +368,7 @@ func TestDownloadFileStopsChunkedResponseAtSizeLimit(t *testing.T) {
 }
 
 func TestFetchSmallCapsResponseSize(t *testing.T) {
+	isolate_data_dir(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write(make([]byte, smallAssetLimitBytes+1))
 	}))

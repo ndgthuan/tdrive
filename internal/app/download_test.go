@@ -7,6 +7,7 @@ import (
 )
 
 func TestDownloadRejectsInvalidBoundIDsBeforeServiceLookup(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 
 	for _, tc := range []struct {
@@ -38,6 +39,7 @@ func TestDownloadRejectsInvalidBoundIDsBeforeServiceLookup(t *testing.T) {
 }
 
 func TestDownloadRejectsInvalidRequestIdentityBeforeServiceLookup(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 
 	for _, tc := range []struct {
@@ -63,6 +65,7 @@ func TestDownloadRejectsInvalidRequestIdentityBeforeServiceLookup(t *testing.T) 
 }
 
 func TestResumableDownloadRejectsInvalidJobIDsBeforeServiceLookup(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 	if got := app.ListResumableDownloads(0); got.Result.OK {
 		t.Fatal("accepted invalid drive for job listing")
@@ -79,6 +82,7 @@ func TestResumableDownloadRejectsInvalidJobIDsBeforeServiceLookup(t *testing.T) 
 }
 
 func TestDownloadSlotRejectsConcurrentStartUntilPreviousRunEnds(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{ctx: t.Context()}
 	activeCtx, finishActive, err := app.transfers.beginDownload(app.ctx)
 	if err != nil {

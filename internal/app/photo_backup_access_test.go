@@ -17,6 +17,7 @@ func (s backupEncryptionStatusService) StatusContext(context.Context) (encservic
 }
 
 func TestPhotoBackupShowsLockedEncryptionBeforeStarting(t *testing.T) {
+	isolate_data_dir(t)
 	app := NewApp("test")
 	app.encryption.override = backupEncryptionStatusService{status: encservice.Status{Available: true, PasswordSet: true}}
 	initial := PhotoBackupState{Settings: PhotoBackupSettings{Enabled: true, Encrypt: true}, Status: PhotoBackupStatus{Phase: "idle"}}
@@ -35,6 +36,7 @@ func TestPhotoBackupShowsLockedEncryptionBeforeStarting(t *testing.T) {
 }
 
 func TestPhotoBackupPreservesExplicitPauseWhenEncryptionIsLocked(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 	initial := PhotoBackupState{Settings: PhotoBackupSettings{Enabled: true, Encrypt: true}, ManualPaused: true, Status: PhotoBackupStatus{Phase: "paused", Message: "Paused by you."}}
 	if got := app.photoBackupAccessState(initial); got.Status.Message != initial.Status.Message || got.EncryptionRequired {
@@ -43,6 +45,7 @@ func TestPhotoBackupPreservesExplicitPauseWhenEncryptionIsLocked(t *testing.T) {
 }
 
 func TestPhotoBackupDoesNotOfferPasswordSetupBeforeDriveIsAvailable(t *testing.T) {
+	isolate_data_dir(t)
 	app := NewApp("test")
 	app.encryption.override = backupEncryptionStatusService{status: encservice.Status{}}
 	initial := PhotoBackupState{Settings: PhotoBackupSettings{Enabled: true, Encrypt: true}, Status: PhotoBackupStatus{Phase: "idle"}}
@@ -55,6 +58,7 @@ func TestPhotoBackupDoesNotOfferPasswordSetupBeforeDriveIsAvailable(t *testing.T
 }
 
 func TestPhotoBackupRequiresPasswordForLegacyUnencryptedSettings(t *testing.T) {
+	isolate_data_dir(t)
 	app := NewApp("test")
 	app.encryption.override = backupEncryptionStatusService{status: encservice.Status{Available: true}}
 	initial := PhotoBackupState{Settings: PhotoBackupSettings{Enabled: true, Encrypt: false}, Status: PhotoBackupStatus{Phase: "idle"}}
@@ -67,6 +71,7 @@ func TestPhotoBackupRequiresPasswordForLegacyUnencryptedSettings(t *testing.T) {
 }
 
 func TestPhotoBackupEncryptionDriveRequiresMyDrive(t *testing.T) {
+	isolate_data_dir(t)
 	if err := validatePhotoBackupEncryptionDrive(41, 41); err != nil {
 		t.Fatalf("personal drive rejected: %v", err)
 	}

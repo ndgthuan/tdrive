@@ -18,6 +18,7 @@ import (
 )
 
 func TestValidateNativeMediaCommandAcceptsSupportedCommands(t *testing.T) {
+	isolate_data_dir(t)
 	tests := [][]string{
 		{"cycle", "pause"},
 		{"cycle", "mute"},
@@ -49,6 +50,7 @@ func TestValidateNativeMediaCommandAcceptsSupportedCommands(t *testing.T) {
 }
 
 func TestNativeHTMLControlsEnabledHonorsFallbackEnv(t *testing.T) {
+	isolate_data_dir(t)
 	t.Setenv("TDRIVE_NATIVE_VIDEO_FALLBACK", "")
 	if !nativeHTMLControlsEnabled() {
 		t.Fatal("nativeHTMLControlsEnabled returned false without fallback env")
@@ -61,6 +63,7 @@ func TestNativeHTMLControlsEnabledHonorsFallbackEnv(t *testing.T) {
 }
 
 func TestValidateNativeMediaOpenResultRejectsNonVideo(t *testing.T) {
+	isolate_data_dir(t)
 	sessionID := "opaque-session-id"
 	valid := media.OpenResult{Token: sessionID, URL: "http://127.0.0.1/media", Kind: media.StreamKindVideo}
 	if err := validateNativeMediaOpenResult(valid); err != nil {
@@ -82,6 +85,7 @@ func TestValidateNativeMediaOpenResultRejectsNonVideo(t *testing.T) {
 }
 
 func TestNativeMediaReservationRetainsSequencedStateBeforeCompletion(t *testing.T) {
+	isolate_data_dir(t)
 	media := newTestMediaService()
 	reservation, err := media.reserveNativeMediaSession("opaque-session-token", false)
 	if err != nil {
@@ -129,6 +133,7 @@ func TestNativeMediaReservationRetainsSequencedStateBeforeCompletion(t *testing.
 }
 
 func TestValidateNativeMediaCommandRejectsUnsupportedCommands(t *testing.T) {
+	isolate_data_dir(t)
 	tests := [][]string{
 		nil,
 		{},
@@ -173,6 +178,7 @@ func TestValidateNativeMediaCommandRejectsUnsupportedCommands(t *testing.T) {
 }
 
 func TestShowNativeSeekThumbnailSkipsStaleSessionBeforeDecoding(t *testing.T) {
+	isolate_data_dir(t)
 	media := newTestMediaService()
 
 	err := media.ShowNativeSeekThumbnail("stale-session-token", "%%%not-base64%%%", validSeekThumbnailRect())
@@ -182,6 +188,7 @@ func TestShowNativeSeekThumbnailSkipsStaleSessionBeforeDecoding(t *testing.T) {
 }
 
 func TestShowNativeSeekThumbnailValidatesRectBeforeDecoding(t *testing.T) {
+	isolate_data_dir(t)
 	const activeToken = "active-session-token"
 	media := mediaServiceWithNativeThumbnailPlayer(activeToken)
 	validPayload := encodeSeekThumbnailPNG(t, 8, 8)
@@ -201,6 +208,7 @@ func TestShowNativeSeekThumbnailValidatesRectBeforeDecoding(t *testing.T) {
 }
 
 func TestNativeMediaBridgeIgnoresStaleSessions(t *testing.T) {
+	isolate_data_dir(t)
 	const staleToken = "stale-session-token"
 	media := newTestMediaService()
 	validRect := validSeekThumbnailRect()
@@ -233,6 +241,7 @@ func TestNativeMediaBridgeIgnoresStaleSessions(t *testing.T) {
 }
 
 func TestShowNativeSeekThumbnailRejectsMalformedBase64(t *testing.T) {
+	isolate_data_dir(t)
 	const activeToken = "active-session-token"
 	media := mediaServiceWithNativeThumbnailPlayer(activeToken)
 
@@ -248,6 +257,7 @@ func TestShowNativeSeekThumbnailRejectsMalformedBase64(t *testing.T) {
 }
 
 func TestShowNativeSeekThumbnailAcceptsJPEGAndPNG(t *testing.T) {
+	isolate_data_dir(t)
 	const activeToken = "active-session-token"
 	media := mediaServiceWithNativeThumbnailPlayer(activeToken)
 
@@ -326,6 +336,7 @@ func encodeSeekThumbnailImage(t *testing.T, source image.Image, encode func(*byt
 }
 
 func TestNativeMediaReservationRejectsConcurrentDuplicateAttach(t *testing.T) {
+	isolate_data_dir(t)
 	media := newTestMediaService()
 	const callers = 32
 	start := make(chan struct{})
@@ -371,6 +382,7 @@ func TestNativeMediaReservationRejectsConcurrentDuplicateAttach(t *testing.T) {
 }
 
 func TestNativeMediaReservationCannotCompleteAfterClose(t *testing.T) {
+	isolate_data_dir(t)
 	media := newTestMediaService()
 	reservation, err := media.reserveNativeMediaSession("opaque-session-token", false)
 	if err != nil {
@@ -388,6 +400,7 @@ func TestNativeMediaReservationCannotCompleteAfterClose(t *testing.T) {
 }
 
 func TestCloseEncryptedNativeMediaRemovesOnlyEncryptedEntries(t *testing.T) {
+	isolate_data_dir(t)
 	media := newTestMediaService()
 	media.nativeMedia = map[string]*nativeMediaSession{
 		"encrypted-active":    {player: new(nativeplayer.Player), encrypted: true},

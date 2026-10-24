@@ -6,6 +6,7 @@ import (
 )
 
 func TestParseInviteHashAccepts(t *testing.T) {
+	isolate_data_dir(t)
 	cases := []struct {
 		name string
 		in   string
@@ -38,6 +39,7 @@ func TestParseInviteHashAccepts(t *testing.T) {
 }
 
 func TestParseInviteHashRejects(t *testing.T) {
+	isolate_data_dir(t)
 	cases := []struct {
 		name string
 		in   string
@@ -64,6 +66,7 @@ func TestParseInviteHashRejects(t *testing.T) {
 }
 
 func TestParseInviteHashTakesPrefixBeforeSlash(t *testing.T) {
+	isolate_data_dir(t)
 	// Documented behavior: a stray slash mid-hash truncates at the slash.
 	// "t.me/+abc/def" -> "abc". Telegram links don't legitimately have this
 	// shape, but if a user pastes a malformed link we'd rather take the

@@ -111,7 +111,7 @@ func TestDisplayLabel(t *testing.T) {
 		{
 			name:  "personal title is never exposed",
 			drive: Drive{ID: 1, Title: "Telegram Saved Messages", Kind: DriveKindPersonal},
-			want:  "Tdrive personal",
+			want:  "Telegram Drive",
 		},
 		{
 			name:  "shared title",
@@ -211,13 +211,13 @@ func TestStartPublishesTransitionsAndMountSpecificCacheOptions(t *testing.T) {
 		t.Fatalf("Start() error = %v", started.err)
 	}
 	assertStatus(t, started.status, PhaseMounted, true, true)
-	if started.status.Label != "Tdrive personal" || started.status.Mode != readOnlyMode || started.status.WindowsDrive != defaultWindowsDrive {
+	if started.status.Label != "Telegram Drive" || started.status.Mode != readOnlyMode || started.status.WindowsDrive != defaultWindowsDrive {
 		t.Fatalf("Start() status = %#v", started.status)
 	}
 	if builder.options.SnapshotTTL != defaultMountSnapshotTTL {
 		t.Fatalf("SnapshotTTL = %v, want %v", builder.options.SnapshotTTL, defaultMountSnapshotTTL)
 	}
-	if connector.config.Endpoint != testEndpoint || connector.config.Label != "Tdrive personal" || connector.config.WindowsDrive != defaultWindowsDrive {
+	if connector.config.Endpoint != testEndpoint || connector.config.Label != "Telegram Drive" || connector.config.WindowsDrive != defaultWindowsDrive {
 		t.Fatalf("connector config = %#v", connector.config)
 	}
 	if connector.config.Mode != mountos.ModeReadOnly {

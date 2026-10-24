@@ -9,6 +9,7 @@ import (
 )
 
 func TestWritePrivateFileReplacesContents(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "credentials.json")
 	if err := os.WriteFile(path, []byte("old credentials"), 0o600); err != nil {
@@ -28,6 +29,7 @@ func TestWritePrivateFileReplacesContents(t *testing.T) {
 }
 
 func TestWritePrivateFileUsesRestrictiveModes(t *testing.T) {
+	isolate_data_dir(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows os.FileMode does not represent ACL permissions")
 	}
@@ -55,6 +57,7 @@ func TestWritePrivateFileUsesRestrictiveModes(t *testing.T) {
 }
 
 func TestWritePrivateFileRenameFailurePreservesOldFileAndCleansTemp(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	path := filepath.Join(dir, "credentials.json")
 	const oldContents = "working credentials"

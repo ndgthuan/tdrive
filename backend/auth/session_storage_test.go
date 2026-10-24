@@ -13,6 +13,7 @@ import (
 )
 
 func TestPrivateSessionStorageMissingSession(t *testing.T) {
+	isolate_data_dir(t)
 	storage := &privateSessionStorage{path: filepath.Join(t.TempDir(), "session.json")}
 
 	data, err := storage.LoadSession(context.Background())
@@ -25,6 +26,7 @@ func TestPrivateSessionStorageMissingSession(t *testing.T) {
 }
 
 func TestPrivateSessionStorageReplacesSession(t *testing.T) {
+	isolate_data_dir(t)
 	storage := &privateSessionStorage{path: filepath.Join(t.TempDir(), "session.json")}
 	ctx := context.Background()
 
@@ -44,6 +46,7 @@ func TestPrivateSessionStorageReplacesSession(t *testing.T) {
 }
 
 func TestConnectWithOptionsSecuresExistingSession(t *testing.T) {
+	isolate_data_dir(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows os.FileMode does not represent ACL permissions")
 	}
@@ -73,6 +76,7 @@ func TestConnectWithOptionsSecuresExistingSession(t *testing.T) {
 }
 
 func TestConnectWithOptionsDoesNotCreateEmptySession(t *testing.T) {
+	isolate_data_dir(t)
 	useTemporaryConfigDir(t)
 	if err := SaveImpCredentials(123, "api hash"); err != nil {
 		t.Fatalf("SaveImpCredentials: %v", err)

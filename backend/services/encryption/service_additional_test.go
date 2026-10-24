@@ -18,6 +18,7 @@ import (
 )
 
 func TestWriteCiphertextTempRoundTripAndCleanupOnFailure(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	cacheRoot := t.TempDir()
 	datadir.SetCache(cacheRoot)
@@ -53,6 +54,7 @@ func TestWriteCiphertextTempRoundTripAndCleanupOnFailure(t *testing.T) {
 }
 
 func TestServiceRejectsUnavailableConfiguration(t *testing.T) {
+	isolate_data_dir(t)
 	t.Run("database not ready", func(t *testing.T) {
 		svc := NewService(Config{})
 		if _, err := svc.Status(); err == nil {
@@ -100,6 +102,7 @@ func TestServiceRejectsUnavailableConfiguration(t *testing.T) {
 }
 
 func TestPasswordValidationAndMissingVaultErrors(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	for _, password := range []string{"", "   ", "short"} {
 		if err := svc.CreatePassword(password, ""); err == nil {
@@ -131,6 +134,7 @@ func TestPasswordValidationAndMissingVaultErrors(t *testing.T) {
 }
 
 func TestAcquireMasterKeyLeaseRejectsDisabledVault(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatalf("CreatePassword: %v", err)
@@ -146,6 +150,7 @@ func TestAcquireMasterKeyLeaseRejectsDisabledVault(t *testing.T) {
 }
 
 func TestMasterKeyGatesRejectWrongChannel(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	if _, err := svc.MasterKeyForUpload(testChannelID+1, true); err == nil {
 		t.Fatal("encrypted upload outside personal drive unexpectedly succeeded")
@@ -162,6 +167,7 @@ func TestMasterKeyGatesRejectWrongChannel(t *testing.T) {
 }
 
 func TestNilMasterKeyLeaseIsClosed(t *testing.T) {
+	isolate_data_dir(t)
 	var lease *MasterKeyLease
 	key, err := lease.Key()
 	if key != nil || !errors.Is(err, ErrMasterKeyLeaseClosed) {
@@ -178,6 +184,7 @@ func TestNilMasterKeyLeaseIsClosed(t *testing.T) {
 }
 
 func TestConfigOpNormalizesVersionAndCopiesBuffers(t *testing.T) {
+	isolate_data_dir(t)
 	cfg := testEncryptionConfig()
 	cfg.Version = 0
 	op := configOp(cfg)
@@ -193,6 +200,7 @@ func TestConfigOpNormalizesVersionAndCopiesBuffers(t *testing.T) {
 }
 
 func TestUnwrapMasterKeyRejectsInvalidConfig(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name   string
 		mutate func(*projection.EncryptionConfig)
@@ -224,6 +232,7 @@ func TestUnwrapMasterKeyRejectsInvalidConfig(t *testing.T) {
 }
 
 func TestServiceSerializesArgon2Derivations(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	started := make(chan struct{}, 2)
 	release := make(chan struct{})

@@ -184,6 +184,7 @@ func assertKeyZeroed(t *testing.T, key []byte) {
 }
 
 func TestPreviewFilePlainReturnsBase64(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	path := writeTempNamedFile(t, "image.png", tinyPNG)
 	files, err := svc.Upload(context.Background(), personalChannelID, []string{path}, []string{""}, false)
@@ -208,6 +209,7 @@ func TestPreviewFilePlainReturnsBase64(t *testing.T) {
 }
 
 func TestPreviewFileEncryptedDecrypts(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	masterKey := bytes.Repeat([]byte{9}, 32)
 	svc.MasterKeyForUpload = func(channelID int64, wantEncrypted bool) ([]byte, error) {
@@ -263,6 +265,7 @@ func TestPreviewFileEncryptedDecrypts(t *testing.T) {
 }
 
 func TestPreviewFileEncryptedRequiresPassword(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	masterKey := bytes.Repeat([]byte{8}, 32)
 	svc.MasterKeyForUpload = func(channelID int64, wantEncrypted bool) ([]byte, error) {
@@ -313,6 +316,7 @@ func TestPreviewFileEncryptedRequiresPassword(t *testing.T) {
 }
 
 func TestPreviewFileTooLargeUsesPlaintextSize(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	project(t, db, personalChannelID, 81, 7, projection.Op{
 		Type:              projection.OpFileUpload,
@@ -341,6 +345,7 @@ func TestPreviewFileTooLargeUsesPlaintextSize(t *testing.T) {
 }
 
 func TestUploadPlainFileSendsAndProjects(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	events := &eventRecorder{}
 	svc.Events = events
@@ -372,6 +377,7 @@ func TestUploadPlainFileSendsAndProjects(t *testing.T) {
 }
 
 func TestUploadRejectsMissingParentBeforeSend(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	events := &eventRecorder{}
 	svc.Events = events
@@ -393,6 +399,7 @@ func TestUploadRejectsMissingParentBeforeSend(t *testing.T) {
 }
 
 func TestUploadResolvesPeerOnceForTheWholeBatch(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	resolver := &countingTestPeerResolver{peer: tgclient.InputPeer{ChannelID: personalChannelID, AccessHash: 99}}
 	svc.Peers = resolver
@@ -411,6 +418,7 @@ func TestUploadResolvesPeerOnceForTheWholeBatch(t *testing.T) {
 }
 
 func TestUploadEmitsExactlyOneStartForMultipartFiles(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	svc.MaxUploadBytes = 3
 	events := &eventRecorder{}
@@ -426,6 +434,7 @@ func TestUploadEmitsExactlyOneStartForMultipartFiles(t *testing.T) {
 }
 
 func TestUploadRejectsAnUnboundedDirectBatchBeforeWorkStarts(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	actorCalled := false
 	svc.ActorID = func(context.Context) (int64, error) {
@@ -448,6 +457,7 @@ func TestUploadRejectsAnUnboundedDirectBatchBeforeWorkStarts(t *testing.T) {
 }
 
 func TestUploadEncryptedUsesCiphertextAndPlaintextMetadata(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	path := writeTempFile(t, "plain")
 	uploadKey := []byte("master-key")
@@ -499,6 +509,7 @@ func TestUploadEncryptedUsesCiphertextAndPlaintextMetadata(t *testing.T) {
 }
 
 func TestUploadEncryptedRequiresPasswordBeforeSend(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	path := writeTempFile(t, "plain")
 	failedKey := bytes.Repeat([]byte{0x5a}, 32)
@@ -516,6 +527,7 @@ func TestUploadEncryptedRequiresPasswordBeforeSend(t *testing.T) {
 }
 
 func TestDownloadPlainFileWritesBytes(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	path := writeTempFile(t, "hello")
 	files, err := svc.Upload(context.Background(), personalChannelID, []string{path}, []string{""}, false)
@@ -570,6 +582,7 @@ func TestDownloadPlainFileWritesBytes(t *testing.T) {
 }
 
 func TestReplaceDownloadedFileReplacesExistingFile(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	tmpPath := filepath.Join(dir, "download.tmp")
 	savePath := filepath.Join(dir, "download.txt")
@@ -596,6 +609,7 @@ func TestReplaceDownloadedFileReplacesExistingFile(t *testing.T) {
 }
 
 func TestDownloadEncryptedFileDecrypts(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	masterKey := bytes.Repeat([]byte{7}, 32)
 	svc.MasterKeyForUpload = func(channelID int64, wantEncrypted bool) ([]byte, error) {
@@ -666,6 +680,7 @@ func TestDownloadEncryptedFileDecrypts(t *testing.T) {
 }
 
 func TestDownloadEncryptedDecryptFailurePreservesExistingFile(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	masterKey := bytes.Repeat([]byte{7}, 32)
 	wrongKey := bytes.Repeat([]byte{8}, 32)
@@ -769,6 +784,7 @@ func TestDownloadEncryptedDecryptFailurePreservesExistingFile(t *testing.T) {
 }
 
 func TestDownloadEncryptedRequiresPassword(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	project(t, db, personalChannelID, 80, 7, projection.Op{
 		Type:              projection.OpFileUpload,
@@ -809,6 +825,7 @@ func TestDownloadEncryptedRequiresPassword(t *testing.T) {
 }
 
 func TestMetaPublishesLegacyMetadata(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 10, 7, projection.Op{
 		Type:   projection.OpMkdir,
@@ -833,6 +850,7 @@ func TestMetaPublishesLegacyMetadata(t *testing.T) {
 }
 
 func TestRenameAndMoveFile(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 10, 7, projection.Op{
 		Type:   projection.OpMkdir,
@@ -864,6 +882,7 @@ func TestRenameAndMoveFile(t *testing.T) {
 }
 
 func TestSharedRenameMoveAndDeleteRequireUploader(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, actor := newTestService(t)
 	project(t, db, sharedChannelID, 11, 9, projection.Op{
 		Type:   projection.OpMkdir,
@@ -909,6 +928,7 @@ func TestSharedRenameMoveAndDeleteRequireUploader(t *testing.T) {
 }
 
 func TestDeleteEncryptedFileRequiresPassword(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 70, 7, projection.Op{
 		Type:              projection.OpFileUpload,
@@ -936,6 +956,7 @@ func TestDeleteEncryptedFileRequiresPassword(t *testing.T) {
 }
 
 func TestRequireEncryptedFileKeyClearsOwnedKey(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 71, 7, projection.Op{
 		Type:              projection.OpFileUpload,

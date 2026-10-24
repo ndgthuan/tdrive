@@ -64,6 +64,7 @@ func configureEncryptedUpload(t testing.TB, svc *Service, masterKey []byte) {
 }
 
 func TestMultipartUploadRecoversAfterTransientFailure(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000 // force splitting above 1000 stored bytes
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -101,6 +102,7 @@ func TestMultipartUploadRecoversAfterTransientFailure(t *testing.T) {
 }
 
 func TestSingleUploadRecoversAfterTransientFailure(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.FloodWaitRetry = instantRetryPolicy()
 
@@ -118,6 +120,7 @@ func TestSingleUploadRecoversAfterTransientFailure(t *testing.T) {
 }
 
 func TestUploadFailsWhenTransientBudgetExhausted(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	policy := instantRetryPolicy()
@@ -202,6 +205,7 @@ func (c *visibleAcceptThenLoseReceiptClient) SendControlWithRandomID(
 }
 
 func TestSingleUploadRetriesLostAcceptedReceiptIdempotently(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.FloodWaitRetry = instantRetryPolicy()
 	client := &visibleAcceptThenLoseReceiptClient{Fake: fakeTG, fileFailAt: 1}
@@ -231,6 +235,7 @@ func TestSingleUploadRetriesLostAcceptedReceiptIdempotently(t *testing.T) {
 }
 
 func TestPlaintextMultipartRetriesLostAcceptedReceiptIdempotently(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -265,6 +270,7 @@ func TestPlaintextMultipartRetriesLostAcceptedReceiptIdempotently(t *testing.T) 
 }
 
 func TestMultipartManifestRetriesLostAcceptedReceiptIdempotently(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -300,6 +306,7 @@ func TestMultipartManifestRetriesLostAcceptedReceiptIdempotently(t *testing.T) {
 }
 
 func TestMultipartManifestUnknownOutcomeKeepsPartsForReconcile(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	policy := instantRetryPolicy()
@@ -331,6 +338,7 @@ func TestMultipartManifestUnknownOutcomeKeepsPartsForReconcile(t *testing.T) {
 }
 
 func TestMultipartManifestCancellationAfterSendKeepsParts(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = tgclient.FloodWaitRetryPolicy{
@@ -360,6 +368,7 @@ func TestMultipartManifestCancellationAfterSendKeepsParts(t *testing.T) {
 }
 
 func TestMultipartManifestProjectionFailureReturnsOpForLocalRetry(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, actorID := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	if _, err := db.Exec(`
@@ -396,6 +405,7 @@ func TestMultipartManifestProjectionFailureReturnsOpForLocalRetry(t *testing.T) 
 }
 
 func TestMultipartUploadReportsManifestProjectionFailure(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	if _, err := db.Exec(`
@@ -539,6 +549,7 @@ func (c *midstreamTransientClient) SendFileWithRandomID(
 }
 
 func TestEncryptedMultipartRetriesAfterMidstreamRead(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -578,6 +589,7 @@ func TestEncryptedMultipartRetriesAfterMidstreamRead(t *testing.T) {
 }
 
 func TestEncryptedMultipartDownloadFailureReportsNetworkError(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -606,6 +618,7 @@ func TestEncryptedMultipartDownloadFailureReportsNetworkError(t *testing.T) {
 }
 
 func TestEncryptedMultipartDecryptFailureReportsDecryptError(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -636,6 +649,7 @@ func TestEncryptedMultipartDecryptFailureReportsDecryptError(t *testing.T) {
 }
 
 func TestPreviewRetriesIntoFreshBufferAfterPartialDownload(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.FloodWaitRetry = instantRetryPolicy()
 	path := writeTempNamedFile(t, "preview.png", tinyPNG)
@@ -659,6 +673,7 @@ func TestPreviewRetriesIntoFreshBufferAfterPartialDownload(t *testing.T) {
 }
 
 func TestEncryptedMultipartRetriesLostAcceptedReceiptIdempotently(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -691,6 +706,7 @@ func TestEncryptedMultipartRetriesLostAcceptedReceiptIdempotently(t *testing.T) 
 }
 
 func TestVisibleUploadDoesNotRetryUnknownOutcomeForLegacyClient(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.FloodWaitRetry = instantRetryPolicy()
 	client := &visibleAcceptThenLoseReceiptClient{Fake: fakeTG, fileFailAt: 1}
@@ -711,6 +727,7 @@ func TestVisibleUploadDoesNotRetryUnknownOutcomeForLegacyClient(t *testing.T) {
 }
 
 func TestVisibleUploadRetriesPreSendTransientFailureForLegacyClient(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.FloodWaitRetry = instantRetryPolicy()
 	// Hide the idempotent extension while retaining the legacy SendFile path.

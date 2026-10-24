@@ -103,6 +103,7 @@ func encryptedHiddenSource(t *testing.T, plaintext []byte) []byte {
 }
 
 func TestUploadHiddenSingleIsNotVisibleBeforeCommit(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	body := []byte("hello from the mounted drive")
 
@@ -162,6 +163,7 @@ func TestUploadHiddenSingleIsNotVisibleBeforeCommit(t *testing.T) {
 // name before it reaches this function, so integration tests through
 // UploadHidden/Upload can't naturally exercise that branch.
 func TestPartAttachmentName(t *testing.T) {
+	isolate_data_dir(t)
 	cases := []struct {
 		name      string
 		partIndex int
@@ -191,6 +193,7 @@ func TestPartAttachmentName(t *testing.T) {
 // (verified by the existing TestUploadHiddenSingleIsNotVisibleBeforeCommit),
 // so this is purely a cosmetic-naming assertion, not a correctness one.
 func TestUploadHiddenSinglePartUsesOriginalFilename(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	body := []byte("hello from the mounted drive")
 
@@ -221,6 +224,7 @@ func TestUploadHiddenSinglePartUsesOriginalFilename(t *testing.T) {
 // suffix, since several messages sharing one identical name would otherwise
 // be impossible to tell apart or order when browsing the raw channel.
 func TestUploadHiddenMultipartSuffixesOriginalFilename(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 4
 	body := []byte("0123456789")
@@ -251,6 +255,7 @@ func TestUploadHiddenMultipartSuffixesOriginalFilename(t *testing.T) {
 }
 
 func TestUploadHiddenMultipartProjectsOnlyInvisibleParts(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 4
 	body := []byte("0123456789")
@@ -297,6 +302,7 @@ func TestUploadHiddenMultipartProjectsOnlyInvisibleParts(t *testing.T) {
 }
 
 func TestUploadHiddenRetryUsesStableTelegramMessage(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	body := []byte("retry me")
 	request := plaintextHiddenRequest("op-retry-1", "retry.txt", int64(len(body)))
@@ -318,6 +324,7 @@ func TestUploadHiddenRetryUsesStableTelegramMessage(t *testing.T) {
 }
 
 func TestUploadHiddenRetriesBoundedFloodWaitAndRewinds(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	fakeTG.InjectFloodWaits(2)
 	var sleeps int
@@ -356,6 +363,7 @@ func TestUploadHiddenRetriesBoundedFloodWaitAndRewinds(t *testing.T) {
 }
 
 func TestUploadHiddenValidatesMetadataAndSourceBeforeRemoteAccess(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name    string
 		request HiddenUploadRequest
@@ -419,6 +427,7 @@ func TestUploadHiddenValidatesMetadataAndSourceBeforeRemoteAccess(t *testing.T) 
 }
 
 func TestUploadHiddenRejectsEncryptedPlaintextAboveTDE1Capacity(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	peers := &hiddenCountingPeerResolver{peer: tgclient.InputPeer{ChannelID: personalChannelID, AccessHash: 99}}
 	svc.Peers = peers
@@ -443,6 +452,7 @@ func TestUploadHiddenRejectsEncryptedPlaintextAboveTDE1Capacity(t *testing.T) {
 }
 
 func TestUploadHiddenAcceptsAlreadyEncryptedStoredRepresentation(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	plaintext := []byte("secret")
 	ciphertext := encryptedHiddenSource(t, plaintext)
@@ -479,6 +489,7 @@ func TestUploadHiddenAcceptsAlreadyEncryptedStoredRepresentation(t *testing.T) {
 }
 
 func TestUploadHiddenHandlesZeroExactPartAndMultipartSizes(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name      string
 		body      []byte
@@ -511,6 +522,7 @@ func TestUploadHiddenHandlesZeroExactPartAndMultipartSizes(t *testing.T) {
 }
 
 func TestUploadHiddenEncryptedZeroExactChunkAndMultipartSizes(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name          string
 		plaintext     []byte
@@ -584,6 +596,7 @@ func TestUploadHiddenEncryptedZeroExactChunkAndMultipartSizes(t *testing.T) {
 }
 
 func TestDiscardHiddenDeletesBodiesAndPartProjection(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 4
 	body := []byte("0123456789")
@@ -609,6 +622,7 @@ func TestDiscardHiddenDeletesBodiesAndPartProjection(t *testing.T) {
 }
 
 func TestUploadHiddenRejectsInvalidRequestsBeforeSend(t *testing.T) {
+	isolate_data_dir(t)
 	longName := strings.Repeat("a", 241)
 	tests := []struct {
 		name      string
@@ -652,6 +666,7 @@ func TestUploadHiddenRejectsInvalidRequestsBeforeSend(t *testing.T) {
 }
 
 func TestUploadHiddenNamePolicyMatchesPortableProjection(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	name := " leading-space.txt"
 	if _, err := projection.CanonicalNameKey(name); err != nil {
@@ -670,6 +685,7 @@ func TestUploadHiddenNamePolicyMatchesPortableProjection(t *testing.T) {
 }
 
 func TestDiscardHiddenOperationCleansCrashUploadDeterministically(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 4
 	operationID := "op-crash-cleanup"
@@ -698,6 +714,7 @@ func TestDiscardHiddenOperationCleansCrashUploadDeterministically(t *testing.T) 
 }
 
 func TestDiscardHiddenOperationValidatesBeforeLookup(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	for name, call := range map[string]func() error{
 		"nil context":     func() error { return svc.DiscardHiddenOperation(nil, personalChannelID, "op") },
@@ -716,6 +733,7 @@ func TestDiscardHiddenOperationValidatesBeforeLookup(t *testing.T) {
 }
 
 func TestHiddenCleanupRejectsNilContext(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	tests := map[string]func() error{
 		"body": func() error {
@@ -742,6 +760,7 @@ func TestHiddenCleanupRejectsNilContext(t *testing.T) {
 }
 
 func TestUploadHiddenReportsUnavailableDependencies(t *testing.T) {
+	isolate_data_dir(t)
 	body := []byte("a")
 	request := plaintextHiddenRequest("op-deps", "a.txt", 1)
 	tests := []struct {
@@ -767,6 +786,7 @@ func TestUploadHiddenReportsUnavailableDependencies(t *testing.T) {
 }
 
 func TestUploadHiddenReportsPlanningAndMessageErrors(t *testing.T) {
+	isolate_data_dir(t)
 	t.Run("too large", func(t *testing.T) {
 		svc, _, fakeTG, _ := newTestService(t)
 		svc.MaxUploadBytes = 1
@@ -813,6 +833,7 @@ func TestUploadHiddenReportsPlanningAndMessageErrors(t *testing.T) {
 }
 
 func TestUploadPartPlanClassifiesTooManyParts(t *testing.T) {
+	isolate_data_dir(t)
 	svc := &Service{MaxUploadBytes: 1}
 
 	_, err := svc.buildUploadPartPlan(MaxParts + 1)
@@ -822,6 +843,7 @@ func TestUploadPartPlanClassifiesTooManyParts(t *testing.T) {
 }
 
 func TestUploadPartPlanWindows(t *testing.T) {
+	isolate_data_dir(t)
 	svc := &Service{MaxUploadBytes: 4}
 	tests := []struct {
 		name        string
@@ -856,6 +878,7 @@ func TestUploadPartPlanWindows(t *testing.T) {
 }
 
 func TestUploadHiddenMultipartFailureReturnsPartialReceiptWithoutDeleting(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 4
 	sendErr := errors.New("second part failed")
@@ -888,6 +911,7 @@ func TestUploadHiddenMultipartFailureReturnsPartialReceiptWithoutDeleting(t *tes
 }
 
 func TestUploadHiddenEncryptedMultipartFailureReturnsPartialReceiptWithoutDeleting(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 32
 	sendErr := errors.New("encrypted second part failed")
@@ -925,6 +949,7 @@ func TestUploadHiddenEncryptedMultipartFailureReturnsPartialReceiptWithoutDeleti
 }
 
 func TestUploadHiddenStopsAfterFloodWaitRetryBudget(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	fakeTG.InjectFloodWaits(3)
 	svc.FloodWaitRetry = tgclient.FloodWaitRetryPolicy{
@@ -946,6 +971,7 @@ func TestUploadHiddenStopsAfterFloodWaitRetryBudget(t *testing.T) {
 }
 
 func TestDiscardHiddenBodyValidationAndCleanupFailure(t *testing.T) {
+	isolate_data_dir(t)
 	t.Run("validation", func(t *testing.T) {
 		svc, _, _, _ := newTestService(t)
 		ctx, cancel := context.WithCancel(context.Background())
@@ -1000,12 +1026,14 @@ func TestDiscardHiddenBodyValidationAndCleanupFailure(t *testing.T) {
 }
 
 func TestServiceDoesNotExposeRawHiddenMessageDeletion(t *testing.T) {
+	isolate_data_dir(t)
 	if _, exposed := reflect.TypeFor[*Service]().MethodByName("DiscardHidden"); exposed {
 		t.Fatal("Service exposes raw hidden MessageID deletion without operation ownership")
 	}
 }
 
 func TestValidateSeekableSizeReportsSeekFailures(t *testing.T) {
+	isolate_data_dir(t)
 	if err := validateSeekableSize(&failingSeeker{failAt: 1}, 0); err == nil || !strings.Contains(err.Error(), "measure") {
 		t.Fatalf("first seek error = %v", err)
 	}

@@ -27,6 +27,7 @@ func bigBody(n int) []byte {
 }
 
 func TestMultipartRoundTripPlain(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000 // force splitting above 1000 stored bytes
 
@@ -96,6 +97,7 @@ func restartedUploadService(previous *Service) *Service {
 }
 
 func TestMultipartResumeReconcilesAcceptedPartAfterRestart(t *testing.T) {
+	isolate_data_dir(t)
 	dbPath := filepath.Join(t.TempDir(), "upload.db")
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
@@ -149,6 +151,7 @@ func TestMultipartResumeReconcilesAcceptedPartAfterRestart(t *testing.T) {
 }
 
 func TestMultipartResumeWaitsForNetwork(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	policy := instantRetryPolicy()
@@ -192,6 +195,7 @@ func (c *interruptedPartVerificationClient) DownloadFile(context.Context, tgclie
 }
 
 func TestMultipartResumeReconcilesAcceptedPartAfterNetworkLoss(t *testing.T) {
+	isolate_data_dir(t)
 	for _, verifyInterrupted := range []bool{false, true} {
 		t.Run(fmt.Sprintf("verification_interrupted=%v", verifyInterrupted), func(t *testing.T) {
 			svc, _, fakeTG, _ := newTestService(t)
@@ -229,6 +233,7 @@ func TestMultipartResumeReconcilesAcceptedPartAfterNetworkLoss(t *testing.T) {
 }
 
 func TestMultipartManualPauseStaysPaused(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	path := writeTempNamedFile(t, "movie.bin", bigBody(2500))
@@ -261,6 +266,7 @@ func TestMultipartManualPauseStaysPaused(t *testing.T) {
 }
 
 func TestMultipartResumeRejectsChangedSource(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	path := writeTempNamedFile(t, "movie.bin", bigBody(2500))
@@ -341,6 +347,7 @@ func (c *changingSourceClient) SendFileWithRandomID(ctx context.Context, peer tg
 }
 
 func TestMultipartResumeInvalidatesBytesChangedDuringSend(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	original := bigBody(2500)
@@ -397,6 +404,7 @@ func (c *acceptedBadThenRetriedClient) SendFileWithRandomID(ctx context.Context,
 }
 
 func TestMultipartRetryVerifiesAcceptedBytesNotLastAttempt(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -472,6 +480,7 @@ func (c *anonymousUploadHistoryClient) GetHistory(ctx context.Context, peer tgcl
 }
 
 func TestMultipartCancelChecksAnonymousSenderOwnership(t *testing.T) {
+	isolate_data_dir(t)
 	for _, outgoing := range []bool{false, true} {
 		t.Run(fmt.Sprint("outgoing=", outgoing), func(t *testing.T) {
 			svc, _, fakeTG, _ := newTestService(t)
@@ -517,6 +526,7 @@ func (c *uncertainManifestClient) SendControlWithRandomID(ctx context.Context, p
 }
 
 func TestMultipartResumeReconcilesOrRetriesManifest(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		accepted bool
 		canceled bool
@@ -561,6 +571,7 @@ func TestMultipartResumeReconcilesOrRetriesManifest(t *testing.T) {
 }
 
 func TestMultipartRoundTripEncrypted(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	masterKey := bytes.Repeat([]byte{5}, 32)
@@ -619,6 +630,7 @@ func TestMultipartRoundTripEncrypted(t *testing.T) {
 }
 
 func TestMultipartEncryptedUploadCopiesClearsAndJoinsProducerKey(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 32
 
@@ -694,6 +706,7 @@ func TestMultipartEncryptedUploadCopiesClearsAndJoinsProducerKey(t *testing.T) {
 }
 
 func TestMultipartDeleteKeepsPartsRestorable(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 

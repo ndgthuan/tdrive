@@ -11,6 +11,7 @@ import (
 )
 
 func TestNewFileServiceWiresUploadConcurrencyLimit(t *testing.T) {
+	isolate_data_dir(t)
 	engine := &Engine{maxUploads: 5}
 	service := engine.newFileService()
 	if service.MaxConcurrentUploads != 5 {
@@ -19,6 +20,7 @@ func TestNewFileServiceWiresUploadConcurrencyLimit(t *testing.T) {
 }
 
 func TestFreshDatabaseDownloadJournalAfterPersonalDriveMigration(t *testing.T) {
+	isolate_data_dir(t)
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open database: %v", err)

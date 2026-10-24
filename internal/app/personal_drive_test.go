@@ -7,6 +7,7 @@ import (
 )
 
 func TestPersonalDriveCandidateJSONPreservesIDAndOmitsAccessHash(t *testing.T) {
+	isolate_data_dir(t)
 	candidate := PersonalDriveCandidate{
 		ID:          "9007199254740993",
 		Title:       "TDrive",
@@ -28,6 +29,7 @@ func TestPersonalDriveCandidateJSONPreservesIDAndOmitsAccessHash(t *testing.T) {
 }
 
 func TestSelectPersonalDriveRejectsNonCanonicalIDsAtBoundary(t *testing.T) {
+	isolate_data_dir(t)
 	drives := newDriveService(&App{})
 	for _, channelID := range []string{"", "0", "-1", "+1", "01", " 1", "1 ", "1.0", "9223372036854775808"} {
 		t.Run(channelID, func(t *testing.T) {

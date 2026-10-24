@@ -12,6 +12,7 @@ import (
 )
 
 func TestWindowsInstallSwapsExecutableAndMedia(t *testing.T) {
+	isolate_data_dir(t)
 	work := t.TempDir()
 	payload := writeZip(t, map[string]string{
 		"TDrive-windows-amd64.exe": "new exe",
@@ -59,6 +60,7 @@ func TestWindowsInstallSwapsExecutableAndMedia(t *testing.T) {
 }
 
 func TestWindowsInstallRejectsAmbiguousPayload(t *testing.T) {
+	isolate_data_dir(t)
 	work := t.TempDir()
 	payload := writeZip(t, map[string]string{"a.exe": "a", "b.exe": "b"})
 	exe := filepath.Join(work, "TDrive.exe")
@@ -77,6 +79,7 @@ func TestWindowsInstallRejectsAmbiguousPayload(t *testing.T) {
 }
 
 func TestWindowsInstallRemovesNewMediaWhenExecutableSwapFails(t *testing.T) {
+	isolate_data_dir(t)
 	work := t.TempDir()
 	payload := writeZip(t, map[string]string{
 		"TDrive-windows-amd64.exe": "new exe",
@@ -125,6 +128,7 @@ func TestWindowsInstallRemovesNewMediaWhenExecutableSwapFails(t *testing.T) {
 }
 
 func TestWindowsInstallRemovesPartialStagingWhenExtractionFails(t *testing.T) {
+	isolate_data_dir(t)
 	work := t.TempDir()
 	var payloadBytes bytes.Buffer
 	zipWriter := zip.NewWriter(&payloadBytes)

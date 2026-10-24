@@ -12,6 +12,7 @@ import (
 )
 
 func TestOrphanSweepPreservesInFlightAndRestorableBodies(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fake, actor := newTestService(t)
 	for i, uuid := range []string{"deleted", "in-flight", "trashed"} {
 		id := int64(i + 1)
@@ -84,6 +85,7 @@ func (r unavailableSweepPeer) ResolvePeer(context.Context, int64) (tgclient.Inpu
 }
 
 func TestOrphanSweepKeepsQueueWhenDriveCannotBeResolved(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fake, _ := newTestService(t)
 	if err := projection.QueuePartCleanup(db, personalChannelID, []int64{55}); err != nil {
 		t.Fatal(err)
@@ -107,6 +109,7 @@ func (f *failingSweepClient) DeleteMessages(ctx context.Context, peer tgclient.I
 }
 
 func TestOrphanSweepRetainsCleanupOwnershipUntilRemoteDeletion(t *testing.T) {
+	isolate_data_dir(t)
 	for _, failID := range []int64{1, 2} {
 		t.Run(fmt.Sprintf("delete body %d fails", failID), func(t *testing.T) {
 			svc, db, fake, actor := newTestService(t)
@@ -159,6 +162,7 @@ func TestOrphanSweepRetainsCleanupOwnershipUntilRemoteDeletion(t *testing.T) {
 }
 
 func TestStagedUploadSourceRetainedAcrossAccountsUntilEveryJobCompletes(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CacheNamespace = "account-one"
 	path := writeTempFile(t, "eight123")

@@ -13,6 +13,7 @@ import (
 const testAccountID int64 = 123
 
 func TestBiometricScopeBindsCryptoConfigAndIgnoresHint(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db := newTestService(t)
 	if _, err := svc.BiometricScope(testAccountID); !errors.Is(err, ErrVaultNotConfigured) {
 		t.Fatalf("unconfigured scope error = %v", err)
@@ -55,6 +56,7 @@ func TestBiometricScopeBindsCryptoConfigAndIgnoresHint(t *testing.T) {
 }
 
 func TestBiometricEnrollmentRequiresFreshPasswordWithoutUnlockingSession(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatal(err)
@@ -104,6 +106,7 @@ func TestBiometricEnrollmentRequiresFreshPasswordWithoutUnlockingSession(t *test
 }
 
 func TestBiometricKeyRejectsWrongKeyAndScopeWithoutInstalling(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatal(err)
@@ -142,6 +145,7 @@ func TestBiometricKeyRejectsWrongKeyAndScopeWithoutInstalling(t *testing.T) {
 }
 
 func TestBiometricEnrollmentRejectsDriveChangeWhileDerivingPassword(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatal(err)
@@ -162,6 +166,7 @@ func TestBiometricEnrollmentRejectsDriveChangeWhileDerivingPassword(t *testing.T
 }
 
 func TestBiometricEnrollmentRejectsConfigChangeAndClearsDerivationBuffers(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatal(err)
@@ -195,6 +200,7 @@ func TestBiometricEnrollmentRejectsConfigChangeAndClearsDerivationBuffers(t *tes
 }
 
 func TestBiometricScopeRejectsDisabledAndInvalidConfig(t *testing.T) {
+	isolate_data_dir(t)
 	for _, change := range []string{
 		`UPDATE encryption SET enabled = 0`,
 		`UPDATE encryption SET version = 2`,
@@ -223,6 +229,7 @@ func TestBiometricScopeRejectsDisabledAndInvalidConfig(t *testing.T) {
 }
 
 func TestBiometricRequestsRejectRemovedVaultAndBlankEnrollmentPassword(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatal(err)

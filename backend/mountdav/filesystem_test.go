@@ -75,6 +75,7 @@ func testFS(t *testing.T, opener *memoryOpener) *FileSystem {
 }
 
 func TestFileSystemRejectsMutations(t *testing.T) {
+	isolate_data_dir(t)
 	fs := testFS(t, nil)
 	ctx := context.Background()
 
@@ -93,6 +94,7 @@ func TestFileSystemRejectsMutations(t *testing.T) {
 }
 
 func TestFileSystemListsDirectories(t *testing.T) {
+	isolate_data_dir(t)
 	fs := testFS(t, nil)
 	f, err := fs.OpenFile(context.Background(), "/", os.O_RDONLY, 0)
 	if err != nil {
@@ -110,6 +112,7 @@ func TestFileSystemListsDirectories(t *testing.T) {
 }
 
 func TestFileSystemStreamsRandomAccessReads(t *testing.T) {
+	isolate_data_dir(t)
 	opener := &memoryOpener{data: []byte("streamed bytes")}
 	fs := testFS(t, opener)
 
@@ -136,6 +139,7 @@ func TestFileSystemStreamsRandomAccessReads(t *testing.T) {
 }
 
 func TestWebDAVHandlerIsReadOnly(t *testing.T) {
+	isolate_data_dir(t)
 	fs := testFS(t, &memoryOpener{data: []byte("hello webdav")})
 	handler := &webdav.Handler{
 		Prefix:     "/dav",

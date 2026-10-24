@@ -100,6 +100,7 @@ func fileParentID(t *testing.T, db *sql.DB, channelID int64, name string) string
 }
 
 func TestPlanImportCountsTreeAndArchive(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 
 	root := filepath.Join(t.TempDir(), "Trip")
@@ -132,6 +133,7 @@ func TestPlanImportCountsTreeAndArchive(t *testing.T) {
 }
 
 func TestPlanImportFlagsOversize(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	svc.MaxUploadBytes = 3 // part size 3, hard cap = 3*MaxParts
 	hardCap := int64(3) * int64(MaxParts)
@@ -156,6 +158,7 @@ func TestPlanImportFlagsOversize(t *testing.T) {
 }
 
 func TestPlanArchiveDoesNotReserveDirectoriesForOversizeMembers(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	svc.MaxUploadBytes = 1
 	archivePath := buildZip(t, map[string]string{
@@ -182,6 +185,7 @@ func TestPlanArchiveDoesNotReserveDirectoriesForOversizeMembers(t *testing.T) {
 }
 
 func TestPlanImportCorruptArchiveDoesNotCountExtractFolder(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	p := filepath.Join(t.TempDir(), "bad.zip")
 	if err := os.WriteFile(p, []byte("not a zip"), 0o644); err != nil {
@@ -204,6 +208,7 @@ func TestPlanImportCorruptArchiveDoesNotCountExtractFolder(t *testing.T) {
 }
 
 func TestRunImportFolderTree(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = testFolderCreator(db)
 
@@ -236,6 +241,7 @@ func TestRunImportFolderTree(t *testing.T) {
 }
 
 func TestRunImportRejectsMissingParentBeforeCreatingFolders(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = testFolderCreator(db)
 
@@ -252,6 +258,7 @@ func TestRunImportRejectsMissingParentBeforeCreatingFolders(t *testing.T) {
 }
 
 func TestRunImportChecksEncryptionBeforeCreatingFolders(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = testFolderCreator(db)
 	failedKey := []byte("preflight-owned-key")
@@ -276,6 +283,7 @@ func TestRunImportChecksEncryptionBeforeCreatingFolders(t *testing.T) {
 }
 
 func TestRunImportClearsSuccessfulEncryptionPreflightKey(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = testFolderCreator(db)
 	svc.WriteCiphertextTemp = func(io.Reader, int64, []byte) (*os.File, error) {
@@ -296,6 +304,7 @@ func TestRunImportClearsSuccessfulEncryptionPreflightKey(t *testing.T) {
 }
 
 func TestRunImportNameCollisionSuffixes(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	create := testFolderCreator(db)
 	svc.CreateFolder = create
@@ -318,6 +327,7 @@ func TestRunImportNameCollisionSuffixes(t *testing.T) {
 }
 
 func TestRunImportSkipsOversize(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = testFolderCreator(db)
 	svc.MaxUploadBytes = 5 // part size 5, hard cap = 5*MaxParts
@@ -339,6 +349,7 @@ func TestRunImportSkipsOversize(t *testing.T) {
 }
 
 func TestRunImportArchiveExtract(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = testFolderCreator(db)
 
@@ -362,6 +373,7 @@ func TestRunImportArchiveExtract(t *testing.T) {
 }
 
 func TestRunImportArchiveCollapsesDuplicateRootAndSkipsMacOSMetadata(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = testFolderCreator(db)
 
@@ -403,6 +415,7 @@ func TestRunImportArchiveCollapsesDuplicateRootAndSkipsMacOSMetadata(t *testing.
 }
 
 func TestRunImportArchiveSkipsOversizeEntry(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = testFolderCreator(db)
 	svc.MaxUploadBytes = 5 // part size 5, hard cap = 5*MaxParts

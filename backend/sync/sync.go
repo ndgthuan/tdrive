@@ -428,7 +428,7 @@ func (e *Engine) authoritativeLocked(ctx context.Context, channelID int64) error
 	// Adopting caption-less media is only safe on an empty projection. On a
 	// populated one the adopted upload re-applies below the meta/move ops
 	// that already placed the file (those are in replay_log and skipped), so
-	// the file would land back at root. TDX1 ops replay idempotently either
+	// the file would land back at root. TDrive ops replay idempotently either
 	// way, which is all a full scan of a populated channel needs.
 	if parseOpts.AdoptCaptionlessMedia {
 		empty, err := projection.ChannelIsEmpty(e.db, channelID)

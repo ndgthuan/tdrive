@@ -15,6 +15,7 @@ import (
 )
 
 func TestFolderCloseReleasesPausedTraversal(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	for _, name := range []string{"one.jpg", "two.jpg"} {
 		if err := os.WriteFile(filepath.Join(root, name), []byte("x"), 0o600); err != nil {
@@ -38,6 +39,7 @@ func TestFolderCloseReleasesPausedTraversal(t *testing.T) {
 }
 
 func TestNativeSourceDisplayNameSurvivesRoundTrip(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Now()
 	engine, scope := testEngine(t, &now)
 	source := Source{Scope: scope, ID: "phassetcollection:camera", Kind: "ios", Root: "phassetcollection:UUID", Name: "Camera", Enabled: true}
@@ -81,6 +83,7 @@ func configure(t testing.TB, e *Engine, s Scope) {
 }
 
 func TestSettingsSourcesAndScopeIsolation(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(10, 0)
 	e, a := testEngine(t, &now)
 	b := Scope{AccountID: "other", DriveID: 7}
@@ -100,6 +103,7 @@ func TestSettingsSourcesAndScopeIsolation(t *testing.T) {
 }
 
 func TestManualPauseRejectsInvalidAndUnconfiguredScopes(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	engine, scope := testEngine(t, &now)
 	for _, invalid := range []Scope{{}, {AccountID: scope.AccountID}, {DriveID: scope.DriveID}} {
@@ -116,6 +120,7 @@ func TestManualPauseRejectsInvalidAndUnconfiguredScopes(t *testing.T) {
 }
 
 func TestManualPauseIsDurableScopedAndBlocksUploads(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(15, 0)
 	e, scope := testEngine(t, &now)
 	otherDrive := Scope{AccountID: scope.AccountID, DriveID: scope.DriveID + 1}
@@ -165,6 +170,7 @@ func TestManualPauseIsDurableScopedAndBlocksUploads(t *testing.T) {
 }
 
 func TestMigrateVersionOneAddsDurablePauseState(t *testing.T) {
+	isolate_data_dir(t)
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "legacy.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -218,6 +224,7 @@ PRAGMA user_version=1`); err != nil {
 }
 
 func TestMigrateVersionTwoDropsChargingWithoutBlockingOrLosingQueue(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(18, 0)
 	engine, scope := testEngine(t, &now)
 	configure(t, engine, scope)
@@ -283,6 +290,7 @@ PRAGMA user_version=2`); err != nil {
 // v3 is what every current install is on, so this is the upgrade that will
 // actually run in the field.
 func TestMigrateVersionThreeAddsCaptureTimeWithoutLosingQueue(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(30, 0)
 	engine, scope := testEngine(t, &now)
 	configure(t, engine, scope)
@@ -323,6 +331,7 @@ PRAGMA user_version=3`); err != nil {
 // queue must survive, and a row from it must read back as belonging to the top
 // of its source rather than to some invented folder.
 func TestMigrateVersionFiveAddsRelativeDirWithoutLosingQueue(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(40, 0)
 	engine, scope := testEngine(t, &now)
 	configure(t, engine, scope)
@@ -355,6 +364,7 @@ PRAGMA user_version=5`); err != nil {
 }
 
 func TestMigrateVersionSixAddsScanCheckpointWithoutLosingQueue(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(45, 0)
 	engine, scope := testEngine(t, &now)
 	configure(t, engine, scope)
@@ -387,6 +397,7 @@ PRAGMA user_version=6`); err != nil {
 }
 
 func TestMigrateVersionSixWithCheckpointColumnsAlreadyPresent(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(46, 0)
 	engine, _ := testEngine(t, &now)
 	if _, err := engine.db.Exec(`PRAGMA user_version=6`); err != nil {
@@ -401,6 +412,7 @@ func TestMigrateVersionSixWithCheckpointColumnsAlreadyPresent(t *testing.T) {
 // survive the queue: it is the only thing that keeps two photos with the same
 // name in different subfolders apart when they land in the drive.
 func TestEnqueueKeepsHostReportedRelativeDir(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(50, 0)
 	engine, scope := testEngine(t, &now)
 	configure(t, engine, scope)
@@ -420,6 +432,7 @@ func TestEnqueueKeepsHostReportedRelativeDir(t *testing.T) {
 }
 
 func TestEnqueueDeduplicatesFiltersAndUploadsSerially(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(20, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -446,6 +459,7 @@ func TestEnqueueDeduplicatesFiltersAndUploadsSerially(t *testing.T) {
 }
 
 func TestRetryBackoffAndInterruptedNeedsExplicitRetry(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(30, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -490,6 +504,7 @@ func TestRetryBackoffAndInterruptedNeedsExplicitRetry(t *testing.T) {
 // a photo was taken still has to survive the ledger, because the drive files
 // it by that date; it just no longer decides whether it is backed up at all.
 func TestNativePageCarriesCaptureTimeAndIsBounded(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	if err := e.PutSettings(context.Background(), Settings{Scope: scope, Enabled: true, Photos: true}); err != nil {
@@ -524,6 +539,7 @@ func TestNativePageCarriesCaptureTimeAndIsBounded(t *testing.T) {
 }
 
 func TestLocalFolderAdapterPagingDepthSymlinksAndExclusion(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	mustWrite := func(path string) {
 		t.Helper()
@@ -557,6 +573,7 @@ func TestLocalFolderAdapterPagingDepthSymlinksAndExclusion(t *testing.T) {
 }
 
 func TestInvalidArguments(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Now()
 	e, scope := testEngine(t, &now)
 	if _, err := Open(nil, Options{}); !errors.Is(err, ErrInvalid) {
@@ -593,6 +610,7 @@ func (a *cursorAdapter) Page(_ context.Context, _ Source, cursor string, _ int) 
 }
 
 func TestDiscoverPagesAndAdapterFailures(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(200, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -613,6 +631,7 @@ func TestDiscoverPagesAndAdapterFailures(t *testing.T) {
 }
 
 func TestRunOnceRejectsEmptyReceiptAndHonorsDisabled(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(300, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -641,6 +660,7 @@ func TestRunOnceRejectsEmptyReceiptAndHonorsDisabled(t *testing.T) {
 }
 
 func TestLatestVersionSupersedesQueuedAndDisabledSourceDoesNotStarve(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(400, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -674,6 +694,7 @@ func TestLatestVersionSupersedesQueuedAndDisabledSourceDoesNotStarve(t *testing.
 }
 
 func TestStatusWithSingleConnectionAndCanceledUploadReceipt(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(500, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -694,6 +715,7 @@ func TestStatusWithSingleConnectionAndCanceledUploadReceipt(t *testing.T) {
 }
 
 func TestLocalFolderAdapterCursorLifecycle(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "a.jpg"), []byte("a"), 0644); err != nil {
 		t.Fatal(err)
@@ -714,6 +736,7 @@ func TestLocalFolderAdapterCursorLifecycle(t *testing.T) {
 }
 
 func TestNativeAssetDeduplicatesAcrossAlbums(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(600, 0)
 	e, scope := testEngine(t, &now)
 	if err := e.PutSettings(context.Background(), Settings{Scope: scope, Enabled: true, Photos: true, Videos: true}); err != nil {
@@ -765,6 +788,7 @@ func TestNativeAssetDeduplicatesAcrossAlbums(t *testing.T) {
 }
 
 func TestDiscoverPageCheckpointAndReset(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(700, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -787,6 +811,7 @@ func TestDiscoverPageCheckpointAndReset(t *testing.T) {
 }
 
 func TestCommitScanPagePersistsAcrossEngineRestart(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(701, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -833,6 +858,7 @@ func TestCommitScanPagePersistsAcrossEngineRestart(t *testing.T) {
 }
 
 func TestCommitScanPageRejectsStaleAndRollsBack(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(702, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -880,6 +906,7 @@ func TestCommitScanPageRejectsStaleAndRollsBack(t *testing.T) {
 }
 
 func TestCommitScanPageAcrossEightPagesAndScopeIsolation(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(703, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -926,6 +953,7 @@ func TestCommitScanPageAcrossEightPagesAndScopeIsolation(t *testing.T) {
 }
 
 func TestStatusUsesMaintainedCountersAtScale(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(800, 0)
 	e, scope := testEngine(t, &now)
 	_, err := e.db.Exec(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<100000)
@@ -965,6 +993,7 @@ SELECT 'acct',7,'bulk',printf('asset-%d',x),'1',printf('/%d.jpg',x),printf('%d.j
 }
 
 func TestRunOnceHonorsCurrentMediaSelectionWithoutStarvation(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(900, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -1008,6 +1037,7 @@ func TestRunOnceHonorsCurrentMediaSelectionWithoutStarvation(t *testing.T) {
 }
 
 func TestRemoveSourceDropsUncommittedCountsButKeepsCompletedReceipt(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(1000, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -1032,6 +1062,7 @@ func TestRemoveSourceDropsUncommittedCountsButKeepsCompletedReceipt(t *testing.T
 }
 
 func TestRemoveSourceRefusesActiveUpload(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(1100, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -1050,6 +1081,7 @@ func TestRemoveSourceRefusesActiveUpload(t *testing.T) {
 // id -- leaves its unfinished jobs behind. Nothing will ever scan or upload
 // them, so they must not go on counting as work the backup is waiting to do.
 func TestMigratePrunesJobsWhoseSourceIsGone(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Now()
 	engine, scope := testEngine(t, &now)
 	ctx := context.Background()
@@ -1103,6 +1135,7 @@ func TestMigratePrunesJobsWhoseSourceIsGone(t *testing.T) {
 // drive stays recorded, so adding the folder that holds those photos does not
 // send every one of them a second time.
 func TestMigrateDropsSourcesTheAlbumPickerMade(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Now()
 	engine, scope := testEngine(t, &now)
 	ctx := context.Background()

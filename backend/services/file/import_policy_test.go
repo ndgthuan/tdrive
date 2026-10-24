@@ -94,16 +94,19 @@ func assertImportPolicyPlan(t *testing.T, plan ImportPlan) {
 }
 
 func TestPlanImportUsesConservativeIgnorePolicyForFolders(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	assertImportPolicyPlan(t, svc.PlanImport([]string{makeImportPolicyTree(t)}, false, false))
 }
 
 func TestPlanImportUsesConservativeIgnorePolicyForArchives(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	assertImportPolicyPlan(t, svc.PlanImport([]string{makeImportPolicyArchive(t)}, false, true))
 }
 
 func TestPlanImportIgnorePolicyIsCaseInsensitive(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	root := filepath.Join(t.TempDir(), "Project")
 	mkfile(t, filepath.Join(root, ".GIT", "ignored.txt"), "ignored")
@@ -117,6 +120,7 @@ func TestPlanImportIgnorePolicyIsCaseInsensitive(t *testing.T) {
 }
 
 func TestImportIgnorePolicyDoesNotTrimLegitimateNames(t *testing.T) {
+	isolate_data_dir(t)
 	if isIgnoredImportName(" .git", true) {
 		t.Fatal("leading-space directory was mistaken for .git")
 	}
@@ -126,6 +130,7 @@ func TestImportIgnorePolicyDoesNotTrimLegitimateNames(t *testing.T) {
 }
 
 func TestRunImportUsesThePlannedIgnorePolicy(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name    string
 		path    func(*testing.T) string
@@ -155,6 +160,7 @@ func TestRunImportUsesThePlannedIgnorePolicy(t *testing.T) {
 }
 
 func TestPlanImportDoesNotIgnoreAnExplicitSelection(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.CreateFolder = contextTestFolderCreator(db)
 	topFile := filepath.Join(t.TempDir(), "manual.pyc")
@@ -182,6 +188,7 @@ func TestPlanImportDoesNotIgnoreAnExplicitSelection(t *testing.T) {
 }
 
 func TestPlanImportReportsRemoteObjectLimit(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	root := filepath.Join(t.TempDir(), "LargeProject")
 	if err := os.MkdirAll(root, 0o755); err != nil {
@@ -221,6 +228,7 @@ func TestPlanImportReportsRemoteObjectLimit(t *testing.T) {
 }
 
 func TestArchiveImportScanBoundsIgnoredMetadataToo(t *testing.T) {
+	isolate_data_dir(t)
 	archive := buildZip(t, map[string]string{
 		"node_modules/a.js": "a",
 		"node_modules/b.js": "b",
@@ -238,6 +246,7 @@ func TestArchiveImportScanBoundsIgnoredMetadataToo(t *testing.T) {
 }
 
 func TestArchiveScanLimitRemainsRecoverableForRawUploadFallback(t *testing.T) {
+	isolate_data_dir(t)
 	if isFatalImportError(errArchiveScanLimit) {
 		t.Fatal("archive inspection limit must fall back to uploading the original archive")
 	}

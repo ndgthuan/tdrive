@@ -261,7 +261,7 @@ func validateNativePhotoBackupPath(path string) error {
 		return err
 	}
 	roots := []string{filepath.Join(cache, "photo-backup-stage")}
-	if userCache, cacheErr := os.UserCacheDir(); cacheErr == nil {
+	if userCache, cacheErr := datadir.UserCacheBase(); cacheErr == nil {
 		roots = append(roots, filepath.Join(userCache, "TDrivePhotoBackup"))
 	}
 	for index, root := range roots {

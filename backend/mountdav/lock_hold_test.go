@@ -9,6 +9,7 @@ import (
 )
 
 func TestHeldLockRefreshPreservesExclusiveClaimAndRequestedDeadline(t *testing.T) {
+	isolate_data_dir(t)
 	locks := newBoundedLockSystem(2)
 	now := time.Unix(1_700_000_000, 0)
 	token, err := locks.Create(now, webdav.LockDetails{Root: "/Docs", Duration: time.Second})
@@ -50,6 +51,7 @@ func TestHeldLockRefreshPreservesExclusiveClaimAndRequestedDeadline(t *testing.T
 }
 
 func TestHeldLockKeepsCapacityUntilReleaseWithoutRenewingDeadline(t *testing.T) {
+	isolate_data_dir(t)
 	locks := newBoundedLockSystem(1)
 	now := time.Unix(1_700_000_000, 0)
 	token, err := locks.Create(now, webdav.LockDetails{Root: "/file", Duration: time.Second})
@@ -78,6 +80,7 @@ func TestHeldLockKeepsCapacityUntilReleaseWithoutRenewingDeadline(t *testing.T) 
 }
 
 func TestTemporaryMutationLockRemainsExclusiveBeyondTimeout(t *testing.T) {
+	isolate_data_dir(t)
 	locks := newBoundedLockSystem(2)
 	application := &readApplication{lockSystem: locks}
 	hold := &mutationLockHold{locks: locks}
@@ -96,6 +99,7 @@ func TestTemporaryMutationLockRemainsExclusiveBeyondTimeout(t *testing.T) {
 }
 
 func TestHeldLockRefreshDoesNotExtendDeadlineUntilRelease(t *testing.T) {
+	isolate_data_dir(t)
 	locks := newBoundedLockSystem(2)
 	now := time.Unix(1_700_000_000, 0)
 	token, err := locks.Create(now, webdav.LockDetails{Root: "/file", Duration: time.Minute})
@@ -123,6 +127,7 @@ func TestHeldLockRefreshDoesNotExtendDeadlineUntilRelease(t *testing.T) {
 }
 
 func TestConfirmTracksOnlyClaimedTokensForBothResources(t *testing.T) {
+	isolate_data_dir(t)
 	for _, sameParent := range []bool{false, true} {
 		name := "separate locks"
 		if sameParent {

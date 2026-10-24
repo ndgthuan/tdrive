@@ -46,6 +46,7 @@ func (s *fakePhotoBackupFolderStore) create(ctx context.Context, channelID int64
 }
 
 func TestResolvePhotoBackupDestinationBuildsAndReusesHierarchy(t *testing.T) {
+	isolate_data_dir(t)
 	store := &fakePhotoBackupFolderStore{}
 	resolver := newPhotoBackupDestinationResolver(store)
 
@@ -69,6 +70,7 @@ func TestResolvePhotoBackupDestinationBuildsAndReusesHierarchy(t *testing.T) {
 }
 
 func TestResolvePhotoBackupDestinationMirrorsNestedFolders(t *testing.T) {
+	isolate_data_dir(t)
 	store := &fakePhotoBackupFolderStore{}
 	resolver := newPhotoBackupDestinationResolver(store)
 	ctx := context.Background()
@@ -110,6 +112,7 @@ func TestResolvePhotoBackupDestinationMirrorsNestedFolders(t *testing.T) {
 }
 
 func TestResolvePhotoBackupDestinationSanitizesEveryMirroredLevel(t *testing.T) {
+	isolate_data_dir(t)
 	store := &fakePhotoBackupFolderStore{}
 	// Empty and dot components are skipped rather than becoming folders, and a
 	// name the namespace rejects falls back instead of failing the upload.
@@ -126,6 +129,7 @@ func TestResolvePhotoBackupDestinationSanitizesEveryMirroredLevel(t *testing.T) 
 }
 
 func TestPhotoBackupRelativeDirOnlyMirrorsContainedFolderSources(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	source := photobackup.Source{Root: root}
 	for _, tc := range []struct{ name, path, want string }{
@@ -161,6 +165,7 @@ func TestPhotoBackupRelativeDirOnlyMirrorsContainedFolderSources(t *testing.T) {
 }
 
 func TestPhotoBackupDeviceFolderRootIsNormalizedAndChecked(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct{ name, root, want string }{
 		{"plain", "external_primary:DCIM/Camera", "external_primary:DCIM/Camera/"},
 		{"already terminated", "external_primary:DCIM/Camera/", "external_primary:DCIM/Camera/"},
@@ -191,6 +196,7 @@ func TestPhotoBackupDeviceFolderRootIsNormalizedAndChecked(t *testing.T) {
 // the file's place in the drive would then depend on which source scanned it
 // first, which is not something a user can predict or find.
 func TestPhotoBackupOverlappingDeviceFolderIsNamed(t *testing.T) {
+	isolate_data_dir(t)
 	existing := []photobackup.Source{
 		{ID: "tree:external_primary:DCIM/", Kind: photoBackupDeviceFolderKind, Root: "external_primary:DCIM/", Name: "DCIM"},
 		{ID: "bucket:9", Kind: "album", Root: "content://media", Name: "Camera"},
@@ -212,6 +218,7 @@ func TestPhotoBackupOverlappingDeviceFolderIsNamed(t *testing.T) {
 }
 
 func TestPhotoBackupSettingsSavePreservesOmittedDestination(t *testing.T) {
+	isolate_data_dir(t)
 	scope := photobackup.Scope{AccountID: "7", DriveID: 41}
 	current := photobackup.Settings{Scope: scope, DestinationParentID: "d:selected", ManualPaused: true}
 	got := photoBackupSettingsForSave(scope, current, PhotoBackupSettings{Enabled: true, Photos: true})
@@ -225,6 +232,7 @@ func TestPhotoBackupSettingsSavePreservesOmittedDestination(t *testing.T) {
 }
 
 func TestResolvePhotoBackupDestinationIsolatesDrives(t *testing.T) {
+	isolate_data_dir(t)
 	store := &fakePhotoBackupFolderStore{}
 	resolver := newPhotoBackupDestinationResolver(store)
 
@@ -242,6 +250,7 @@ func TestResolvePhotoBackupDestinationIsolatesDrives(t *testing.T) {
 }
 
 func TestResolvePhotoBackupDestinationHonorsCancellationAndErrors(t *testing.T) {
+	isolate_data_dir(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	store := &fakePhotoBackupFolderStore{}
@@ -256,6 +265,7 @@ func TestResolvePhotoBackupDestinationHonorsCancellationAndErrors(t *testing.T) 
 }
 
 func TestPhotoBackupFolderNameMakesPortableFallbacks(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct{ input, fallback, want string }{
 		{"  Pixel 9  ", "Device", "Pixel 9"},
 		{"Camera/Uploads", "Photos", "Camera_Uploads"},
@@ -269,6 +279,7 @@ func TestPhotoBackupFolderNameMakesPortableFallbacks(t *testing.T) {
 }
 
 func TestLoadOrCreatePhotoBackupDeviceNamePersistsUniqueLabel(t *testing.T) {
+	isolate_data_dir(t)
 	path := filepath.Join(t.TempDir(), "device-name")
 	first, err := loadOrCreatePhotoBackupDeviceName(path, "localhost", bytes.NewReader([]byte{1, 2, 3, 4}))
 	if err != nil {
@@ -284,6 +295,7 @@ func TestLoadOrCreatePhotoBackupDeviceNamePersistsUniqueLabel(t *testing.T) {
 }
 
 func TestAppPhotoBackupFolderStoreUsesScopedLiveDirent(t *testing.T) {
+	isolate_data_dir(t)
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatal(err)

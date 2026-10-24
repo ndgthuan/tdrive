@@ -21,6 +21,7 @@ func exists(path string) bool {
 }
 
 func TestResolveDefaultCacheDirKeepsPersistentUserCache(t *testing.T) {
+	isolate_data_dir(t)
 	tempCalled := false
 	got := resolveDefaultCacheDir(
 		func() (string, error) { return filepath.Join("home", "cache"), nil },
@@ -40,6 +41,7 @@ func TestResolveDefaultCacheDirKeepsPersistentUserCache(t *testing.T) {
 }
 
 func TestResolveDefaultCacheDirCreatesPrivateUnpredictableFallback(t *testing.T) {
+	isolate_data_dir(t)
 	tempRoot := t.TempDir()
 	var requestedRoot, requestedPattern string
 	makeTemp := func(root, pattern string) (string, error) {
@@ -79,6 +81,7 @@ func TestResolveDefaultCacheDirCreatesPrivateUnpredictableFallback(t *testing.T)
 }
 
 func TestResolveDefaultCacheDirFailsClosedWhenPrivateFallbackFails(t *testing.T) {
+	isolate_data_dir(t)
 	got := resolveDefaultCacheDir(
 		func() (string, error) { return "", errors.New("user cache unavailable") },
 		func(_, _ string) (string, error) { return "", errors.New("temp unavailable") },
@@ -89,6 +92,7 @@ func TestResolveDefaultCacheDirFailsClosedWhenPrivateFallbackFails(t *testing.T)
 }
 
 func TestNewWithUnavailableCacheDoesNotPruneWorkingDirectory(t *testing.T) {
+	isolate_data_dir(t)
 	work := t.TempDir()
 	t.Chdir(work)
 	name := "TDrive-v1.6.0-macos-arm64.zip"
@@ -104,6 +108,7 @@ func TestNewWithUnavailableCacheDoesNotPruneWorkingDirectory(t *testing.T) {
 }
 
 func TestCheckDoesNotReuseWorkingDirectoryPayloadWhenCacheIsUnavailable(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.service.opts.CacheDir = "" // Simulate failure to allocate the private fallback.
 	t.Chdir(t.TempDir())
@@ -122,6 +127,7 @@ func TestCheckDoesNotReuseWorkingDirectoryPayloadWhenCacheIsUnavailable(t *testi
 }
 
 func TestEnsureCacheDirCreatesOwnerOnlyDirectory(t *testing.T) {
+	isolate_data_dir(t)
 	dir := filepath.Join(t.TempDir(), "TDrive", "updates")
 	if err := ensureCacheDir(dir); err != nil {
 		t.Fatalf("ensure cache dir: %v", err)
@@ -140,6 +146,7 @@ func TestEnsureCacheDirCreatesOwnerOnlyDirectory(t *testing.T) {
 }
 
 func TestEnsureCacheDirTightensExistingDirectory(t *testing.T) {
+	isolate_data_dir(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("Windows does not expose Unix permission bits")
 	}
@@ -161,6 +168,7 @@ func TestEnsureCacheDirTightensExistingDirectory(t *testing.T) {
 }
 
 func TestPruneCacheDropsOldAndPartialPayloads(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	touch(t, dir, "TDrive-v1.6.0-macos-arm64.zip")
 	touch(t, dir, "TDrive-v1.7.0-macos-arm64.zip")
@@ -182,6 +190,7 @@ func TestPruneCacheDropsOldAndPartialPayloads(t *testing.T) {
 }
 
 func TestPruneCacheExceptKeepsOnlyTheNamedPayload(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	touch(t, dir, "TDrive-v1.7.0-macos-arm64.zip")
 	touch(t, dir, "TDrive-v1.8.0-macos-arm64.zip")

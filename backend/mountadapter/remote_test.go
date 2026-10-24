@@ -590,49 +590,71 @@ func TestTelegramRemoteBuildsRetentionAndCASOperations(t *testing.T) {
 	}
 }
 
-func TestTelegramRemoteHardDeletePlansAndDeletesOnlyFileBodies(t *testing.T) {
+// purge_fixture builds a personal drive with one body part (msg 20) and one
+// file (msg 21) owned by it, the minimum a permanent delete has to clean up.
+func purge_fixture(t *testing.T) (*sql.DB, *tgclient.Fake, *TelegramRemote) {
+	t.Helper()
 	db := newProjectionDB(t)
 	project(t, db, 20, projection.Op{
-		Type: projection.OpFilePart, UploadUUID: "hard-delete-u", PartIndex: 0, FileSize: 1,
+		Type: projection.OpFilePart, UploadUUID: "purge-u", PartIndex: 0, FileSize: 1,
 	})
 	project(t, db, 21, projection.Op{
-		Type: projection.OpFileCommit, ProtocolVersion: 1, OpID: "put-before-hard-delete",
-		Name: "delete-me.txt", UploadUUID: "hard-delete-u", PartCount: 1,
+		Type: projection.OpFileCommit, ProtocolVersion: 1, OpID: "put-before-purge",
+		Name: "purge-me.txt", UploadUUID: "purge-u", PartCount: 1,
 		FileSize: 1, PlaintextSize: 1,
 	})
 	fakeTG := tgclient.NewFake(7)
 	fakeTG.SeedChannel(tgclient.InputPeer{ChannelID: testDriveID}, "Personal")
 	remote := newTestTelegramRemote(t, db, fakeTG, time.Unix(5_000, 0))
-	barrierCalls := 0
-	remote.projectThrough = func(_ context.Context, driveID int64) error {
-		barrierCalls++
-		controls := fakeTG.SentControls()
-		control := controls[len(controls)-1]
-		op, err := projection.Parse(control.Text)
-		if err != nil {
-			return err
-		}
-		_, err = projection.ProjectFromOp(db, driveID, control.MsgID, op, 7, control.Text)
-		return err
-	}
+	remote.projectThrough = func(context.Context, int64) error { return nil }
+	return db, fakeTG, remote
+}
 
-	result, err := remote.Commit(context.Background(), mountwrite.CommitRequest{
-		OperationID: "hard-delete-from-explorer",
+// trash_fixture_file moves file 21 to the trash the way a mount delete does,
+// and returns the trashed revision a purge must address.
+func trash_fixture_file(t *testing.T, remote *TelegramRemote) mountwrite.MutationResult {
+	t.Helper()
+	trash, err := remote.Commit(context.Background(), mountwrite.CommitRequest{
+		OperationID: "trash-before-purge",
 		CommitTime:  time.Unix(5_000, 0),
 		Mutation: mountwrite.Mutation{
-			Kind: mountwrite.MutationHardDelete, DriveID: testDriveID,
-			ObjectID: "f:21", ExpectedRevision: 1,
+			Kind: mountwrite.MutationDelete, DriveID: testDriveID,
+			ObjectID: "f:21", ExpectedRevision: 1, TrashRetention: defaultTrashRetention,
 		},
 	})
 	if err != nil {
-		t.Fatalf("Commit hard delete: %v", err)
+		t.Fatalf("trash commit: %v", err)
 	}
-	if barrierCalls != 1 {
-		t.Fatalf("ordered projection barrier calls = %d, want 1", barrierCalls)
+	if trash.Revision != 2 {
+		t.Fatalf("trash result = %+v, want revision 2", trash)
 	}
+	return trash
+}
+
+func TestTelegramRemotePermanentDeleteLeavesNoRecordAndDeletesEveryMessage(t *testing.T) {
+	db, fakeTG, remote := purge_fixture(t)
+	trash := trash_fixture_file(t, remote)
+	trash_control := fakeTG.SentControls()[0]
+
+	result, err := remote.Commit(context.Background(), mountwrite.CommitRequest{
+		OperationID: "purge-from-explorer",
+		CommitTime:  time.Unix(5_000, 0),
+		Mutation: mountwrite.Mutation{
+			Kind: mountwrite.MutationHardDelete, DriveID: testDriveID,
+			ObjectID: "f:21", ExpectedRevision: trash.Revision,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Commit purge: %v", err)
+	}
+	if result.ObjectID != "f:21" || result.CommitRef != "" {
+		t.Fatalf("purge result = %+v", result)
+	}
+	want := []int64{20, 21, trash_control.MsgID}
+	slices.Sort(want)
 	ids, total, done, err := remote.HardDeletePlan(context.Background(), result.OperationID, 0, 100)
-	if err != nil || total != 1 || !done || !slices.Equal(ids, []int64{20}) {
-		t.Fatalf("HardDeletePlan = %v total=%d done=%v err=%v", ids, total, done, err)
+	if err != nil || total != 3 || !done || !slices.Equal(ids, want) {
+		t.Fatalf("HardDeletePlan = %v total=%d done=%v err=%v, want %v", ids, total, done, err, want)
 	}
 	if err := remote.DeleteBodies(context.Background(), result.OperationID, ids); err != nil {
 		t.Fatalf("DeleteBodies: %v", err)
@@ -640,108 +662,135 @@ func TestTelegramRemoteHardDeletePlansAndDeletesOnlyFileBodies(t *testing.T) {
 	if err := remote.FinalizeHardDelete(context.Background(), result.OperationID); err != nil {
 		t.Fatalf("FinalizeHardDelete: %v", err)
 	}
-	var intents int
-	if err := db.QueryRow(`
-		SELECT COUNT(*) FROM hard_delete_intents
-		WHERE channel_id=? AND op_id=?
-	`, testDriveID, result.OperationID).Scan(&intents); err != nil {
-		t.Fatalf("read hard-delete intent: %v", err)
-	}
-	if intents != 0 {
-		t.Fatalf("completed hard-delete retained %d local intents", intents)
-	}
+
 	controls := fakeTG.SentControls()
 	if len(controls) != 1 {
-		t.Fatalf("controls = %+v", controls)
+		t.Fatalf("purge sent %d control messages, want only the trash step: %+v", len(controls)-1, controls)
 	}
-	if batches := fakeTG.DeletedBatches(); len(batches) != 1 || !slices.Equal(batches[0], []int64{20}) {
-		t.Fatalf("deleted batches = %v", batches)
+	if op, err := projection.Parse(controls[0].Text); err != nil || op.Type != projection.OpTrashTree {
+		t.Fatalf("only control = %+v, err=%v, want the trash op", op, err)
 	}
-	if controls[0].MsgID == 20 {
-		t.Fatal("test setup reused marker and body message IDs")
+	if batches := fakeTG.DeletedBatches(); len(batches) != 1 || !slices.Equal(batches[0], want) {
+		t.Fatalf("deleted batches = %v, want one batch %v", batches, want)
+	}
+	var left int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM replay_log WHERE channel_id=? AND msg_id IN (20,21,?)`,
+		testDriveID, trash_control.MsgID).Scan(&left); err != nil {
+		t.Fatalf("read replay_log: %v", err)
+	}
+	if left != 0 {
+		t.Fatalf("%d purged messages still in replay_log", left)
+	}
+	var intents int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM hard_delete_intents WHERE channel_id=?`, testDriveID).Scan(&intents); err != nil {
+		t.Fatalf("read hard-delete intents: %v", err)
+	}
+	if intents != 0 {
+		t.Fatalf("completed purge retained %d local intents", intents)
 	}
 }
 
-func TestTelegramRemoteRetainsHardDeleteIntentWhenSendOutcomeIsUnknown(t *testing.T) {
-	db := newProjectionDB(t)
-	project(t, db, 21, projection.Op{
-		Type: projection.OpFileCommit, ProtocolVersion: 1, OpID: "uncertain-delete-file",
-		Name: "uncertain.txt", ContentMsgID: 9001, FileSize: 1,
+func TestTelegramRemotePurgeCapturedBeforeDeletesReconcilesAsCommitted(t *testing.T) {
+	_, _, remote := purge_fixture(t)
+	trash := trash_fixture_file(t, remote)
+	result, err := remote.Commit(context.Background(), mountwrite.CommitRequest{
+		OperationID: "purge-captured",
+		CommitTime:  time.Unix(5_000, 0),
+		Mutation: mountwrite.Mutation{
+			Kind: mountwrite.MutationHardDelete, DriveID: testDriveID,
+			ObjectID: "f:21", ExpectedRevision: trash.Revision,
+		},
 	})
-	fakeTG := tgclient.NewFake(7)
-	fakeTG.SeedChannel(tgclient.InputPeer{ChannelID: testDriveID}, "Personal")
-	fakeTG.FailNextSend()
-	remote := newTestTelegramRemote(t, db, fakeTG, time.Unix(5_000, 0))
+	if err != nil {
+		t.Fatalf("Commit purge: %v", err)
+	}
+	// An ambiguous commit reconciles against the captured plan. It must not
+	// fall back to scanning the chat, which holds no record of a purge.
+	reconciled, found, err := remote.Reconcile(context.Background(), result.OperationID)
+	if err != nil || !found || reconciled.OperationID != result.OperationID {
+		t.Fatalf("Reconcile = %+v found=%v err=%v, want the captured purge", reconciled, found, err)
+	}
+}
 
+func TestTelegramRemotePurgeRefusesLiveObjectWithoutSending(t *testing.T) {
+	db, fakeTG, remote := purge_fixture(t)
 	_, err := remote.Commit(context.Background(), mountwrite.CommitRequest{
-		OperationID: "uncertain-hard-delete",
+		OperationID: "purge-live",
+		CommitTime:  time.Unix(5_000, 0),
 		Mutation: mountwrite.Mutation{
 			Kind: mountwrite.MutationHardDelete, DriveID: testDriveID,
 			ObjectID: "f:21", ExpectedRevision: 1,
 		},
 	})
-	if !errors.Is(err, mountwrite.ErrCommitOutcomeUnknown) {
-		t.Fatalf("Commit error = %v, want ErrCommitOutcomeUnknown", err)
+	if err == nil {
+		t.Fatal("purge of a live object succeeded; only trashed objects are purged")
 	}
-	var intents int
-	if err := db.QueryRow(`
-		SELECT COUNT(*) FROM hard_delete_intents
-		WHERE channel_id=? AND op_id='uncertain-hard-delete'
-	`, testDriveID).Scan(&intents); err != nil {
-		t.Fatalf("read hard-delete intent: %v", err)
+	if controls := fakeTG.SentControls(); len(controls) != 0 {
+		t.Fatalf("refused purge sent controls: %+v", controls)
 	}
-	if intents != 1 {
-		t.Fatalf("hard-delete intents after uncertain send = %d, want 1", intents)
+	if batches := fakeTG.DeletedBatches(); len(batches) != 0 {
+		t.Fatalf("refused purge deleted %v", batches)
 	}
 	if _, found, err := projection.FileByID(db, testDriveID, 21); err != nil || !found {
-		t.Fatalf("uncertain send changed namespace: found=%v err=%v", found, err)
+		t.Fatalf("refused purge changed the file: found=%v err=%v", found, err)
+	}
+	var intents int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM hard_delete_intents WHERE channel_id=? AND op_id='purge-live'`,
+		testDriveID).Scan(&intents); err != nil {
+		t.Fatalf("read hard-delete intents: %v", err)
+	}
+	if intents != 0 {
+		t.Fatalf("refused purge retained %d intents", intents)
 	}
 }
 
-func TestTelegramRemoteAbandonsHardDeleteIntentAfterDefinitiveProjectionRejection(t *testing.T) {
-	db := newProjectionDB(t)
-	project(t, db, 21, projection.Op{
-		Type: projection.OpFileCommit, ProtocolVersion: 1, OpID: "rejected-delete-file",
-		Name: "before.txt", ContentMsgID: 9001, FileSize: 1,
-	})
-	fakeTG := tgclient.NewFake(7)
-	fakeTG.SeedChannel(tgclient.InputPeer{ChannelID: testDriveID}, "Personal")
-	remote := newTestTelegramRemote(t, db, fakeTG, time.Unix(5_000, 0))
-	remote.projectThrough = func(_ context.Context, driveID int64) error {
-		rename := projection.Op{
-			Type: projection.OpRename, Obj: "f:21", Name: "after.txt", ExpectedRevision: 1,
-		}
-		if _, err := projection.ProjectFromOp(db, driveID, 99, rename, 7, projection.Format(rename)); err != nil {
-			return err
-		}
-		control := fakeTG.SentControls()[0]
-		op, err := projection.Parse(control.Text)
-		if err != nil {
-			return err
-		}
-		_, err = projection.ProjectFromOp(db, driveID, control.MsgID, op, 7, control.Text)
-		return err
-	}
-
+func TestTelegramRemotePurgeRefusesStaleRevision(t *testing.T) {
+	db, fakeTG, remote := purge_fixture(t)
+	trash_fixture_file(t, remote)
 	_, err := remote.Commit(context.Background(), mountwrite.CommitRequest{
-		OperationID: "rejected-hard-delete",
+		OperationID: "purge-stale",
+		CommitTime:  time.Unix(5_000, 0),
 		Mutation: mountwrite.Mutation{
 			Kind: mountwrite.MutationHardDelete, DriveID: testDriveID,
 			ObjectID: "f:21", ExpectedRevision: 1,
 		},
 	})
 	if !errors.Is(err, mountwrite.ErrPreconditionFailed) {
-		t.Fatalf("Commit error = %v, want ErrPreconditionFailed", err)
+		t.Fatalf("stale purge error = %v, want ErrPreconditionFailed", err)
+	}
+	if batches := fakeTG.DeletedBatches(); len(batches) != 0 {
+		t.Fatalf("stale purge deleted %v", batches)
 	}
 	var intents int
-	if err := db.QueryRow(`
-		SELECT COUNT(*) FROM hard_delete_intents
-		WHERE channel_id=? AND op_id='rejected-hard-delete'
-	`, testDriveID).Scan(&intents); err != nil {
-		t.Fatalf("read hard-delete intent: %v", err)
+	if err := db.QueryRow(`SELECT COUNT(*) FROM hard_delete_intents WHERE channel_id=? AND op_id='purge-stale'`,
+		testDriveID).Scan(&intents); err != nil {
+		t.Fatalf("read hard-delete intents: %v", err)
 	}
 	if intents != 0 {
-		t.Fatalf("rejected hard-delete retained %d intents", intents)
+		t.Fatalf("stale purge retained %d intents", intents)
+	}
+}
+
+func TestTelegramRemotePurgeNeedsOrderingBarrierBeforeCapture(t *testing.T) {
+	db, fakeTG, remote := purge_fixture(t)
+	trash := trash_fixture_file(t, remote)
+	remote.projectThrough = nil
+	_, err := remote.Commit(context.Background(), mountwrite.CommitRequest{
+		OperationID: "purge-unordered",
+		CommitTime:  time.Unix(5_000, 0),
+		Mutation: mountwrite.Mutation{
+			Kind: mountwrite.MutationHardDelete, DriveID: testDriveID,
+			ObjectID: "f:21", ExpectedRevision: trash.Revision,
+		},
+	})
+	if !errors.Is(err, mountwrite.ErrUnavailable) {
+		t.Fatalf("purge without ordering barrier error = %v, want ErrUnavailable", err)
+	}
+	if _, _, _, err := projection.HardDeletePlanPage(context.Background(), db, testDriveID, "purge-unordered", 0, 1); !errors.Is(err, projection.ErrHardDeletePlanNotFound) {
+		t.Fatalf("unordered purge captured a plan: %v", err)
+	}
+	if batches := fakeTG.DeletedBatches(); len(batches) != 0 {
+		t.Fatalf("unordered purge deleted %v", batches)
 	}
 }
 

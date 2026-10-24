@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"TDrive/backend/core"
+	"TDrive/backend/datadir"
 )
 
 const stateFileName = "cli.json"
@@ -87,9 +88,9 @@ func (s *state) save() error {
 }
 
 func statePath() (string, error) {
-	dir, err := os.UserConfigDir()
+	dir, err := datadir.Dir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "TDrive", stateFileName), nil
+	return filepath.Join(dir, stateFileName), nil
 }

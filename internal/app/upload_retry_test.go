@@ -8,6 +8,7 @@ import (
 )
 
 func TestFailedUploadRetryRejectsChangedDrive(t *testing.T) {
+	isolate_data_dir(t)
 	a, db, _ := setupEncryptionAppWithPolicyRefresh(t, nil)
 	a.ctx = t.Context()
 	a.engine.SetActiveChannelID(testEncryptionChannelID)
@@ -28,6 +29,7 @@ func TestFailedUploadRetryRejectsChangedDrive(t *testing.T) {
 }
 
 func TestFailedUploadRetryDoesNotCancelExistingUpload(t *testing.T) {
+	isolate_data_dir(t)
 	a, _, _ := setupEncryptionAppWithPolicyRefresh(t, nil)
 	a.ctx = t.Context()
 	a.engine.SetActiveChannelID(testEncryptionChannelID)
@@ -46,6 +48,7 @@ func TestFailedUploadRetryDoesNotCancelExistingUpload(t *testing.T) {
 }
 
 func TestUploadResultTracksFailedSelectionIndexes(t *testing.T) {
+	isolate_data_dir(t)
 	a, db, _ := setupEncryptionAppWithPolicyRefresh(t, nil)
 	a.ctx = t.Context()
 	a.engine.SetActiveChannelID(testEncryptionChannelID)

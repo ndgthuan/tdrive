@@ -77,6 +77,7 @@ func TestAppMountDrivePinsResolvedActiveDrive(t *testing.T) {
 }
 
 func TestResolveActiveMountDrivePropagatesEncryptedEligibility(t *testing.T) {
+	isolate_data_dir(t)
 	app, db := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.engine.SetActiveChannelID(testEncryptionChannelID)
@@ -104,6 +105,7 @@ func TestResolveActiveMountDrivePropagatesEncryptedEligibility(t *testing.T) {
 }
 
 func TestAppEncryptedMountRequestsPasswordForSingleAndSelectedDrives(t *testing.T) {
+	isolate_data_dir(t)
 	for _, selected := range []bool{false, true} {
 		name := "single drive"
 		if selected {
@@ -322,6 +324,7 @@ func TestAppMountControllerConstructionRetriesAfterFailure(t *testing.T) {
 }
 
 func TestLockEncryptionSessionRefusesToClearKeyWhenMountCannotClose(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.engine.EncryptionService().StoreMasterKey(bytes.Repeat([]byte{8}, 32))
@@ -336,6 +339,7 @@ func TestLockEncryptionSessionRefusesToClearKeyWhenMountCannotClose(t *testing.T
 }
 
 func TestLockEncryptionSessionClosesMountBeforeClearingKey(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.engine.EncryptionService().StoreMasterKey(bytes.Repeat([]byte{8}, 32))

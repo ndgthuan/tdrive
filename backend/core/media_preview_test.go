@@ -106,6 +106,7 @@ func corePreviewFixture(t *testing.T, withRendition bool) (*Engine, *corePreview
 }
 
 func TestEngineLargeImageUsesRenditionAndDownloadRetainsOriginal(t *testing.T) {
+	isolate_data_dir(t)
 	engine, client, original, preview := corePreviewFixture(t, true)
 	service := engine.newMediaService()
 	t.Cleanup(func() {
@@ -159,6 +160,7 @@ func TestEngineLargeImageUsesRenditionAndDownloadRetainsOriginal(t *testing.T) {
 }
 
 func TestEngineImagePreviewPreservesRenditionErrors(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name               string
 		withRef            bool
@@ -201,6 +203,7 @@ func TestEngineImagePreviewPreservesRenditionErrors(t *testing.T) {
 }
 
 func TestEngineImagePreviewNormalizesNativePNGThumbnail(t *testing.T) {
+	isolate_data_dir(t)
 	engine, client, _, _ := corePreviewFixture(t, false)
 	var raw bytes.Buffer
 	if err := png.Encode(&raw, image.NewRGBA(image.Rect(0, 0, 12, 6))); err != nil {
@@ -221,6 +224,7 @@ func TestEngineImagePreviewNormalizesNativePNGThumbnail(t *testing.T) {
 }
 
 func TestEngineImagePreviewRejectsReplacementDuringTransfer(t *testing.T) {
+	isolate_data_dir(t)
 	engine, client, _, _ := corePreviewFixture(t, true)
 	client.download = func(ctx context.Context, msgID int64) error {
 		if msgID != previewReceiptID {

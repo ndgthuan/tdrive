@@ -35,6 +35,7 @@ func makePNG(t *testing.T, w, h int) []byte {
 }
 
 func TestThumbnailUsesRemoteSmallImageAndCache(t *testing.T) {
+	isolate_data_dir(t)
 	svc, client := renditionFixture(t)
 	svc.Thumbs = thumbnail.NewCache(t.TempDir(), 1<<20)
 	raw := makePNG(t, 200, 100)
@@ -56,6 +57,7 @@ func TestThumbnailUsesRemoteSmallImageAndCache(t *testing.T) {
 	}
 }
 func TestThumbnailEncryptedCacheRequiresKeyAndClearsIt(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 91, 7, projection.Op{Type: projection.OpFileUpload, Name: "secret.jpg", FileSize: 128, Encrypted: true, PlaintextSize: 64, EncryptionVersion: 1})
 	svc.CacheNamespace = "account"
@@ -91,6 +93,7 @@ func TestThumbnailEncryptedCacheRequiresKeyAndClearsIt(t *testing.T) {
 }
 
 func TestEncryptedThumbnailCacheRejectsCrossObjectSwap(t *testing.T) {
+	isolate_data_dir(t)
 	cache := thumbnail.NewCache(t.TempDir(), 1<<20)
 	svc := &Service{Thumbs: cache}
 	masterKey := bytes.Repeat([]byte{9}, 32)
@@ -116,6 +119,7 @@ func TestEncryptedThumbnailCacheRejectsCrossObjectSwap(t *testing.T) {
 }
 
 func TestThumbnailMissingIsExplicit(t *testing.T) {
+	isolate_data_dir(t)
 	svc, client := renditionFixture(t)
 	if _, err := svc.Thumbnail(context.Background(), personalChannelID, 91); !errors.Is(err, ErrRenditionMissing) {
 		t.Fatalf("err=%v", err)
@@ -126,6 +130,7 @@ func TestThumbnailMissingIsExplicit(t *testing.T) {
 }
 
 func TestThumbnailPrefersLocalCacheOverLegacyRenditionAndUsesTelegramDocumentThumb(t *testing.T) {
+	isolate_data_dir(t)
 	svc, client := renditionFixture(t)
 	svc.Thumbs = thumbnail.NewCache(t.TempDir(), 1<<20)
 	svc.CacheNamespace = "account"
@@ -164,6 +169,7 @@ func TestThumbnailPrefersLocalCacheOverLegacyRenditionAndUsesTelegramDocumentThu
 }
 
 func TestThumbnailRejectsEncryptedSharedDriveBeforeCacheOrNetwork(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	const sharedChannelID int64 = 404
 	project(t, db, sharedChannelID, 91, 7, projection.Op{Type: projection.OpFileUpload, Name: "secret.jpg", FileSize: 128, Encrypted: true, PlaintextSize: 64, EncryptionVersion: 1})

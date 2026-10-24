@@ -7,6 +7,7 @@ import (
 )
 
 func TestGalleryImagesQueuedOpenCannotRecreateLoggedOutScope(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{ctx: t.Context()}
 	if err := app.mountLifecycle.Lock(t.Context()); err != nil {
 		t.Fatal(err)

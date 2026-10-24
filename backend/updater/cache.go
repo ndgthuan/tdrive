@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"TDrive/backend/datadir"
 )
 
 // assetTagPattern pulls the release tag out of a cached payload name so the
@@ -12,7 +14,7 @@ import (
 var assetTagPattern = regexp.MustCompile(`^TDrive-(v[0-9][^-]*)-`)
 
 func defaultCacheDir() string {
-	return resolveDefaultCacheDir(os.UserCacheDir, os.MkdirTemp)
+	return resolveDefaultCacheDir(datadir.UserCacheBase, os.MkdirTemp)
 }
 
 func resolveDefaultCacheDir(

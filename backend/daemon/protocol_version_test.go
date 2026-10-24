@@ -9,6 +9,7 @@ import (
 // version rather than by unknown command, so the fix is "restart the
 // daemon" rather than a puzzle.
 func TestValidateRequestRejectsForeignProtocolVersions(t *testing.T) {
+	isolate_data_dir(t)
 	for _, version := range []int{0, ProtocolVersion - 1, ProtocolVersion + 1} {
 		err := validateRequest(Request{Version: version, Command: CommandStatus})
 		if err == nil {
@@ -26,6 +27,7 @@ func TestValidateRequestRejectsForeignProtocolVersions(t *testing.T) {
 // The personal-drive commands are what made the current version incompatible
 // with v1.7.0's daemon; they must ship inside the bumped version.
 func TestPersonalDriveCommandsRequireCurrentProtocolVersion(t *testing.T) {
+	isolate_data_dir(t)
 	if ProtocolVersion < 2 {
 		t.Fatalf("ProtocolVersion = %d, want >= 2 now that personal-drive commands exist", ProtocolVersion)
 	}

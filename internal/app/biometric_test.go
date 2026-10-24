@@ -78,6 +78,7 @@ func setupBiometricApp(t *testing.T) (*App, *fakeBiometricProvider) {
 }
 
 func TestBiometricUnlockUsesExistingSessionKey(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	want, _ := app.engine.EncryptionService().LoadedMasterKey()
 	defer clear(want)
@@ -113,6 +114,7 @@ func TestBiometricUnlockUsesExistingSessionKey(t *testing.T) {
 }
 
 func TestBiometricLateSuccessCannotReopenLockedVault(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())
@@ -150,6 +152,7 @@ func TestBiometricLateSuccessCannotReopenLockedVault(t *testing.T) {
 }
 
 func TestBiometricCancellationRemovesLateEnrollment(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	entered, finish := make(chan struct{}), make(chan struct{})
 	provider.enroll = func(_ context.Context, scope biometric.Scope, key []byte) error {
@@ -175,6 +178,7 @@ func TestBiometricCancellationRemovesLateEnrollment(t *testing.T) {
 }
 
 func TestBiometricPasswordChangeDeletesEnrollment(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())
@@ -192,6 +196,7 @@ func TestBiometricPasswordChangeDeletesEnrollment(t *testing.T) {
 }
 
 func TestBiometricLogoutCleanupFailureKeepsLogoutRetryable(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())

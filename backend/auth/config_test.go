@@ -5,24 +5,27 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"TDrive/backend/datadir"
 )
 
+// useTemporaryConfigDir returns the TDrive config dir that isolate_data_dir
+// already pointed at a temp dir. Call isolate_data_dir first.
 func useTemporaryConfigDir(t *testing.T) string {
 	t.Helper()
-	root := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", root)
-	t.Setenv("HOME", root)
-	t.Setenv("AppData", root)
-	return root
+	dir, err := datadir.Dir()
+	if err != nil {
+		t.Fatalf("datadir.Dir: %v", err)
+	}
+	return dir
 }
 
 func writeRawConfig(t *testing.T, contents string) {
 	t.Helper()
-	base, err := os.UserConfigDir()
+	dir, err := datadir.Dir()
 	if err != nil {
-		t.Fatalf("UserConfigDir: %v", err)
+		t.Fatalf("datadir.Dir: %v", err)
 	}
-	dir := filepath.Join(base, "TDrive")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
@@ -32,6 +35,7 @@ func writeRawConfig(t *testing.T, contents string) {
 }
 
 func TestLoadConfigMissingFileMeansUnconfigured(t *testing.T) {
+	isolate_data_dir(t)
 	useTemporaryConfigDir(t)
 
 	got, err := LoadConfig()
@@ -41,6 +45,7 @@ func TestLoadConfigMissingFileMeansUnconfigured(t *testing.T) {
 }
 
 func TestLoadConfigRoundTrip(t *testing.T) {
+	isolate_data_dir(t)
 	useTemporaryConfigDir(t)
 	const channelID int64 = 8200
 
@@ -54,6 +59,7 @@ func TestLoadConfigRoundTrip(t *testing.T) {
 }
 
 func TestLoadConfigUnparseableFileIsErrConfigInvalid(t *testing.T) {
+	isolate_data_dir(t)
 	for name, contents := range map[string]string{
 		"garbage":      `{bad json`,
 		"json comment": "{\n  // \"channel_id\": 8200\n}\n",

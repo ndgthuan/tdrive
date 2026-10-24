@@ -9,7 +9,7 @@ import "strings"
 // A legacy caption's filename is authoritative over the document attribute.
 func RawAttachmentCaption(text string, storedSize int64) (name string, allowed bool) {
 	header := ExtractHeaderLine(text)
-	if !strings.HasPrefix(strings.TrimSpace(header), "TDX1") {
+	if !IsManagedHeader(header) {
 		return "", true
 	}
 	op, err := Parse(header)
@@ -18,12 +18,11 @@ func RawAttachmentCaption(text string, storedSize int64) (name string, allowed b
 		(op.FileSize != 0 && op.FileSize != storedSize) {
 		return "", false
 	}
-	// The legacy upload parser ignores multipart fields belonging to other
-	// operation types. A hinted internal body must still wait for projection.
-	for field := range strings.SplitSeq(header, "|") {
-		if key, value, ok := strings.Cut(field, "="); ok && key == "u" && value != "" {
-			return "", false
-		}
+	// The upload parser ignores multipart fields belonging to other operation
+	// types. A hinted internal body must still wait for projection.
+	fields, err := parse_wire_fields(strings.TrimSpace(header))
+	if err != nil || fields["u"] != "" {
+		return "", false
 	}
 	return op.Name, true
 }

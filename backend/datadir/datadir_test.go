@@ -1,9 +1,11 @@
 package datadir
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -19,8 +21,17 @@ func clearOverride(t *testing.T) {
 	})
 }
 
+// allow_real_defaults lets a test exercise the default resolution. The caller
+// must sandbox HOME, XDG_* and the Windows profile env first.
+func allow_real_defaults(t *testing.T) {
+	t.Helper()
+	allow_default_in_tests = true
+	t.Cleanup(func() { allow_default_in_tests = false })
+}
+
 func TestDirDefaultsToUserConfigDir(t *testing.T) {
 	clearOverride(t)
+	allow_real_defaults(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
@@ -44,6 +55,7 @@ func TestDirDefaultsToUserConfigDir(t *testing.T) {
 
 func TestCacheDirDefaultsToUserCacheDir(t *testing.T) {
 	clearOverride(t)
+	allow_real_defaults(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
@@ -67,6 +79,7 @@ func TestCacheDirDefaultsToUserCacheDir(t *testing.T) {
 
 func TestOverridesAreIndependent(t *testing.T) {
 	clearOverride(t)
+	allow_real_defaults(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
@@ -186,6 +199,91 @@ func TestCleanupCacheTempsKeepsGoingWhenOneCannotBeRemoved(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(cacheDir, "tdrive-upload-orphan")); !os.IsNotExist(err) {
 		t.Fatalf("the deletable orphan remains: %v", err)
+	}
+}
+
+// expect_panic runs fn and returns the panic message, failing the test when fn
+// returns normally.
+func expect_panic(t *testing.T, fn func()) (message string) {
+	t.Helper()
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("expected a panic, got none")
+		}
+		message = fmt.Sprint(r)
+	}()
+	fn()
+	return ""
+}
+
+func TestGuardPanicsWhenTestResolvesDefaultDataDir(t *testing.T) {
+	clearOverride(t)
+	msg := expect_panic(t, func() { _, _ = Dir() })
+	if !strings.Contains(msg, "datadir.Set(t.TempDir())") {
+		t.Fatalf("panic message does not name the fix: %q", msg)
+	}
+}
+
+func TestGuardPanicsWhenTestResolvesDefaultCacheDir(t *testing.T) {
+	clearOverride(t)
+	msg := expect_panic(t, func() { _, _ = CacheDir() })
+	if !strings.Contains(msg, "datadir.SetCache(t.TempDir())") {
+		t.Fatalf("panic message does not name the fix: %q", msg)
+	}
+}
+
+func TestGuardPanicsWhenTestResolvesUserCacheBase(t *testing.T) {
+	clearOverride(t)
+	expect_panic(t, func() { _, _ = UserCacheBase() })
+}
+
+func TestGuardDoesNotFireWithOverrides(t *testing.T) {
+	clearOverride(t)
+	Set(t.TempDir())
+	SetCache(t.TempDir())
+	if _, err := Dir(); err != nil {
+		t.Fatalf("Dir with override: %v", err)
+	}
+	if _, err := CacheDir(); err != nil {
+		t.Fatalf("CacheDir with override: %v", err)
+	}
+	native, err := UserCacheBase()
+	if err != nil {
+		t.Fatalf("UserCacheBase with override: %v", err)
+	}
+	if !strings.HasPrefix(native, cacheOverride) {
+		t.Fatalf("UserCacheBase = %q, want a folder inside the cache override %q", native, cacheOverride)
+	}
+}
+
+func TestGuardIsInertOutsideTestBinaries(t *testing.T) {
+	clearOverride(t)
+	// Production behavior: no panic, the default resolution is used. Sandbox
+	// HOME/APPDATA so the default still resolves inside a temp dir.
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("APPDATA", filepath.Join(home, "AppData"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(home, "LocalAppData"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
+	prev := is_test_binary
+	is_test_binary = func() bool { return false }
+	t.Cleanup(func() { is_test_binary = prev })
+
+	if _, err := Dir(); err != nil {
+		t.Fatalf("Dir outside tests: %v", err)
+	}
+	if _, err := CacheDir(); err != nil {
+		t.Fatalf("CacheDir outside tests: %v", err)
+	}
+	base, err := UserCacheBase()
+	if err != nil {
+		t.Fatalf("UserCacheBase outside tests: %v", err)
+	}
+	want, _ := os.UserCacheDir()
+	if base != want {
+		t.Fatalf("UserCacheBase outside tests = %q, want os.UserCacheDir %q", base, want)
 	}
 }
 

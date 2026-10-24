@@ -11,6 +11,7 @@ import (
 )
 
 func TestNewDoesNotInitializeProcessLogger(t *testing.T) {
+	isolate_data_dir(t)
 	configDir := t.TempDir()
 	t.Setenv("HOME", configDir)
 	t.Setenv("XDG_CONFIG_HOME", configDir)

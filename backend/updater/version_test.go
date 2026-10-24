@@ -3,6 +3,7 @@ package updater
 import "testing"
 
 func TestParseVersion(t *testing.T) {
+	isolate_data_dir(t)
 	cases := []struct {
 		in   string
 		want string
@@ -38,6 +39,7 @@ func TestParseVersion(t *testing.T) {
 }
 
 func TestCompareFollowsSemverPrecedence(t *testing.T) {
+	isolate_data_dir(t)
 	ordered := []string{
 		"0.9.9",
 		"1.0.0-alpha",
@@ -69,6 +71,7 @@ func TestCompareFollowsSemverPrecedence(t *testing.T) {
 }
 
 func TestCompareIgnoresBuildMetadata(t *testing.T) {
+	isolate_data_dir(t)
 	a := mustVersion(t, "1.2.3+one")
 	b := mustVersion(t, "1.2.3+two")
 	if Compare(a, b) != 0 {

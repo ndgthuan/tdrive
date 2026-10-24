@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"testing"
 )
 
 // appDir is the per-app subdirectory every TDrive file lives under, kept the
@@ -35,7 +36,26 @@ var (
 	mu            sync.RWMutex
 	dataOverride  string
 	cacheOverride string
+	// allow_default_in_tests is set only by this package's own tests, which
+	// exercise the default resolution against a sandboxed HOME/APPDATA. Every
+	// other test must call Set/SetCache with a temp dir.
+	allow_default_in_tests bool
 )
+
+// is_test_binary reports whether this process is a Go test binary. It is a
+// variable so the guard's own test can check the production branch.
+var is_test_binary = testing.Testing
+
+// refuse_real_dir panics when a test resolves a default data or cache dir
+// without an override. Without this, a test that forgot to isolate itself
+// writes into the developer's real %APPDATA%\TDrive or %LOCALAPPDATA%\TDrive.
+// The panic fires before any directory is created.
+func refuse_real_dir(op, override string) {
+	if override != "" || !is_test_binary() {
+		return
+	}
+	panic(fmt.Sprintf("datadir: %s resolved the real data dir from a test: call datadir.Set(t.TempDir()) and datadir.SetCache(t.TempDir()) first", op))
+}
 
 // Set overrides the base Dir builds on, replacing the os.UserConfigDir default.
 // Mobile calls it once at startup, before any path is read, with the
@@ -57,21 +77,47 @@ func SetCache(dir string) {
 }
 
 // Dir returns TDrive's data/config directory, creating it 0700. Defaults to
-// os.UserConfigDir()/TDrive; Set replaces the base.
+// os.UserConfigDir()/TDrive; Set replaces the base. Under a test binary with no
+// Set override it panics instead of touching the real config dir.
 func Dir() (string, error) {
 	mu.RLock()
 	root := dataOverride
+	allow := allow_default_in_tests
 	mu.RUnlock()
+	if !allow {
+		refuse_real_dir("Dir", root)
+	}
 	return resolve(root, os.UserConfigDir)
 }
 
 // CacheDir returns TDrive's cache directory, creating it 0700. Defaults to
-// os.UserCacheDir()/TDrive; SetCache replaces the base.
+// os.UserCacheDir()/TDrive; SetCache replaces the base. Under a test binary
+// with no SetCache override it panics instead of touching the real cache dir.
 func CacheDir() (string, error) {
 	mu.RLock()
 	root := cacheOverride
+	allow := allow_default_in_tests
 	mu.RUnlock()
+	if !allow {
+		refuse_real_dir("CacheDir", root)
+	}
 	return resolve(root, os.UserCacheDir)
+}
+
+// UserCacheBase returns the native user cache root for callers that keep a
+// folder beside TDrive's own cache, such as the Photos-library staging and the
+// mount staging root. Production returns os.UserCacheDir unchanged. Under a test
+// binary it returns a folder inside the SetCache override, so nothing reaches
+// the real cache, and it panics when no override is set.
+func UserCacheBase() (string, error) {
+	mu.RLock()
+	root := cacheOverride
+	mu.RUnlock()
+	if !is_test_binary() {
+		return os.UserCacheDir()
+	}
+	refuse_real_dir("UserCacheBase", root)
+	return filepath.Join(root, "native-cache"), nil
 }
 
 // CreateCacheTemp creates a private, app-owned temporary file. It is the

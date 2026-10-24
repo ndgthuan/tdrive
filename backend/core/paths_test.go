@@ -7,6 +7,7 @@ import (
 )
 
 func TestNormalizeRemotePath(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name string
 		cwd  string
@@ -35,6 +36,7 @@ func TestNormalizeRemotePath(t *testing.T) {
 }
 
 func TestJoinRemotePath(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		parent string
 		name   string
@@ -54,6 +56,7 @@ func TestJoinRemotePath(t *testing.T) {
 }
 
 func TestSplitRemotePath(t *testing.T) {
+	isolate_data_dir(t)
 	parent, name, err := SplitRemotePath("/Photos/Raw")
 	if err != nil {
 		t.Fatalf("SplitRemotePath: %v", err)
@@ -76,6 +79,7 @@ func TestSplitRemotePath(t *testing.T) {
 }
 
 func TestFolderPathFromMap(t *testing.T) {
+	isolate_data_dir(t)
 	folders := map[string]projection.FolderSlim{
 		"d:a": {ID: "d:a", Name: "A", ParentID: ""},
 		"d:b": {ID: "d:b", Name: "B", ParentID: "d:a"},

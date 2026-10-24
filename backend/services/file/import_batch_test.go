@@ -18,6 +18,7 @@ import (
 )
 
 func TestRunImportWaitsThroughRepeatedThrottling(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.CreateFolder = contextTestFolderCreator(db)
 	events := &importTestEventRecorder{}
@@ -56,6 +57,7 @@ func TestRunImportWaitsThroughRepeatedThrottling(t *testing.T) {
 }
 
 func TestImportBatchIsBoundedAndPreservesPairs(t *testing.T) {
+	isolate_data_dir(t)
 	total := 2*importUploadBatchSize + 1
 	wantPaths := make([]string, total)
 	wantParents := make([]string, total)
@@ -131,6 +133,7 @@ func contextTestFolderCreator(db *sql.DB) CreateFolderFunc {
 }
 
 func TestRunImportPassesContextAndStopsOnCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	type contextKey struct{}
 	const marker = "import-context"
 
@@ -209,6 +212,7 @@ func (resolve importPeerResolverFunc) ResolvePeer(ctx context.Context, channelID
 }
 
 func TestRunImportEmitsAggregateEventsOnly(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.CreateFolder = contextTestFolderCreator(db)
 	events := &importTestEventRecorder{}
@@ -248,6 +252,7 @@ func TestRunImportEmitsAggregateEventsOnly(t *testing.T) {
 }
 
 func TestImportProgressEventsStayBoundedAtHighCardinality(t *testing.T) {
+	isolate_data_dir(t)
 	const total = 10_000
 	events := &importTestEventRecorder{}
 	svc := &Service{Events: events}
@@ -284,6 +289,7 @@ func TestImportProgressEventsStayBoundedAtHighCardinality(t *testing.T) {
 }
 
 func TestRunImportStopsSchedulingAfterProjectionFailure(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.CreateFolder = contextTestFolderCreator(db)
 	root := filepath.Join(t.TempDir(), "Project")
@@ -310,6 +316,7 @@ func TestRunImportStopsSchedulingAfterProjectionFailure(t *testing.T) {
 }
 
 func TestRunImportStopsSchedulingAfterFatalUploadWindow(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.CreateFolder = contextTestFolderCreator(db)
 	svc.MaxConcurrentUploads = 1
@@ -332,6 +339,7 @@ func TestRunImportStopsSchedulingAfterFatalUploadWindow(t *testing.T) {
 }
 
 func TestRunImportCompletionReportsFatalFolderOnlyFailure(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	events := &importTestEventRecorder{}
 	svc.Events = events
@@ -371,6 +379,7 @@ func TestRunImportCompletionReportsFatalFolderOnlyFailure(t *testing.T) {
 }
 
 func TestRunImportStopsAfterNestedControlProjectionFailure(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	createCalls := 0
 	svc.CreateFolder = func(context.Context, int64, string, string) (string, error) {
@@ -411,6 +420,7 @@ func TestRunImportStopsAfterNestedControlProjectionFailure(t *testing.T) {
 }
 
 func TestRunImportArchiveFallbackUsesScheduledUploadCount(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.CreateFolder = contextTestFolderCreator(db)
 	events := &importTestEventRecorder{}
@@ -461,6 +471,7 @@ func TestRunImportArchiveFallbackUsesScheduledUploadCount(t *testing.T) {
 }
 
 func TestRunImportArchiveFallbackStopsSchedulingAfterFatalUploadWindow(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	events := &importTestEventRecorder{}
 	svc.Events = events

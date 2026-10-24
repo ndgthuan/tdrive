@@ -89,6 +89,7 @@ func trashEntryCount(t *testing.T, svc *fileservice.Service) int {
 // scheduled path skip the retention check would fail here even though the
 // manual purge tests still passed.
 func TestScheduledSweepDestroysNothingBeforePurgeAfter(t *testing.T) {
+	isolate_data_dir(t)
 	svc, fake, purgeAfter := newTrashSweepFixture(t)
 
 	var now atomic.Int64
@@ -133,18 +134,24 @@ func TestScheduledSweepDestroysNothingBeforePurgeAfter(t *testing.T) {
 		t.Fatalf("expired entry survived its own sweep: %d left", count)
 	}
 	deleted := false
+	header := false
 	for _, batch := range fake.DeletedBatches() {
 		for _, id := range batch {
 			if id == 9500 {
 				deleted = true
 			}
+			// The file's own upload message belongs to the object, so the purge
+			// removes it with the body. The window checks above guard timing.
 			if id == 1500 {
-				t.Fatalf("sweep deleted the control message, not just the body")
+				header = true
 			}
 		}
 	}
 	if !deleted {
 		t.Fatalf("sweep did not delete the expired body")
+	}
+	if !header {
+		t.Fatalf("sweep left the object's upload message behind")
 	}
 
 	close(stop)
@@ -158,6 +165,7 @@ func TestScheduledSweepDestroysNothingBeforePurgeAfter(t *testing.T) {
 // TestSweepLoopRunsEveryTickAndStopsOnlyOnStop covers the wedge case: whatever
 // one pass does, the loop keeps taking the next tick and ends only when asked.
 func TestSweepLoopRunsEveryTickAndStopsOnlyOnStop(t *testing.T) {
+	isolate_data_dir(t)
 	stop := make(chan struct{})
 	tick := make(chan time.Time)
 	var passes atomic.Int32

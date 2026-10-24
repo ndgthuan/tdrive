@@ -19,6 +19,7 @@ type readApplication struct {
 	fs             *FileSystem
 	lockSystem     webdav.LockSystem
 	writer         WriteCoordinator
+	rootAlias      string
 	resume         *resumeStore
 	pendingCreates *pendingCreateStore
 }

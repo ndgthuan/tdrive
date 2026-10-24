@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"TDrive/backend/mountdav"
+	"TDrive/backend/mountos"
 )
 
 type webDAVEndpoint struct {
@@ -36,6 +37,9 @@ func (endpoint *webDAVEndpoint) Start(ctx context.Context, config EndpointConfig
 		WindowsDrive: config.WindowsDrive,
 		Writable:     writable,
 		Writer:       writer,
+		// Windows maps a folder under the capability root (see mountos.RootFolder);
+		// macOS and Linux get "" and mount the capability root as before.
+		RootAlias: mountos.RootFolder(),
 	})
 	if err != nil {
 		slog.Warn("mountcontroller: WebDAV endpoint start failed", "drive_id", config.DriveID, "error", err)

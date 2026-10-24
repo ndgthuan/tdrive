@@ -3,6 +3,7 @@ package app
 import "testing"
 
 func TestValidateNativeMediaPresentationSettings(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		property string
 		allowed  []string

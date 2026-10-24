@@ -17,6 +17,7 @@ import (
 )
 
 func TestResolveMountEncryptionPolicyLogsRefreshDetailAndReturnsSafeError(t *testing.T) {
+	isolate_data_dir(t)
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -51,6 +52,7 @@ func TestResolveMountEncryptionPolicyLogsRefreshDetailAndReturnsSafeError(t *tes
 }
 
 func TestResolveMountEncryptionPolicySkipsSharedDrives(t *testing.T) {
+	isolate_data_dir(t)
 	policy, err := (*Engine)(nil).ResolveMountEncryptionPolicy(context.Background(), 1, projection.KindShared, nil, nil)
 	if err != nil || policy != (mountpolicy.Policy{}) {
 		t.Fatalf("ResolveMountEncryptionPolicy(shared) = (%#v, %v)", policy, err)

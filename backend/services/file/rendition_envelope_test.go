@@ -18,6 +18,7 @@ func tinyRenditionJPEG(t testing.TB) []byte {
 	return b.Bytes()
 }
 func TestRenditionEncryptionBindsSourceAndUsesIndependentRandomness(t *testing.T) {
+	isolate_data_dir(t)
 	raw := tinyRenditionJPEG(t)
 	key := bytes.Repeat([]byte{7}, 32)
 	ref := projection.FileRendition{ChannelID: 1, FileMsgID: 2, ContentMsgID: 2, Kind: "thumbnail", Version: 1, PlaintextSize: int64(len(raw)), Width: 4, Height: 3, Encrypted: true}
@@ -50,6 +51,7 @@ func TestRenditionEncryptionBindsSourceAndUsesIndependentRandomness(t *testing.T
 	}
 }
 func TestPlainRenditionValidatesDimensionsAndLength(t *testing.T) {
+	isolate_data_dir(t)
 	raw := tinyRenditionJPEG(t)
 	ref := projection.FileRendition{ChannelID: 1, FileMsgID: 2, ContentMsgID: 2, Kind: "thumbnail", Version: 1, Size: int64(len(raw)), PlaintextSize: int64(len(raw)), Width: 4, Height: 3}
 	if _, err := decryptRendition(raw, nil, ref); err != nil {
@@ -62,6 +64,7 @@ func TestPlainRenditionValidatesDimensionsAndLength(t *testing.T) {
 }
 
 func TestAuthenticatedMalformedRenditionEnvelopeNeverReachesImageDecoder(t *testing.T) {
+	isolate_data_dir(t)
 	key := bytes.Repeat([]byte{1}, 32)
 	for _, plain := range [][]byte{
 		[]byte("WRONG HEADER"),

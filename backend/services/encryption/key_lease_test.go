@@ -9,6 +9,7 @@ import (
 )
 
 func TestStoreMasterKeyOwnsInputAndLoadedMasterKeyReturnsCopy(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	input := bytes.Repeat([]byte{0x11}, 32)
 	want := append([]byte(nil), input...)
@@ -28,6 +29,7 @@ func TestStoreMasterKeyOwnsInputAndLoadedMasterKeyReturnsCopy(t *testing.T) {
 }
 
 func TestStoreMasterKeyZeroesReplacedOwnedBuffer(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	svc.StoreMasterKey(bytes.Repeat([]byte{0x22}, 32))
 
@@ -40,6 +42,7 @@ func TestStoreMasterKeyZeroesReplacedOwnedBuffer(t *testing.T) {
 }
 
 func TestStoreMasterKeyRejectsInvalidLengthsAndLocksTheVault(t *testing.T) {
+	isolate_data_dir(t)
 	for _, size := range []int{0, 31, 33, 1 << 20} {
 		t.Run(fmt.Sprintf("size-%d", size), func(t *testing.T) {
 			svc, _ := newTestService(t)
@@ -62,6 +65,7 @@ func TestStoreMasterKeyRejectsInvalidLengthsAndLocksTheVault(t *testing.T) {
 }
 
 func TestClearZeroesOwnedBuffer(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	svc.StoreMasterKey(bytes.Repeat([]byte{0x44}, 32))
 
@@ -77,6 +81,7 @@ func TestClearZeroesOwnedBuffer(t *testing.T) {
 }
 
 func TestAcquireMasterKeyLeaseRequiresConfiguredUnlockedVault(t *testing.T) {
+	isolate_data_dir(t)
 	t.Run("not configured", func(t *testing.T) {
 		svc, _ := newTestService(t)
 		svc.StoreMasterKey(bytes.Repeat([]byte{0x55}, 32))
@@ -102,6 +107,7 @@ func TestAcquireMasterKeyLeaseRequiresConfiguredUnlockedVault(t *testing.T) {
 }
 
 func TestAcquireMasterKeyLeaseRejectsCorruptInMemoryKeyLength(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatalf("CreatePassword: %v", err)
@@ -118,6 +124,7 @@ func TestAcquireMasterKeyLeaseRejectsCorruptInMemoryKeyLength(t *testing.T) {
 }
 
 func TestMasterKeyLeaseOwnsIndependentKeyAndReturnsCopies(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatalf("CreatePassword: %v", err)
@@ -146,6 +153,7 @@ func TestMasterKeyLeaseOwnsIndependentKeyAndReturnsCopies(t *testing.T) {
 }
 
 func TestMasterKeyLeaseCloseIsIdempotentAndZeroesKey(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatalf("CreatePassword: %v", err)
@@ -177,6 +185,7 @@ func TestMasterKeyLeaseCloseIsIdempotentAndZeroesKey(t *testing.T) {
 }
 
 func TestWrongPasswordDoesNotReplaceLoadedMasterKey(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	if err := svc.CreatePassword("password-1", ""); err != nil {
 		t.Fatalf("CreatePassword: %v", err)
@@ -196,6 +205,7 @@ func TestWrongPasswordDoesNotReplaceLoadedMasterKey(t *testing.T) {
 }
 
 func TestLoadedMasterKeyAndClearAreConcurrentSafe(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 	want := bytes.Repeat([]byte{0x77}, 32)
 	svc.StoreMasterKey(want)

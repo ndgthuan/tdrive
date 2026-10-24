@@ -8,6 +8,7 @@ import (
 )
 
 func TestSwapPathsReplacesAndKeepsPrevious(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	current := filepath.Join(dir, "app")
 	fresh := filepath.Join(dir, "fresh")
@@ -29,6 +30,7 @@ func TestSwapPathsReplacesAndKeepsPrevious(t *testing.T) {
 }
 
 func TestSwapPathsRestoresCurrentWhenFreshIsMissing(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	current := filepath.Join(dir, "app")
 	if err := os.WriteFile(current, []byte("old"), 0o755); err != nil {
@@ -46,6 +48,7 @@ func TestSwapPathsRestoresCurrentWhenFreshIsMissing(t *testing.T) {
 }
 
 func TestRemoveStagingOnlyTouchesStagingEntries(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, stagingPrefix+"123", "nested"), 0o755); err != nil {
 		t.Fatal(err)
@@ -64,6 +67,7 @@ func TestRemoveStagingOnlyTouchesStagingEntries(t *testing.T) {
 }
 
 func TestCopyFilePreservesContentAndMode(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	src := filepath.Join(dir, "src")
 	dst := filepath.Join(dir, "dst")
@@ -89,6 +93,7 @@ func TestCopyFilePreservesContentAndMode(t *testing.T) {
 }
 
 func TestDirWritable(t *testing.T) {
+	isolate_data_dir(t)
 	if !dirWritable(t.TempDir()) {
 		t.Fatalf("temp dir must be writable")
 	}

@@ -17,6 +17,7 @@ import (
 )
 
 func TestBackendReadinessWaitsForStartupPublication(t *testing.T) {
+	isolate_data_dir(t)
 	synctest.Test(t, func(t *testing.T) {
 		app := NewApp("test")
 		result := make(chan error, 1)
@@ -39,6 +40,7 @@ func TestBackendReadinessWaitsForStartupPublication(t *testing.T) {
 }
 
 func TestBackendReadinessPropagatesStartupFailure(t *testing.T) {
+	isolate_data_dir(t)
 	synctest.Test(t, func(t *testing.T) {
 		app := NewApp("test")
 		result := make(chan error, 1)
@@ -56,6 +58,7 @@ func TestBackendReadinessPropagatesStartupFailure(t *testing.T) {
 }
 
 func TestPersonalDrivePreparationCanCancelWhileBackendStarts(t *testing.T) {
+	isolate_data_dir(t)
 	synctest.Test(t, func(t *testing.T) {
 		app := NewApp("test")
 		ctx, cancel := context.WithCancel(t.Context())
@@ -78,6 +81,7 @@ func TestPersonalDrivePreparationCanCancelWhileBackendStarts(t *testing.T) {
 }
 
 func TestBackendShutdownUnblocksReadiness(t *testing.T) {
+	isolate_data_dir(t)
 	synctest.Test(t, func(t *testing.T) {
 		app := NewApp("test")
 		result := make(chan error, 1)
@@ -93,6 +97,7 @@ func TestBackendShutdownUnblocksReadiness(t *testing.T) {
 }
 
 func TestBackendStartupLockFailureReleasesReadiness(t *testing.T) {
+	isolate_data_dir(t)
 	datadir.Set(t.TempDir())
 	t.Cleanup(func() { datadir.Set("") })
 	lock, err := processlock.Acquire("test")
@@ -116,6 +121,7 @@ func TestBackendStartupLockFailureReleasesReadiness(t *testing.T) {
 }
 
 func TestBackendConstructionFailureReleasesReadinessAndLock(t *testing.T) {
+	isolate_data_dir(t)
 	datadir.Set(t.TempDir())
 	t.Cleanup(func() { datadir.Set("") })
 	cacheBase := filepath.Join(t.TempDir(), "cache-blocker")
@@ -147,6 +153,7 @@ func TestBackendConstructionFailureReleasesReadinessAndLock(t *testing.T) {
 }
 
 func TestLoginSuccessEnablesAuthenticatedBackgroundWork(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 	sink := runtimeEventSink{app: app}
 
@@ -162,6 +169,7 @@ func TestLoginSuccessEnablesAuthenticatedBackgroundWork(t *testing.T) {
 }
 
 func TestCheckLoginStatusReusesVerifiedProcessState(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 	app.authReady.Store(true)
 	if !app.CheckLoginStatus() {

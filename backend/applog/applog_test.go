@@ -4,11 +4,13 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestOpenLogFileWritesUnderConfigDirTDrive(t *testing.T) {
+	isolate_data_dir(t)
 	configDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", configDir)
 	t.Setenv("HOME", configDir) // covers os.UserConfigDir on platforms that fall back to HOME
@@ -25,12 +27,17 @@ func TestOpenLogFileWritesUnderConfigDirTDrive(t *testing.T) {
 	if filepath.Base(filepath.Dir(path)) != "TDrive" {
 		t.Fatalf("log file dir = %q, want a TDrive subdirectory", filepath.Dir(path))
 	}
+	// Windows does not honour unix permission bits, so Stat never reports 0600.
+	if runtime.GOOS == "windows" {
+		return
+	}
 	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != privateFileMode {
 		t.Fatalf("log file mode = %v (err=%v), want %v", info, err, privateFileMode)
 	}
 }
 
 func TestOpenLogFileTruncatesOnEachCall(t *testing.T) {
+	isolate_data_dir(t)
 	configDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", configDir)
 	t.Setenv("HOME", configDir)
@@ -60,6 +67,7 @@ func TestOpenLogFileTruncatesOnEachCall(t *testing.T) {
 }
 
 func TestRedactMasksSensitiveAttributeKeysCaseInsensitively(t *testing.T) {
+	isolate_data_dir(t)
 	sensitive := []string{
 		"password", "Password", "PASSPHRASE",
 		"master_key", "masterKey",
@@ -78,6 +86,7 @@ func TestRedactMasksSensitiveAttributeKeysCaseInsensitively(t *testing.T) {
 }
 
 func TestRedactLeavesOrdinaryAttributesAlone(t *testing.T) {
+	isolate_data_dir(t)
 	ordinary := map[string]string{
 		"path":          "/Docs/photo.png",
 		"content_hash":  "abc123",
@@ -106,6 +115,7 @@ func TestRedactLeavesOrdinaryAttributesAlone(t *testing.T) {
 // against each other, entirely within this test, avoids that regardless of
 // process history.
 func TestInitIsIdempotent(t *testing.T) {
+	isolate_data_dir(t)
 	configDir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", configDir)
 	t.Setenv("HOME", configDir)

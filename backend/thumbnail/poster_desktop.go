@@ -140,7 +140,7 @@ func posterMPVCandidates(name string) []string {
 	}
 	if runtime.GOOS == "darwin" {
 		// <App>.app/Contents/MacOS/TDrive -> Contents/Resources/media/mpv,
-		// which is where scripts/package-mpv-darwin.sh puts it.
+		// which is where scripts/package_mpv_darwin.sh puts it.
 		candidates = append(candidates, filepath.Join(dir, "..", "Resources", "media", name))
 	}
 	if runtime.GOOS == "linux" {

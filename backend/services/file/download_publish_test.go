@@ -7,6 +7,7 @@ import (
 )
 
 func TestPublishFolderDownloadMovesCompletedTree(t *testing.T) {
+	isolate_data_dir(t)
 	parent := t.TempDir()
 	staging := filepath.Join(parent, ".tdrive-folder-download-test")
 	final := filepath.Join(parent, "Project")
@@ -30,6 +31,7 @@ func TestPublishFolderDownloadMovesCompletedTree(t *testing.T) {
 }
 
 func TestPublishFolderDownloadPreservesExistingDestination(t *testing.T) {
+	isolate_data_dir(t)
 	parent := t.TempDir()
 	staging := filepath.Join(parent, ".tdrive-folder-download-test")
 	final := filepath.Join(parent, "Project")
@@ -64,6 +66,7 @@ func TestPublishFolderDownloadPreservesExistingDestination(t *testing.T) {
 }
 
 func TestReplaceDownloadedFileRestoresDestinationWhenStagedFileDisappears(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	destination := filepath.Join(dir, "saved.txt")
 	if err := os.WriteFile(destination, []byte("original user data"), 0o600); err != nil {

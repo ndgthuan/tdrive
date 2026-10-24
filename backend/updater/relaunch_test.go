@@ -6,6 +6,7 @@ import (
 )
 
 func TestWaitPIDFromArgs(t *testing.T) {
+	isolate_data_dir(t)
 	cases := []struct {
 		args []string
 		pid  int
@@ -28,6 +29,7 @@ func TestWaitPIDFromArgs(t *testing.T) {
 }
 
 func TestWaitForExit(t *testing.T) {
+	isolate_data_dir(t)
 	polls := 0
 	alive := func(int) bool {
 		polls++

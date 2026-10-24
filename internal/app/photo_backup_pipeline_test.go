@@ -12,6 +12,7 @@ import (
 )
 
 func TestPhotoBackupQueueOverlapsAndJoinsWorkers(t *testing.T) {
+	isolate_data_dir(t)
 	entered := make(chan struct{}, 2)
 	release := make(chan struct{})
 	ctx, cancel := context.WithCancel(t.Context())
@@ -52,6 +53,7 @@ func TestPhotoBackupQueueOverlapsAndJoinsWorkers(t *testing.T) {
 }
 
 func TestPhotoBackupQueueContinuesAfterFailedItem(t *testing.T) {
+	isolate_data_dir(t)
 	calls := 0
 	n, err := runPhotoBackupQueue(t.Context(), 1, func() bool { return true }, func(context.Context) (photobackup.RunResult, error) {
 		calls++
@@ -63,6 +65,7 @@ func TestPhotoBackupQueueContinuesAfterFailedItem(t *testing.T) {
 }
 
 func TestPhotoBackupRunCoalescesDiscoveryDuringPreviewDrain(t *testing.T) {
+	isolate_data_dir(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	a := &App{photoBackupRunID: 1, photoBackupCancel: cancel, photoBackupDone: make(chan struct{}), photoBackupRerun: true}
@@ -75,6 +78,7 @@ func TestPhotoBackupRunCoalescesDiscoveryDuringPreviewDrain(t *testing.T) {
 }
 
 func TestPhotoBackupRunDoesNotRestartAfterStopOrClobberNewOwner(t *testing.T) {
+	isolate_data_dir(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	a := &App{photoBackupRunID: 2, photoBackupCancel: cancel, photoBackupDone: make(chan struct{}), photoBackupRerun: true}
 	if a.continuePhotoBackupRun(ctx, 1) || a.photoBackupCancel == nil || !a.photoBackupRerun {
@@ -87,6 +91,7 @@ func TestPhotoBackupRunDoesNotRestartAfterStopOrClobberNewOwner(t *testing.T) {
 }
 
 func TestPhotoBackupRunBackgroundRetiresCoalescedWake(t *testing.T) {
+	isolate_data_dir(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	a := &App{photoBackupRunID: 1, photoBackupCancel: cancel, photoBackupDone: make(chan struct{}), photoBackupRerun: true}
@@ -97,6 +102,7 @@ func TestPhotoBackupRunBackgroundRetiresCoalescedWake(t *testing.T) {
 }
 
 func TestPhotoBackupQueueStopsOnDeferredAndBackground(t *testing.T) {
+	isolate_data_dir(t)
 	for _, foreground := range []bool{false, true} {
 		t.Run(fmt.Sprint(foreground), func(t *testing.T) {
 			calls := 0
@@ -116,6 +122,7 @@ func TestPhotoBackupQueueStopsOnDeferredAndBackground(t *testing.T) {
 }
 
 func TestPhotoBackupQueueFatalErrorCancelsSibling(t *testing.T) {
+	isolate_data_dir(t)
 	boom := errors.New("ledger unavailable")
 	entered := make(chan struct{})
 	var calls atomic.Int64
@@ -134,6 +141,7 @@ func TestPhotoBackupQueueFatalErrorCancelsSibling(t *testing.T) {
 }
 
 func TestPhotoBackupReservationBoundsAndCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	budget := newPhotoBackupBudget()
 	release, err := budget.acquire(t.Context(), maxPhotoBackupResourceBytes)
 	if err != nil {
@@ -156,6 +164,7 @@ func TestPhotoBackupReservationBoundsAndCancellation(t *testing.T) {
 }
 
 func TestPhotoBackupTimingBucketsAreBoundedAndConcurrent(t *testing.T) {
+	isolate_data_dir(t)
 	timings := &photoBackupTimings{}
 	finished := make(chan struct{}, 2)
 	for range 2 {

@@ -105,6 +105,7 @@ func writableDeadlineTestHandler(t *testing.T, clock *manualClock, writer WriteC
 }
 
 func TestStalledPUTTimesOutAndReleasesWriteSlot(t *testing.T) {
+	isolate_data_dir(t)
 	clock := &manualClock{now: time.Unix(1_700_000_000, 0)}
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	handler := writableDeadlineTestHandler(t, clock, writer)
@@ -130,6 +131,7 @@ func TestStalledPUTTimesOutAndReleasesWriteSlot(t *testing.T) {
 }
 
 func TestActiveLongPUTUsesIdleNotAbsoluteDeadline(t *testing.T) {
+	isolate_data_dir(t)
 	started := time.Unix(1_700_000_000, 0)
 	clock := &manualClock{now: started}
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
@@ -161,6 +163,7 @@ func TestActiveLongPUTUsesIdleNotAbsoluteDeadline(t *testing.T) {
 }
 
 func TestControlBodyUsesOneBoundedAbsoluteDeadline(t *testing.T) {
+	isolate_data_dir(t)
 	started := time.Unix(1_700_000_000, 0)
 	clock := &manualClock{now: started}
 	handler := writableDeadlineTestHandler(t, clock, &recordingWriteCoordinator{})
@@ -180,6 +183,7 @@ func TestControlBodyUsesOneBoundedAbsoluteDeadline(t *testing.T) {
 }
 
 func TestBodyDeadlineSetupFailsClosed(t *testing.T) {
+	isolate_data_dir(t)
 	clock := &manualClock{now: time.Unix(1_700_000_000, 0)}
 	handler := writableDeadlineTestHandler(t, clock, &recordingWriteCoordinator{})
 	for _, test := range []struct {
@@ -209,6 +213,7 @@ func TestBodyDeadlineSetupFailsClosed(t *testing.T) {
 }
 
 func TestBodyReadTimeoutClassification(t *testing.T) {
+	isolate_data_dir(t)
 	if !isBodyReadTimeout(timeoutReadError{}) {
 		t.Fatal("timeout net.Error was not classified")
 	}

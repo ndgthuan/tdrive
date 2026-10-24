@@ -14,6 +14,7 @@ import (
 )
 
 func TestBackupUploadProjectsWithoutManualTransferEvents(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	events := &eventRecorder{}
 	svc.Events = events
@@ -32,6 +33,7 @@ func TestBackupUploadProjectsWithoutManualTransferEvents(t *testing.T) {
 }
 
 func TestBackupUnknownReceiptSurvivesRetryCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	for _, multipart := range []bool{false, true} {
 		t.Run(map[bool]string{false: "single", true: "multipart"}[multipart], func(t *testing.T) {
 			svc, _, fake, _ := newTestService(t)
@@ -64,6 +66,7 @@ func TestBackupUnknownReceiptSurvivesRetryCancellation(t *testing.T) {
 }
 
 func TestBackupCancellationBeforeSendIsExplicitlySafeToRetry(t *testing.T) {
+	isolate_data_dir(t)
 	for _, stage := range []string{"slot", "encryption"} {
 		t.Run(stage, func(t *testing.T) {
 			svc, _, fake, _ := newTestService(t)
@@ -101,6 +104,7 @@ func TestBackupCancellationBeforeSendIsExplicitlySafeToRetry(t *testing.T) {
 }
 
 func TestBackupPreviewAdmissionCancellationPreservesReceipt(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	configureEncryptedUpload(t, svc, bytes.Repeat([]byte{7}, 32))
 	w := newBackupRenditionWorker(t.Context(), personalChannelID, func(ctx context.Context, _ projection.File, _ []byte) error {
@@ -130,6 +134,7 @@ func TestBackupPreviewAdmissionCancellationPreservesReceipt(t *testing.T) {
 }
 
 func TestBackupFullPreviewBudgetCancelsBeforeAnyOriginalSend(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fake, _ := newTestService(t)
 	configureEncryptedUpload(t, svc, bytes.Repeat([]byte{7}, 32))
 	w := newBackupRenditionWorker(t.Context(), personalChannelID, func(ctx context.Context, _ projection.File, _ []byte) error {
@@ -165,6 +170,7 @@ func TestBackupFullPreviewBudgetCancelsBeforeAnyOriginalSend(t *testing.T) {
 }
 
 func TestBackupUploadTimingReportsBoundedStages(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	configureEncryptedUpload(t, svc, bytes.Repeat([]byte{7}, 32))
 	stages := make(map[string]time.Duration)
@@ -184,6 +190,7 @@ func TestBackupUploadTimingReportsBoundedStages(t *testing.T) {
 }
 
 func TestBackupUploadKeepsReceiptWhenProjectionFails(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	_, err := db.Exec(`CREATE TRIGGER fail_backup_projection BEFORE INSERT ON files BEGIN SELECT RAISE(FAIL, 'test projection failure'); END`)
 	if err != nil {
@@ -196,6 +203,7 @@ func TestBackupUploadKeepsReceiptWhenProjectionFails(t *testing.T) {
 }
 
 func TestBackupUploadCancellationAndMissingSource(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -208,6 +216,7 @@ func TestBackupUploadCancellationAndMissingSource(t *testing.T) {
 }
 
 func TestBackupUploadMultipartReceipt(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	meta, err := svc.UploadBackup(context.Background(), personalChannelID, writeTempNamedFile(t, "movie.mp4", bigBody(2503)), "", false)
@@ -221,6 +230,7 @@ func TestBackupUploadMultipartReceipt(t *testing.T) {
 }
 
 func TestBackupUploadRequiresReadyConnection(t *testing.T) {
+	isolate_data_dir(t)
 	if _, err := (&Service{}).UploadBackup(context.Background(), personalChannelID, "photo.jpg", "", false); err == nil {
 		t.Fatal("uninitialized service must fail closed")
 	}
@@ -232,6 +242,7 @@ func TestBackupUploadRequiresReadyConnection(t *testing.T) {
 }
 
 func TestBackupUploadDoesNotFallBackToPlaintext(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MasterKeyForUpload = func(int64, bool) ([]byte, error) { return nil, errors.New("vault locked") }
 	meta, err := svc.UploadBackup(context.Background(), personalChannelID, writeTempNamedFile(t, "photo.jpg", []byte("private original")), "", true)
@@ -244,6 +255,7 @@ func TestBackupUploadDoesNotFallBackToPlaintext(t *testing.T) {
 }
 
 func TestBackupUploadReportsCurrentFileProgress(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	var updates []BackupUploadProgress
 	meta, err := svc.UploadBackup(context.Background(), personalChannelID, writeTempNamedFile(t, "photo.jpg", []byte("original")), "", false, func(p BackupUploadProgress) { updates = append(updates, p) })
@@ -256,6 +268,7 @@ func TestBackupUploadReportsCurrentFileProgress(t *testing.T) {
 }
 
 func TestEncryptedBackupPublishesEncryptedPreviewsFromLocalSource(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	key := bytes.Repeat([]byte{7}, 32)
 	svc.MasterKeyForUpload = func(int64, bool) ([]byte, error) { return append([]byte(nil), key...), nil }

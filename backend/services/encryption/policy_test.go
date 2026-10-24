@@ -12,6 +12,7 @@ import (
 )
 
 func TestStatusAndCreatePasswordFailClosedWhenPolicyRefreshFails(t *testing.T) {
+	isolate_data_dir(t)
 	db := newPolicyServiceDB(t)
 	detail := errors.New("telegram history incomplete")
 	emitCalls := 0
@@ -42,6 +43,7 @@ func TestStatusAndCreatePasswordFailClosedWhenPolicyRefreshFails(t *testing.T) {
 }
 
 func TestStatusAndCreatePasswordHonorConfigRestoredByPolicyRefresh(t *testing.T) {
+	isolate_data_dir(t)
 	db := newPolicyServiceDB(t)
 	refreshCalls := 0
 	emitCalls := 0
@@ -75,6 +77,7 @@ func TestStatusAndCreatePasswordHonorConfigRestoredByPolicyRefresh(t *testing.T)
 }
 
 func TestCreatePasswordAllowedAfterAuthoritativePlaintextPolicy(t *testing.T) {
+	isolate_data_dir(t)
 	db := newPolicyServiceDB(t)
 	refreshCalls := 0
 	emitCalls := 0

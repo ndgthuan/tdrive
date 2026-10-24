@@ -8,6 +8,7 @@ import (
 )
 
 func TestUploadByteSize(t *testing.T) {
+	isolate_data_dir(t)
 	if got := uploadByteSize(1000, false); got != 1000 {
 		t.Errorf("plain size = %d, want 1000", got)
 	}
@@ -17,6 +18,7 @@ func TestUploadByteSize(t *testing.T) {
 }
 
 func TestPlanUpload(t *testing.T) {
+	isolate_data_dir(t)
 	// MaxUploadBytes overrides the part size: 1000 here, hard cap = 1000*MaxParts.
 	s := &Service{MaxUploadBytes: 1000}
 	hardCap := int64(1000) * int64(MaxParts)
@@ -60,6 +62,7 @@ func TestPlanUpload(t *testing.T) {
 }
 
 func TestResumablePartPlan(t *testing.T) {
+	isolate_data_dir(t)
 	s := &Service{}
 	for _, size := range []int64{MaxPartBytes + 1, 10 << 30, LargeFileMaxBytes} {
 		plan, err := s.buildResumablePartPlan(size)

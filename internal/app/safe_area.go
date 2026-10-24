@@ -9,7 +9,7 @@ import (
 // SafeAreaInsets is how much of each screen edge the OS reserves for its own
 // chrome: the status bar and the gesture handle on a phone. Zero everywhere
 // else. Android reports device pixels and iOS reports points, so the caller
-// scales by the device pixel ratio; see ui/mobile/safe-area.ts.
+// scales by the device pixel ratio; see ui/mobile/safe_area.ts.
 type SafeAreaInsets struct {
 	Top    float64 `json:"top"`
 	Bottom float64 `json:"bottom"`

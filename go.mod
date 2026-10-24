@@ -5,9 +5,11 @@ go 1.26.9
 require (
 	github.com/Eyevinn/mp4ff v0.56.0
 	github.com/Microsoft/go-winio v0.6.2
+	github.com/danieljoos/wincred v1.2.3
 	github.com/google/uuid v1.6.0
 	github.com/gotd/td v0.145.1
 	github.com/wailsapp/wails/v3 v3.0.0-beta.22
+	github.com/zalando/go-keyring v0.2.8
 	golang.org/x/crypto v0.57.0
 	golang.org/x/image v0.45.0
 	golang.org/x/net v0.60.0

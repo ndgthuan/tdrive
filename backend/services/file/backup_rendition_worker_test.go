@@ -16,6 +16,7 @@ import (
 )
 
 func TestBackupRenditionWorkerBoundsSnapshotsAndClearsOnCancel(t *testing.T) {
+	isolate_data_dir(t)
 	started := make(chan struct{})
 	w := newBackupRenditionWorker(t.Context(), personalChannelID, func(ctx context.Context, _ projection.File, _ []byte) error {
 		close(started)
@@ -69,6 +70,7 @@ func (c *blockedBackupRenditionClient) SendFileWithRandomID(ctx context.Context,
 }
 
 func TestBackupOriginalReturnsBeforePreviewAndEncryptedOutboxResumes(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fake, _ := newTestService(t)
 	configureEncryptedUpload(t, svc, bytes.Repeat([]byte{7}, 32))
 	svc.MaxConcurrentUploads = 2
@@ -128,6 +130,7 @@ func TestBackupOriginalReturnsBeforePreviewAndEncryptedOutboxResumes(t *testing.
 }
 
 func TestBackupRenditionWorkerPreparesWhileSenderBlocked(t *testing.T) {
+	isolate_data_dir(t)
 	sending := make(chan struct{})
 	release := make(chan struct{})
 	prepared := make(chan int64, 2)
@@ -167,6 +170,7 @@ func TestBackupRenditionWorkerPreparesWhileSenderBlocked(t *testing.T) {
 }
 
 func TestBackupRenditionBackpressureDoesNotDropEligibleSnapshots(t *testing.T) {
+	isolate_data_dir(t)
 	allow := make(chan struct{}, 3)
 	prepared := make(chan int64, 3)
 	w := newBackupRenditionWorker(t.Context(), personalChannelID, func(ctx context.Context, source projection.File, _ []byte) error {
@@ -218,6 +222,7 @@ func TestBackupRenditionBackpressureDoesNotDropEligibleSnapshots(t *testing.T) {
 }
 
 func TestBackupReservationWakesForCancellationCloseAndReleasedCapacity(t *testing.T) {
+	isolate_data_dir(t)
 	for _, event := range []string{"caller_cancel", "worker_close", "capacity_released"} {
 		t.Run(event, func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
@@ -280,6 +285,7 @@ func TestBackupReservationWakesForCancellationCloseAndReleasedCapacity(t *testin
 }
 
 func TestBackupReservationRejectsChangedSourceAndReleasesBudget(t *testing.T) {
+	isolate_data_dir(t)
 	w := newBackupRenditionWorker(t.Context(), personalChannelID, func(context.Context, projection.File, []byte) error {
 		return nil
 	}, func(context.Context) error { return nil })

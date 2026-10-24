@@ -8,6 +8,7 @@ import (
 )
 
 func TestPersonalDriveCandidatesFromServiceUseStringIDs(t *testing.T) {
+	isolate_data_dir(t)
 	got := personalDriveCandidatesFromService([]personaldriveservice.Candidate{{
 		ID: 9_007_199_254_740_993, Title: "TDrive", CreatedAt: 100,
 		HasActivity: true, Recommended: true,
@@ -25,6 +26,7 @@ func TestPersonalDriveCandidatesFromServiceUseStringIDs(t *testing.T) {
 }
 
 func TestParsePersonalDriveIDRejectsNonCanonicalValues(t *testing.T) {
+	isolate_data_dir(t)
 	for _, value := range []string{"", "0", "-1", "+8200", "08200", "not-an-id"} {
 		if _, err := parsePersonalDriveID(value); err == nil {
 			t.Fatalf("parsePersonalDriveID(%q) unexpectedly succeeded", value)

@@ -62,6 +62,7 @@ func preparationOriginal(t *testing.T, s *Service, raw []byte, encrypted bool) p
 	return source
 }
 func TestRemotePreparationDownloadsOnceAndResumesFromDurableImages(t *testing.T) {
+	isolate_data_dir(t)
 	for _, encrypted := range []bool{false, true} {
 		t.Run(map[bool]string{false: "plain", true: "encrypted"}[encrypted], func(t *testing.T) {
 			s, _, fake, _ := newTestService(t)
@@ -92,6 +93,7 @@ func TestRemotePreparationDownloadsOnceAndResumesFromDurableImages(t *testing.T)
 	}
 }
 func TestRemotePreparationRejectsLargeSourceAndAccountsInterruptedBytes(t *testing.T) {
+	isolate_data_dir(t)
 	s, db, fake, _ := newTestService(t)
 	counter := &countedPreparationClient{Fake: fake}
 	s.TG = counter
@@ -111,6 +113,7 @@ func TestRemotePreparationRejectsLargeSourceAndAccountsInterruptedBytes(t *testi
 	}
 }
 func TestVisiblePhotoUploadDoesNotPublishDurableRenditions(t *testing.T) {
+	isolate_data_dir(t)
 	s, db, _, _ := newTestService(t)
 	path := filepath.Join(t.TempDir(), "photo.jpg")
 	if err := os.WriteFile(path, tinyRenditionJPEG(t), 0600); err != nil {
@@ -127,6 +130,7 @@ func TestVisiblePhotoUploadDoesNotPublishDurableRenditions(t *testing.T) {
 	}
 }
 func TestPreparationWritersEnforceByteBudget(t *testing.T) {
+	isolate_data_dir(t)
 	var b bytes.Buffer
 	w := preparationWriter{dst: &b, remaining: 4}
 	if n, err := w.Write([]byte("12345")); err == nil || n != 0 || b.Len() != 0 {
@@ -155,6 +159,7 @@ func (c *replacingPhotoClient) SendFileWithRandomID(ctx context.Context, peer tg
 	return c.Fake.SendFileWithRandomID(ctx, peer, reader, name, caption, size, progress, randomID)
 }
 func TestPhotoSnapshotPreventsChangedPathFromRebindingUpload(t *testing.T) {
+	isolate_data_dir(t)
 	s, db, fake, _ := newTestService(t)
 	raw := tinyRenditionJPEG(t)
 	path := filepath.Join(t.TempDir(), "photo.jpg")
@@ -180,6 +185,7 @@ func TestPhotoSnapshotPreventsChangedPathFromRebindingUpload(t *testing.T) {
 }
 
 func TestPreparationRechecksReplacementAgainstAdmittedByteBudget(t *testing.T) {
+	isolate_data_dir(t)
 	s, db, fake, _ := newTestService(t)
 	counter := &countedPreparationClient{Fake: fake}
 	s.TG = counter
@@ -194,6 +200,7 @@ func TestPreparationRechecksReplacementAgainstAdmittedByteBudget(t *testing.T) {
 }
 
 func TestPreparationPreflightDoesNotDownloadAndRequiresUnlockedKey(t *testing.T) {
+	isolate_data_dir(t)
 	s, _, fake, _ := newTestService(t)
 	counter := &countedPreparationClient{Fake: fake}
 	s.TG = counter
@@ -223,6 +230,7 @@ func TestPreparationPreflightDoesNotDownloadAndRequiresUnlockedKey(t *testing.T)
 }
 
 func TestRemotePreparationSupportsMultipartPhotoIdentity(t *testing.T) {
+	isolate_data_dir(t)
 	s, db, fake, _ := newTestService(t)
 	ctx := context.Background()
 	raw := tinyRenditionJPEG(t)

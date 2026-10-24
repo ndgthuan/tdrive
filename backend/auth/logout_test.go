@@ -4,9 +4,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"TDrive/backend/datadir"
 )
 
 func TestClearUserData(t *testing.T) {
+	isolate_data_dir(t)
 	t.Run("soft keeps everything but session", func(t *testing.T) {
 		dir := setupConfigDir(t, "session.json", "config.json", "tdrive.db", "imp_config.json", "photo-backup.db", "photo-backup.db-wal", "photo-backup.db-shm")
 		if err := ClearUserData(LogoutSoft); err != nil {
@@ -20,7 +23,7 @@ func TestClearUserData(t *testing.T) {
 		dir := setupConfigDir(t, "session.json", "config.json", "tdrive.db", "imp_config.json", "photo-backup.db", "photo-backup.db-wal", "photo-backup.db-shm")
 		cacheDir := setupThumbnailCache(t)
 		cacheRoot := filepath.Dir(cacheDir)
-		nativeCache, err := os.UserCacheDir()
+		nativeCache, err := datadir.UserCacheBase()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -85,11 +88,11 @@ func TestClearUserData(t *testing.T) {
 
 func setupThumbnailCache(t *testing.T) string {
 	t.Helper()
-	base, err := os.UserCacheDir()
+	base, err := datadir.CacheDir()
 	if err != nil {
-		t.Fatalf("UserCacheDir: %v", err)
+		t.Fatalf("datadir.CacheDir: %v", err)
 	}
-	dir := filepath.Join(base, "TDrive", "thumbnails")
+	dir := filepath.Join(base, "thumbnails")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -99,28 +102,14 @@ func setupThumbnailCache(t *testing.T) string {
 	return dir
 }
 
-// setupConfigDir points os.UserConfigDir at a fresh temp directory and
-// seeds the given files inside its TDrive subfolder. Returns the TDrive
-// dir itself. The override mirrors the platform conventions os.UserConfigDir
-// itself follows so the production code stays untouched.
+// setupConfigDir seeds the given files in the TDrive config dir that
+// isolate_data_dir points datadir at. Returns that dir itself.
 func setupConfigDir(t *testing.T, files ...string) string {
 	t.Helper()
-	root := t.TempDir()
-
-	// Linux + freebsd consult XDG_CONFIG_HOME; darwin synthesises
-	// $HOME/Library/Application Support; windows uses %AppData%. Setting
-	// all three lets the same test pass on every supported platform.
-	t.Setenv("XDG_CONFIG_HOME", root)
-	t.Setenv("XDG_CACHE_HOME", root)
-	t.Setenv("HOME", root)
-	t.Setenv("AppData", root)
-	t.Setenv("LOCALAPPDATA", root)
-
-	base, err := os.UserConfigDir()
+	tdriveDir, err := datadir.Dir()
 	if err != nil {
-		t.Fatalf("UserConfigDir: %v", err)
+		t.Fatalf("datadir.Dir: %v", err)
 	}
-	tdriveDir := filepath.Join(base, "TDrive")
 	if err := os.MkdirAll(tdriveDir, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}

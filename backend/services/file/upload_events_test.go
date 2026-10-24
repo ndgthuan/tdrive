@@ -29,6 +29,7 @@ func importPayloads(t *testing.T, events *importTestEventRecorder) []map[string]
 // moving -- so the payload names the ones in flight, and no more of them than a
 // row can show.
 func TestImportUploadObserverNamesInFlightFilesUpToTheDisplayBound(t *testing.T) {
+	isolate_data_dir(t)
 	events := &importTestEventRecorder{}
 	observer := newImportUploadObserver(&Service{Events: events}, 100)
 	// Files starting together are one change of who is moving, so the payload
@@ -72,6 +73,7 @@ func TestImportUploadObserverNamesInFlightFilesUpToTheDisplayBound(t *testing.T)
 // A completed file's whole size counts; a failed one's does not, because those
 // bytes are not on Telegram and the number is meant to be what actually went.
 func TestImportUploadObserverCountsOnlyDeliveredBytes(t *testing.T) {
+	isolate_data_dir(t)
 	events := &importTestEventRecorder{}
 	observer := newImportUploadObserver(&Service{Events: events}, 2)
 	observer.Started(0, "kept.bin", 400, "")
@@ -97,6 +99,7 @@ func TestImportUploadObserverCountsOnlyDeliveredBytes(t *testing.T) {
 // twenty thousand events: the percentage is worth one event per whole point,
 // and a change of which files are moving is worth one per interval.
 func TestImportUploadObserverStaysBoundedWhenEveryFileChurns(t *testing.T) {
+	isolate_data_dir(t)
 	const total = 10_000
 	const perFile = time.Millisecond
 

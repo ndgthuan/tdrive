@@ -35,6 +35,7 @@ func (c *channelResolutionClient) SendControlWithRandomID(_ context.Context, pee
 }
 
 func TestChannelPeerUsesPersistedHashForRequestedDrive(t *testing.T) {
+	isolate_data_dir(t)
 	db := openEngineWriteTestDB(t)
 	previousDB := backend.DB
 	backend.DB = db
@@ -59,6 +60,7 @@ func TestChannelPeerUsesPersistedHashForRequestedDrive(t *testing.T) {
 }
 
 func TestChannelPeerCachesFreshHash(t *testing.T) {
+	isolate_data_dir(t)
 	db := openEngineWriteTestDB(t)
 	previousDB := backend.DB
 	backend.DB = db
@@ -82,6 +84,7 @@ func TestChannelPeerCachesFreshHash(t *testing.T) {
 }
 
 func TestStaleControlPeerRefreshBypassesCacheAndKeepsSendID(t *testing.T) {
+	isolate_data_dir(t)
 	db := openEngineWriteTestDB(t)
 	previousDB := backend.DB
 	backend.DB = db
@@ -109,6 +112,7 @@ func TestStaleControlPeerRefreshBypassesCacheAndKeepsSendID(t *testing.T) {
 }
 
 func TestRefreshPeerRejectsInvalidRemoteIdentityWithoutPoisoningCache(t *testing.T) {
+	isolate_data_dir(t)
 	db := openEngineWriteTestDB(t)
 	previousDB := backend.DB
 	backend.DB = db
@@ -138,6 +142,7 @@ func TestRefreshPeerRejectsInvalidRemoteIdentityWithoutPoisoningCache(t *testing
 }
 
 func TestChannelPeerHonorsCanceledContextBeforeCachedLookup(t *testing.T) {
+	isolate_data_dir(t)
 	client := &channelResolutionClient{Fake: tgclient.NewFake(7)}
 	engine := &Engine{tg: client}
 	ctx, cancel := context.WithCancel(t.Context())

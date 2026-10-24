@@ -210,6 +210,7 @@ func newTestResumeStoreWithClock(t *testing.T, idleTimeout time.Duration, now fu
 }
 
 func TestWritableProtectedHandlerAdvertisesExplicitSurface(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	handler := newWritableTestHandler(t, writer)
 
@@ -235,6 +236,7 @@ func TestWritableProtectedHandlerAdvertisesExplicitSurface(t *testing.T) {
 }
 
 func TestWindowsMiniRedirectorAcceptsMetadataPROPPATCH(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	handler := newWritableTestHandler(t, writer)
 	lockBody := `<D:lockinfo xmlns:D="DAV:"><D:lockscope><D:exclusive/></D:lockscope><D:locktype><D:write/></D:locktype></D:lockinfo>`
@@ -291,6 +293,7 @@ func TestWindowsMiniRedirectorAcceptsMetadataPROPPATCH(t *testing.T) {
 }
 
 func TestWindowsMiniRedirectorAcceptsLockNullMetadataBeforePUT(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true, ETag: `"file-7-r1"`}}
 	handler := newWritableTestHandler(t, writer)
 	lockBody := `<D:lockinfo xmlns:D="DAV:"><D:lockscope><D:exclusive/></D:lockscope><D:locktype><D:write/></D:locktype></D:lockinfo>`
@@ -352,6 +355,7 @@ func (reader *applicationAwareReader) Read(buffer []byte) (int, error) {
 }
 
 func TestWritableProtectionStreamsPUTButBoundsXML(t *testing.T) {
+	isolate_data_dir(t)
 	entered := false
 	reader := &applicationAwareReader{applicationEntered: &entered, remaining: int(maxRequestBodyBytes) + 1}
 	next := http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
@@ -388,6 +392,7 @@ func TestWritableProtectionStreamsPUTButBoundsXML(t *testing.T) {
 }
 
 func TestWritablePUTPassesValidatedConditionsAndReturnsCommitStatus(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true, ETag: `"file-7-r1"`}}
 	handler := newWritableTestHandler(t, writer)
 	request := trustedRequest(http.MethodPut, testCapability+"/Docs/new.txt", strings.NewReader("payload"))
@@ -425,6 +430,7 @@ func TestWritablePUTPassesValidatedConditionsAndReturnsCommitStatus(t *testing.T
 }
 
 func TestWritablePUTRejectsInvalidPreconditionsBeforeWriter(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	handler := newWritableTestHandler(t, writer)
 	request := trustedRequest(http.MethodPut, testCapability+"/Docs/new.txt", strings.NewReader("payload"))
@@ -442,6 +448,7 @@ func TestWritablePUTRejectsInvalidPreconditionsBeforeWriter(t *testing.T) {
 }
 
 func TestWritableMKCOLMOVEDELETERequests(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{
 		mkdirResult:  MutationResult{Created: true},
 		moveResult:   MutationResult{Created: false, ETag: `"moved-r2"`},
@@ -479,6 +486,7 @@ func TestWritableMKCOLMOVEDELETERequests(t *testing.T) {
 }
 
 func TestWindowsMiniRedirectorDeleteIgnoresDepthForFiles(t *testing.T) {
+	isolate_data_dir(t)
 	for _, depth := range []string{"0", "infinity,noroot"} {
 		t.Run(depth, func(t *testing.T) {
 			writer := &recordingWriteCoordinator{}
@@ -498,6 +506,7 @@ func TestWindowsMiniRedirectorDeleteIgnoresDepthForFiles(t *testing.T) {
 }
 
 func TestFileManagerDeleteRequestsShareProtocolPath(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name      string
 		userAgent string
@@ -532,6 +541,7 @@ func TestFileManagerDeleteRequestsShareProtocolPath(t *testing.T) {
 }
 
 func TestDeleteWaitsForCoordinatorBeforeWritingNoContent(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &blockingDeleteCoordinator{
 		recordingWriteCoordinator: &recordingWriteCoordinator{},
 		started:                   make(chan struct{}),
@@ -582,6 +592,7 @@ func TestDeleteWaitsForCoordinatorBeforeWritingNoContent(t *testing.T) {
 }
 
 func TestDeletePendingCleanupReturnsRetryableUnavailable(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name string
 		err  error
@@ -613,6 +624,7 @@ func TestDeletePendingCleanupReturnsRetryableUnavailable(t *testing.T) {
 }
 
 func TestWritableMOVEStrictlyValidatesDestination(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name        string
 		destination string
@@ -663,6 +675,7 @@ func TestWritableMOVEStrictlyValidatesDestination(t *testing.T) {
 // servePut now buffers an unknown-length body first to learn its real size,
 // so the coordinator always sees a normal, non-negative ContentLength.
 func TestServePUTWithoutContentLengthBuffersToDetermineSize(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	handler := newWritableTestHandler(t, writer)
 
@@ -692,6 +705,7 @@ func TestServePUTWithoutContentLengthBuffersToDetermineSize(t *testing.T) {
 // Content-Length must stream straight through exactly as before, not take
 // the buffering path.
 func TestServePUTKnownContentLengthIsNotBuffered(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	handler := newWritableTestHandler(t, writer)
 
@@ -713,6 +727,7 @@ func TestServePUTKnownContentLengthIsNotBuffered(t *testing.T) {
 }
 
 func TestWritablePathsUseOnePortableNamespace(t *testing.T) {
+	isolate_data_dir(t)
 	for _, path := range []string{
 		"/Docs/" + strings.Repeat("a", maxWritableComponentBytes+1),
 		"/Docs/CON.txt",
@@ -748,6 +763,7 @@ func TestWritablePathsUseOnePortableNamespace(t *testing.T) {
 }
 
 func TestWritableMethodSpecificValidationRunsBeforeCoordinator(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name    string
 		method  string
@@ -798,6 +814,7 @@ func TestWritableMethodSpecificValidationRunsBeforeCoordinator(t *testing.T) {
 // through the coordinator exactly once -- so the coordinator only ever sees
 // the complete, correct file, never the truncated intermediate state.
 func TestPUTResumeContinuationAssemblesAndCommitsTheCompleteFile(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	fs := testFSWithSeeds(t, []byte("first-chunk-bytes"), "photo.png")
 	handler := newWritableTestHandlerFull(t, writer, newTestResumeStore(t), fs)
@@ -832,6 +849,7 @@ func TestPUTResumeContinuationAssemblesAndCommitsTheCompleteFile(t *testing.T) {
 // than two requests: a plain PUT, then two Content-Range continuations, only
 // the last of which completes and commits.
 func TestPUTResumeThreeChunkSequenceAssemblesInOrder(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	resume := newTestResumeStore(t)
 	fs := testFSWithSeeds(t, []byte("AAAA"), "movie.mov")
@@ -873,6 +891,7 @@ func TestPUTResumeThreeChunkSequenceAssemblesInOrder(t *testing.T) {
 // correctly-aligned chunk must still be able to complete the original
 // sequence -- proving the mismatched request left the buffer untouched.
 func TestPUTResumeOffsetMismatchIsRejectedWithoutCorruptingTheBuffer(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	resume := newTestResumeStore(t)
 	fs := testFSWithSeeds(t, []byte("AAAA"), "movie.mov")
@@ -913,6 +932,7 @@ func TestPUTResumeOffsetMismatchIsRejectedWithoutCorruptingTheBuffer(t *testing.
 // TOTAL) for the same path: the stale buffer must be discarded rather than
 // corrupting the new sequence.
 func TestPUTResumeChangedTotalDiscardsTheStaleSequence(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	resume := newTestResumeStore(t)
 	fs := testFSWithSeeds(t, []byte("AAAA"), "movie.mov")
@@ -949,6 +969,7 @@ func TestPUTResumeChangedTotalDiscardsTheStaleSequence(t *testing.T) {
 // whose final chunk never arrives: it must not hold its temp file and quota
 // reservation forever. Uses an injectable clock instead of a real sleep.
 func TestPUTResumeAbandonedSequenceIsReaped(t *testing.T) {
+	isolate_data_dir(t)
 	current := time.Unix(1_700_000_000, 0)
 	clock := func() time.Time { return current }
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
@@ -1009,6 +1030,7 @@ func TestPUTResumeAbandonedSequenceIsReaped(t *testing.T) {
 // independent Content-Range resume sequences for different paths making
 // progress concurrently without corrupting each other's accumulator.
 func TestPUTResumeConcurrentSequencesForDifferentPathsDoNotInterfere(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	resume := newTestResumeStore(t)
 	fs := testFSWithSeeds(t, []byte("AAAA"), "a.bin", "b.bin")
@@ -1048,6 +1070,7 @@ func TestPUTResumeConcurrentSequencesForDifferentPathsDoNotInterfere(t *testing.
 // for a normal (non-resumed) PUT is unchanged: it commits immediately with
 // no buffering, even when the resume store is unavailable (nil).
 func TestPUTWithoutContentRangeNeverTouchesTheResumeStore(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true, ETag: `"r1"`}}
 	handler := newWritableTestHandlerWithResume(t, writer, nil)
 
@@ -1067,6 +1090,7 @@ func TestPUTWithoutContentRangeNeverTouchesTheResumeStore(t *testing.T) {
 // somehow missing its resume store (should not happen outside tests, but
 // must fail safely rather than panic on a nil dereference).
 func TestPUTContentRangeWithoutResumeStoreFailsCleanly(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	handler := newWritableTestHandlerWithResume(t, writer, nil)
 
@@ -1086,6 +1110,7 @@ func TestPUTContentRangeWithoutResumeStoreFailsCleanly(t *testing.T) {
 // TestPUTContentRangeMalformedHeaderIsRejected covers syntactically invalid
 // Content-Range headers.
 func TestPUTContentRangeMalformedHeaderIsRejected(t *testing.T) {
+	isolate_data_dir(t)
 	for _, header := range []string{
 		"bytes 0-1",
 		"bytes -1-5/10",
@@ -1122,6 +1147,7 @@ func TestPUTContentRangeMalformedHeaderIsRejected(t *testing.T) {
 // Instead these paths get a normal-looking success with nothing ever staged,
 // coordinated, or stored.
 func TestServeWriteMethodsFakeSuccessForMacOSJunkPaths(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name       string
 		method     string
@@ -1158,6 +1184,7 @@ func TestServeWriteMethodsFakeSuccessForMacOSJunkPaths(t *testing.T) {
 }
 
 func TestWritableLockTokenIsRequiredAndCanBeReleased(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: false, ETag: `"r2"`}}
 	handler := newWritableTestHandler(t, writer)
 	lockBody := `<D:lockinfo xmlns:D="DAV:"><D:lockscope><D:exclusive/></D:lockscope><D:locktype><D:write/></D:locktype><D:owner><D:href>tdrive</D:href></D:owner></D:lockinfo>`
@@ -1204,6 +1231,7 @@ func TestWritableLockTokenIsRequiredAndCanBeReleased(t *testing.T) {
 }
 
 func TestWritableRejectsMalformedIfAndUnsupportedCOPY(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	handler := newWritableTestHandler(t, writer)
 	request := trustedRequest(http.MethodDelete, testCapability+"/Docs/note.txt", nil)
@@ -1224,6 +1252,7 @@ func TestWritableRejectsMalformedIfAndUnsupportedCOPY(t *testing.T) {
 }
 
 func TestWritableCoordinatorErrorsUseSanitizedHTTPMapping(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		err    error
 		status int
@@ -1259,6 +1288,7 @@ func TestWritableCoordinatorErrorsUseSanitizedHTTPMapping(t *testing.T) {
 }
 
 func TestWritableStartConfigurationRequiresExplicitCapabilityPair(t *testing.T) {
+	isolate_data_dir(t)
 	filesystem := testFS(t, nil)
 	writer := &recordingWriteCoordinator{}
 	var typedNilWriter *recordingWriteCoordinator
@@ -1295,6 +1325,7 @@ func TestWritableStartConfigurationRequiresExplicitCapabilityPair(t *testing.T) 
 }
 
 func TestWritableModeAndTimeoutAreTruthful(t *testing.T) {
+	isolate_data_dir(t)
 	if got := mountMode(false); got != "read-only" {
 		t.Fatalf("read mode = %q", got)
 	}
@@ -1310,6 +1341,7 @@ func TestWritableModeAndTimeoutAreTruthful(t *testing.T) {
 }
 
 func TestWritableProtectionBoundsStreamingWritesSeparately(t *testing.T) {
+	isolate_data_dir(t)
 	entered := make(chan struct{})
 	release := make(chan struct{})
 	handler := newProtectedHandler(protectionConfig{
@@ -1352,6 +1384,7 @@ func TestWritableProtectionBoundsStreamingWritesSeparately(t *testing.T) {
 }
 
 func TestServerWiresExplicitWritableCoordinatorEndToEnd(t *testing.T) {
+	isolate_data_dir(t)
 	filesystem := testFS(t, nil)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true, ETag: `"new-r1"`}}
 	server := NewServer()

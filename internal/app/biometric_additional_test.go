@@ -77,6 +77,7 @@ func startDelayedBiometricUnlock(t *testing.T, app *App, provider *fakeBiometric
 }
 
 func TestBiometricWrongPasswordChangePreservesEnrollment(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())
@@ -103,6 +104,7 @@ func TestBiometricWrongPasswordChangePreservesEnrollment(t *testing.T) {
 }
 
 func TestBiometricInvalidReplacementPasswordPreservesEnrollment(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())
@@ -123,6 +125,7 @@ func TestBiometricInvalidReplacementPasswordPreservesEnrollment(t *testing.T) {
 }
 
 func TestBiometricLateCallbackRejectsRewrappedConfig(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	key, _ := app.engine.EncryptionService().LoadedMasterKey()
 	defer clear(key)
@@ -151,6 +154,7 @@ func TestBiometricLateCallbackRejectsRewrappedConfig(t *testing.T) {
 }
 
 func TestBiometricWrongKeyPreservesAuthorizedSession(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	want, _ := app.engine.EncryptionService().LoadedMasterKey()
 	defer clear(want)
@@ -170,6 +174,7 @@ func TestBiometricWrongKeyPreservesAuthorizedSession(t *testing.T) {
 }
 
 func TestBiometricDisableRejectsLateNativeSuccess(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())
@@ -196,6 +201,7 @@ func TestBiometricDisableRejectsLateNativeSuccess(t *testing.T) {
 }
 
 func TestBiometricLogoutRejectsLateNativeSuccess(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())
@@ -222,6 +228,7 @@ func TestBiometricLogoutRejectsLateNativeSuccess(t *testing.T) {
 }
 
 func TestBiometricPasswordFallbackCancelsPendingNativeResult(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	want, _ := app.engine.EncryptionService().LoadedMasterKey()
 	defer clear(want)
@@ -242,6 +249,7 @@ func TestBiometricPasswordFallbackCancelsPendingNativeResult(t *testing.T) {
 }
 
 func TestBiometricPersonalDriveSwitchRejectsPendingNativeKey(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	key, _ := app.engine.EncryptionService().LoadedMasterKey()
 	defer clear(key)
@@ -264,6 +272,7 @@ func TestBiometricPersonalDriveSwitchRejectsPendingNativeKey(t *testing.T) {
 }
 
 func TestBiometricBackendRemovalRejectsPendingNativeKey(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	engine := app.engine
 	key, _ := engine.EncryptionService().LoadedMasterKey()
@@ -285,6 +294,7 @@ func TestBiometricBackendRemovalRejectsPendingNativeKey(t *testing.T) {
 }
 
 func TestBiometricUnavailableStatusKeepsPasswordFallback(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	app.encryption.biometricProviderOverride = &biometricProviderBoundary{
 		fakeBiometricProvider: provider,
@@ -303,6 +313,7 @@ func TestBiometricUnavailableStatusKeepsPasswordFallback(t *testing.T) {
 }
 
 func TestBiometricCanceledEnrollmentReportsRequiredCleanup(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	provider.enroll = func(_ context.Context, scope biometric.Scope, key []byte) error {
 		provider.mu.Lock()
@@ -330,6 +341,7 @@ func TestBiometricCanceledEnrollmentReportsRequiredCleanup(t *testing.T) {
 }
 
 func TestBiometricUnavailableWithoutEnrollmentPermitsPasswordChangeAndLogout(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	app.encryption.biometricProviderOverride = &biometricProviderBoundary{
 		fakeBiometricProvider: provider,
@@ -351,6 +363,7 @@ func TestBiometricUnavailableWithoutEnrollmentPermitsPasswordChangeAndLogout(t *
 }
 
 func TestBiometricUnavailableWithEnrollmentDoesNotSkipRequiredCleanup(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())
@@ -378,6 +391,7 @@ func TestBiometricUnavailableWithEnrollmentDoesNotSkipRequiredCleanup(t *testing
 }
 
 func TestBiometricWireStatusAndFailuresExcludeSecrets(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	if result := app.encryption.EnableBiometricUnlock("vault-password"); !result.OK {
 		t.Fatal(result.Err())
@@ -430,6 +444,7 @@ func TestBiometricWireStatusAndFailuresExcludeSecrets(t *testing.T) {
 }
 
 func TestBiometricCanceledEnrollmentCleanupBlocksReplacement(t *testing.T) {
+	isolate_data_dir(t)
 	app, provider := setupBiometricApp(t)
 	enrollEntered, enrollFinish := make(chan struct{}), make(chan struct{})
 	deleteEntered, deleteFinish := make(chan struct{}), make(chan struct{})
@@ -486,6 +501,7 @@ func TestBiometricCanceledEnrollmentCleanupBlocksReplacement(t *testing.T) {
 }
 
 func TestBiometricCapabilityBeforeVaultOrBackendIsReady(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.ctx = t.Context()
@@ -510,10 +526,15 @@ func TestBiometricCapabilityBeforeVaultOrBackendIsReady(t *testing.T) {
 }
 
 func TestBiometricNativeProviderStorageCanRecoverWithoutPrompting(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupBiometricApp(t)
 	app.encryption.biometricProviderOverride = nil
 	privateFile := filepath.Join(t.TempDir(), "private-device-storage")
 	if err := os.WriteFile(privateFile, []byte("synthetic blocked storage"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	healthy, err := datadir.Dir()
+	if err != nil {
 		t.Fatal(err)
 	}
 	datadir.Set(privateFile)
@@ -521,7 +542,9 @@ func TestBiometricNativeProviderStorageCanRecoverWithoutPrompting(t *testing.T) 
 	if provider, err := app.encryption.nativeBiometricProvider(); err == nil || provider != nil {
 		t.Fatalf("unusable native storage returned provider=%v, err=%v", provider != nil, err)
 	}
-	datadir.Set("")
+	// Recovery means the original, usable data dir is back. Setup wrote the
+	// vault and config there, so restore that root rather than a new one.
+	datadir.Set(filepath.Dir(healthy))
 	first, err := app.encryption.nativeBiometricProvider()
 	if err != nil || first == nil {
 		t.Fatalf("native provider did not recover: provider=%v, err=%v", first != nil, err)

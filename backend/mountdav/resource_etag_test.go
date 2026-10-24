@@ -10,6 +10,7 @@ import (
 )
 
 func TestResourceETagUsesCanonicalProjectionIdentity(t *testing.T) {
+	isolate_data_dir(t)
 	ctx := context.Background()
 	want, err := ResourceETag(ctx, 42, "f:9", 7, "sha256:content")
 	if err != nil {
@@ -51,6 +52,7 @@ func TestResourceETagUsesCanonicalProjectionIdentity(t *testing.T) {
 }
 
 func TestResourceETagChangesWithEveryIdentityField(t *testing.T) {
+	isolate_data_dir(t)
 	ctx := context.Background()
 	base, err := ResourceETag(ctx, 42, "f:9", 7, "sha256:content")
 	if err != nil {
@@ -82,6 +84,7 @@ func TestResourceETagChangesWithEveryIdentityField(t *testing.T) {
 }
 
 func TestResourceETagHonorsContextAndParsesAsIfMatch(t *testing.T) {
+	isolate_data_dir(t)
 	if _, err := ResourceETag(nil, 1, "f:1", 1, ""); err == nil {
 		t.Fatal("nil context unexpectedly accepted")
 	}

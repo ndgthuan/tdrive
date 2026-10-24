@@ -13,6 +13,7 @@ import (
 )
 
 func TestMutationMethodsRejectNilContext(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	tests := map[string]func() error{
 		"metadata": func() error {
@@ -42,6 +43,7 @@ func TestMutationMethodsRejectNilContext(t *testing.T) {
 }
 
 func TestSharedRawMetadataUsesAuthoritativeSenderAndPreservesContentOnRename(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, actor := newTestService(t)
 	peer := tgclient.InputPeer{ChannelID: sharedChannelID, AccessHash: 88, Kind: tgclient.PeerSupergroup}
 	svc.Peers = testPeerResolver{peer: peer}
@@ -83,6 +85,7 @@ func TestSharedRawMetadataUsesAuthoritativeSenderAndPreservesContentOnRename(t *
 }
 
 func TestSharedRawMetadataCannotClaimAnotherOrUnknownSender(t *testing.T) {
+	isolate_data_dir(t)
 	for _, sender := range []int64{9, 0} {
 		t.Run(fmt.Sprintf("sender_%d", sender), func(t *testing.T) {
 			svc, db, fakeTG, _ := newTestService(t)
@@ -104,6 +107,7 @@ func TestSharedRawMetadataCannotClaimAnotherOrUnknownSender(t *testing.T) {
 }
 
 func TestSharedRawMetadataRejectsHiddenBodiesBeforeEmit(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name    string
 		caption string
@@ -143,6 +147,7 @@ func TestSharedRawMetadataRejectsHiddenBodiesBeforeEmit(t *testing.T) {
 }
 
 func TestSharedRawMetadataRejectsRestrictedMediaBeforeEmit(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name         string
 		message      tgclient.HistoryMessage
@@ -215,6 +220,7 @@ func (r *sharedAdoptionReadRecorder) GetMediaSourcePeer(ctx context.Context, pee
 }
 
 func TestSharedRawMetadataDoesNotResurrectTrashedFile(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, actor := newTestService(t)
 	project(t, db, sharedChannelID, 55, *actor, projection.Op{
 		Type: projection.OpFileUpload, Name: "trashed.pdf", FileSize: 2,
@@ -231,6 +237,7 @@ func TestSharedRawMetadataDoesNotResurrectTrashedFile(t *testing.T) {
 }
 
 func TestRenameStopsBeforeEmitWhenContextCanceled(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 44, 7, projection.Op{
 		Type:           projection.OpFileUpload,
@@ -256,6 +263,7 @@ func TestRenameStopsBeforeEmitWhenContextCanceled(t *testing.T) {
 }
 
 func TestMetaContextPropagatesContextToEmitter(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	type contextKey string
 	const key contextKey = "mutation"

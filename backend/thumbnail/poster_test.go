@@ -115,7 +115,7 @@ func TestGenerateVideoPosterHonoursCancellation(t *testing.T) {
 // is reachable, because that is a legitimate environment rather than a failure:
 // the caller's contract is that a poster is optional.
 func TestGenerateVideoPosterDrawsARealFrame(t *testing.T) {
-	source, err := filepath.Abs(filepath.Join("..", "..", "assets", "tdrive-banner-loop-v4.mp4"))
+	source, err := filepath.Abs(filepath.Join("..", "..", "assets", "tdrive_banner_loop_v4.mp4"))
 	if err != nil {
 		t.Fatal(err)
 	}

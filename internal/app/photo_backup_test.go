@@ -20,6 +20,7 @@ import (
 )
 
 func TestPhotoBackupScopeDoesNotQueryTelegramBeforeDriveSelection(t *testing.T) {
+	isolate_data_dir(t)
 	app, _, telegram := setupEncryptionAppWithPolicyRefresh(t, nil)
 	t.Cleanup(app.engine.Close)
 	app.engine.SetActiveChannelID(0)
@@ -36,6 +37,7 @@ func TestPhotoBackupScopeDoesNotQueryTelegramBeforeDriveSelection(t *testing.T) 
 }
 
 func TestPhotoBackupAcceptsAndroidNamedStage(t *testing.T) {
+	isolate_data_dir(t)
 	datadir.SetCache(t.TempDir())
 	t.Cleanup(func() { datadir.SetCache("") })
 	cache, err := datadir.CacheDir()
@@ -56,6 +58,7 @@ func TestPhotoBackupAcceptsAndroidNamedStage(t *testing.T) {
 }
 
 func TestValidatePhotoBackupPathRequiresRegularExactSourceFile(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	path := filepath.Join(root, "photo.jpg")
 	if err := os.WriteFile(path, []byte("photo"), 0o600); err != nil {
@@ -90,6 +93,7 @@ func TestValidatePhotoBackupPathRequiresRegularExactSourceFile(t *testing.T) {
 }
 
 func TestStagePhotoBackupFileCreatesPrivateNamedSnapshot(t *testing.T) {
+	isolate_data_dir(t)
 	path := filepath.Join(t.TempDir(), "holiday.jpg")
 	if err := os.WriteFile(path, []byte("original"), 0o600); err != nil {
 		t.Fatal(err)
@@ -120,6 +124,7 @@ func TestStagePhotoBackupFileCreatesPrivateNamedSnapshot(t *testing.T) {
 }
 
 func TestStagePhotoBackupFileRejectsOversizedSparseResource(t *testing.T) {
+	isolate_data_dir(t)
 	path := filepath.Join(t.TempDir(), "oversized.mov")
 	file, err := os.Create(path)
 	if err != nil {
@@ -143,6 +148,7 @@ func TestStagePhotoBackupFileRejectsOversizedSparseResource(t *testing.T) {
 }
 
 func TestPhotoBackupPolicyFailsClosedAndExpires(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 	if err := app.photoBackupPolicyAllows(photobackup.Settings{}); err != nil {
 		t.Fatalf("unrestricted policy: %v", err)
@@ -166,6 +172,7 @@ func TestPhotoBackupPolicyFailsClosedAndExpires(t *testing.T) {
 }
 
 func TestPhotoBackupStateUsesStableWirePhases(t *testing.T) {
+	isolate_data_dir(t)
 	settings := photobackup.Settings{Enabled: true, Photos: true, DestinationParentID: "d:photos"}
 	sources := []photobackup.Source{{ID: "camera", Kind: "library", Root: "Camera", Enabled: true}}
 	state := photoBackupState(settings, sources, photobackup.Status{Pending: 2}, false, false)
@@ -183,6 +190,7 @@ func TestPhotoBackupStateUsesStableWirePhases(t *testing.T) {
 }
 
 func TestResolvePhotoBackupResourceRejectsUnknownAndUntrustedPaths(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{photoBackupWaiters: make(map[string]chan photoBackupMaterialization)}
 	outside := filepath.Join(t.TempDir(), "photo.jpg")
 	if err := os.WriteFile(outside, []byte("photo"), 0o600); err != nil {
@@ -206,6 +214,7 @@ func TestResolvePhotoBackupResourceRejectsUnknownAndUntrustedPaths(t *testing.T)
 }
 
 func TestDesktopDiscoveryRetainsCursorReconcilesAndRestarts(t *testing.T) {
+	isolate_data_dir(t)
 	ctx := context.Background()
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "backup.db"))
 	if err != nil {
@@ -281,6 +290,7 @@ func TestDesktopDiscoveryRetainsCursorReconcilesAndRestarts(t *testing.T) {
 }
 
 func TestPhotoBackupRunLogsUnavailableStatusWithoutZeroCounts(t *testing.T) {
+	isolate_data_dir(t)
 	for _, canceled := range []bool{false, true} {
 		t.Run(fmt.Sprintf("canceled=%t", canceled), func(t *testing.T) {
 			db, err := sql.Open("sqlite", ":memory:")

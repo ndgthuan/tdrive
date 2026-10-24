@@ -56,6 +56,7 @@ func putEmpty(t *testing.T, handler http.Handler, target string) int {
 // macOS routinely does exactly this before writing real content) but not yet
 // committed to the coordinator.
 func TestServePUTDefersEmptyCreateOfNewPath(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	pendingCreates := newTestPendingCreateStore(t, time.Minute, time.Now)
 	handler := newWritableTestHandlerWithPendingCreates(t, writer, pendingCreates)
@@ -74,6 +75,7 @@ func TestServePUTDefersEmptyCreateOfNewPath(t *testing.T) {
 // reproduced against a real macOS mount -- only the real content is ever
 // committed. The empty placeholder never becomes visible at all.
 func TestServePUTRealContentSupersedesDeferredEmptyCreate(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	pendingCreates := newTestPendingCreateStore(t, time.Minute, time.Now)
 	handler := newWritableTestHandlerWithPendingCreates(t, writer, pendingCreates)
@@ -108,6 +110,7 @@ func TestServePUTRealContentSupersedesDeferredEmptyCreate(t *testing.T) {
 // genuinely abandoned macOS placeholder): once the grace period elapses
 // with nothing superseding it, the empty file commits for real.
 func TestServePUTCommitsDeferredEmptyCreateWhenNothingFollows(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	now := time.Now()
 	clock := func() time.Time { return now }
@@ -138,6 +141,7 @@ func TestServePUTCommitsDeferredEmptyCreateWhenNothingFollows(t *testing.T) {
 // exists is an ordinary truncating overwrite and must proceed immediately,
 // exactly as it always has.
 func TestServePUTDoesNotDeferEmptyOverwriteOfExistingFile(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: false}}
 	pendingCreates := newTestPendingCreateStore(t, time.Minute, time.Now)
 	fs := testFSWithSeeds(t, []byte("original"), "existing.txt")
@@ -173,6 +177,7 @@ func TestServePUTDoesNotDeferEmptyOverwriteOfExistingFile(t *testing.T) {
 // had no direct signal about), the deferred commit must re-check and skip
 // rather than stomp whatever is there with empty content.
 func TestServePUTDeferredEmptyCreateSkipsIfSupersededByOutOfBandCreate(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{putResult: MutationResult{Created: true}}
 	now := time.Now()
 	clock := func() time.Time { return now }
@@ -215,6 +220,7 @@ func TestServePUTDeferredEmptyCreateSkipsIfSupersededByOutOfBandCreate(t *testin
 // same path cancels a still-pending empty create so it cannot resurrect the
 // file the client just explicitly removed.
 func TestServePUTDeleteSupersedesDeferredEmptyCreate(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	pendingCreates := newTestPendingCreateStore(t, time.Minute, time.Now)
 	handler := newWritableTestHandlerWithPendingCreates(t, writer, pendingCreates)

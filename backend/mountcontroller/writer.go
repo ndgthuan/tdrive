@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"strconv"
 
 	"TDrive/backend"
 	"TDrive/backend/core"
+	"TDrive/backend/datadir"
 	"TDrive/backend/mountadapter"
 	"TDrive/backend/mountdav"
 	"TDrive/backend/mountfs"
@@ -79,7 +79,7 @@ func (builder engineWriterBuilder) Build(ctx context.Context, drive Drive, files
 	if err != nil {
 		return nil, fmt.Errorf("%w: writable Telegram adapter is unavailable", ErrInvalidConfiguration)
 	}
-	cacheRoot, err := os.UserCacheDir()
+	cacheRoot, err := datadir.UserCacheBase()
 	if err != nil {
 		return nil, fmt.Errorf("%w: writable cache directory is unavailable", ErrInvalidConfiguration)
 	}

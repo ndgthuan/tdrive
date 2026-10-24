@@ -14,6 +14,7 @@ import (
 )
 
 func TestVaultLockSerializesKeyClearWithRacingMountStart(t *testing.T) {
+	isolate_data_dir(t)
 	prepareDaemonLifecycleTest(t)
 	const (
 		personalDriveID int64 = 8_300_001
@@ -61,6 +62,7 @@ func TestVaultLockSerializesKeyClearWithRacingMountStart(t *testing.T) {
 }
 
 func TestAuthLogoutMakesMountLifecycleTerminal(t *testing.T) {
+	isolate_data_dir(t)
 	prepareDaemonLifecycleTest(t)
 	const (
 		personalDriveID int64 = 8_400_001
@@ -108,6 +110,7 @@ func TestAuthLogoutMakesMountLifecycleTerminal(t *testing.T) {
 }
 
 func TestDaemonMountCloseMakesLifecycleTerminal(t *testing.T) {
+	isolate_data_dir(t)
 	prepareDaemonLifecycleTest(t)
 	const (
 		personalDriveID int64 = 8_500_001
@@ -146,6 +149,7 @@ func TestDaemonMountCloseMakesLifecycleTerminal(t *testing.T) {
 }
 
 func TestVaultUnlockHonorsLifecycleGateAndCanceledContext(t *testing.T) {
+	isolate_data_dir(t)
 	prepareDaemonLifecycleTest(t)
 	engine := newDaemonMountEngine(t, 8_550_001, 8_550_002)
 	server := &Server{engine: engine, mountController: newBarrierDaemonMountController()}
@@ -165,6 +169,7 @@ func TestVaultUnlockHonorsLifecycleGateAndCanceledContext(t *testing.T) {
 }
 
 func TestMountStartAndVaultUnlockRejectAlreadyCanceledContext(t *testing.T) {
+	isolate_data_dir(t)
 	server := &Server{}
 	for iteration := 0; iteration < 100; iteration++ {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -183,6 +188,7 @@ func TestMountStartAndVaultUnlockRejectAlreadyCanceledContext(t *testing.T) {
 }
 
 func TestVaultLockAndLogoutRetainKeyWhenEjectFails(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name string
 		run  func(*Server) error

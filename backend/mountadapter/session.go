@@ -2,6 +2,8 @@ package mountadapter
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -243,17 +245,43 @@ func (s *Session) Delete(ctx context.Context, request mountdav.DeleteRequest) (m
 	if err := evaluateMutationConditions(request.Conditions, resource, map[string]conditionResource{request.Path: resource}); err != nil {
 		return mountdav.MutationResult{}, err
 	}
+	// A permanent delete is the app's two steps, trash then purge. The purge
+	// only plans trashed objects, and it sends no hard-delete record, so once
+	// its Telegram messages are gone the chat keeps no trace of the object. If
+	// the purge fails, the object stays in the trash, where it can still be
+	// restored or purged from the app.
+	trashed, err := s.engine.Delete(ctx, mountwrite.DeleteRequest{
+		OperationID:      mount_trash_operation_id(request.OperationID),
+		DriveID:          s.driveID,
+		ObjectID:         target.ObjectID,
+		ParentID:         target.ParentID,
+		ExpectedRevision: target.Revision,
+		TrashRetention:   defaultTrashRetention,
+	})
+	if err != nil {
+		return mountdav.MutationResult{}, mapWriteError(err)
+	}
+	if trashed.Revision == 0 {
+		return mountdav.MutationResult{}, mountdav.ErrWriteUnavailable
+	}
 	result, err := s.engine.HardDelete(ctx, mountwrite.HardDeleteRequest{
 		OperationID:      request.OperationID,
 		DriveID:          s.driveID,
 		ObjectID:         target.ObjectID,
 		ParentID:         target.ParentID,
-		ExpectedRevision: target.Revision,
+		ExpectedRevision: trashed.Revision,
 	})
 	if err != nil {
 		return mountdav.MutationResult{}, mapWriteError(err)
 	}
 	return davResult(ctx, s.driveID, result)
+}
+
+// mount_trash_operation_id derives the trash step's operation id from the
+// delete's id, so a retried delete reaches the same trash operation.
+func mount_trash_operation_id(operation_id string) string {
+	digest := sha256.Sum256([]byte("tdrive.mount.purge-trash.v1\x00" + operation_id))
+	return "mount-trash-" + hex.EncodeToString(digest[:16])
 }
 
 func (s *Session) Status() mountwrite.Status {

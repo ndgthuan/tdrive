@@ -13,6 +13,7 @@ import (
 )
 
 func TestAppMountFailsClosedWhenPersonalPolicyCannotBeProven(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.engine.SetActiveChannelID(testEncryptionChannelID)
@@ -38,6 +39,7 @@ func TestAppMountFailsClosedWhenPersonalPolicyCannotBeProven(t *testing.T) {
 }
 
 func TestAppMountUsesEncryptedPolicyRestoredByAuthoritativeRefresh(t *testing.T) {
+	isolate_data_dir(t)
 	for _, unlocked := range []bool{false, true} {
 		t.Run(map[bool]string{false: "locked", true: "unlocked"}[unlocked], func(t *testing.T) {
 			app, db := setupEncryptionApp(t)
@@ -66,6 +68,7 @@ func TestAppMountUsesEncryptedPolicyRestoredByAuthoritativeRefresh(t *testing.T)
 }
 
 func TestAppMountAllowsPlaintextOnlyAfterAuthoritativeRefresh(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.engine.SetActiveChannelID(testEncryptionChannelID)

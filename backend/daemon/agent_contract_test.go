@@ -16,6 +16,7 @@ import (
 )
 
 func TestPingDoesNotCheckEncryptionPolicy(t *testing.T) {
+	isolate_data_dir(t)
 	configureDaemonPolicyTestHome(t)
 	const activeID int64 = 8_800_001
 	const otherID int64 = 8_800_002
@@ -39,6 +40,7 @@ func TestPingDoesNotCheckEncryptionPolicy(t *testing.T) {
 }
 
 func TestExplicitDriveListDoesNotMutateActiveDrive(t *testing.T) {
+	isolate_data_dir(t)
 	configureDaemonPolicyTestHome(t)
 	const activeID int64 = 8_900_001
 	const selectedID int64 = 8_900_002
@@ -80,6 +82,7 @@ func TestExplicitDriveListDoesNotMutateActiveDrive(t *testing.T) {
 }
 
 func TestMountPasswordErrorHasStableCode(t *testing.T) {
+	isolate_data_dir(t)
 	frame := ErrorResponse("request", fmt.Errorf("mount: %w", mountcontroller.ErrEncryptionPasswordRequired))
 	if frame.ErrorCode != "encryption_password_required" {
 		t.Fatalf("error code = %q", frame.ErrorCode)
@@ -91,6 +94,7 @@ func TestMountPasswordErrorHasStableCode(t *testing.T) {
 }
 
 func TestExplicitDriveRejectsRelativePaths(t *testing.T) {
+	isolate_data_dir(t)
 	configureDaemonPolicyTestHome(t)
 	const activeID int64 = 9_000_001
 	const selectedID int64 = 9_000_002
@@ -128,6 +132,7 @@ func TestExplicitDriveRejectsRelativePaths(t *testing.T) {
 }
 
 func TestCDRejectsDriveIDInsteadOfIgnoringIt(t *testing.T) {
+	isolate_data_dir(t)
 	req, err := NewRequest(CommandCD, PathRequest{Path: "/", DriveID: 123})
 	if err != nil {
 		t.Fatal(err)
@@ -139,6 +144,7 @@ func TestCDRejectsDriveIDInsteadOfIgnoringIt(t *testing.T) {
 }
 
 func TestClientTimeoutCoversCallAndStream(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct {
 		name string
 		run  func(*Client) error

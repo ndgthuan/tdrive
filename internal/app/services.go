@@ -123,6 +123,9 @@ func (a *App) initServices(version string) {
 	// The updater closes native players before it replaces the bundle they run
 	// from, which is the one edge between two domain services.
 	a.updates = newUpdateService(a, a, a.media, version)
+	// The assistant reads drives through the engine lazily, so it can be built
+	// before startup like the other domain services.
+	a.assistant = new_ai_service(a)
 }
 
 // quit satisfies appShell. It tolerates a missing application handle so a
@@ -156,5 +159,6 @@ func (a *App) services() []application.Service {
 		application.NewService(a.drives),
 		application.NewService(a.media),
 		application.NewService(a.updates),
+		application.NewService(a.assistant),
 	}
 }

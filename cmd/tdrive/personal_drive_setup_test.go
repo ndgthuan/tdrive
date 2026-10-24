@@ -36,6 +36,7 @@ func personalDriveFixture() daemon.PersonalDriveSetup {
 }
 
 func TestChoosePersonalDriveSelectsByDisplayedNumber(t *testing.T) {
+	isolate_data_dir(t)
 	client := &fakePersonalDriveSetupClient{}
 	var output bytes.Buffer
 	result, err := choosePersonalDrive(client, personalDriveFixture(), strings.NewReader("2\n"), &output)
@@ -54,6 +55,7 @@ func TestChoosePersonalDriveSelectsByDisplayedNumber(t *testing.T) {
 }
 
 func TestChoosePersonalDriveNeverAcceptsRawChannelID(t *testing.T) {
+	isolate_data_dir(t)
 	client := &fakePersonalDriveSetupClient{}
 	_, err := choosePersonalDrive(client, personalDriveFixture(), strings.NewReader("8300\n"), io.Discard)
 	if !errors.Is(err, io.EOF) {
@@ -65,6 +67,7 @@ func TestChoosePersonalDriveNeverAcceptsRawChannelID(t *testing.T) {
 }
 
 func TestChoosePersonalDriveRequiresCreateConfirmation(t *testing.T) {
+	isolate_data_dir(t)
 	t.Run("confirmed", func(t *testing.T) {
 		client := &fakePersonalDriveSetupClient{}
 		result, err := choosePersonalDrive(client, personalDriveFixture(), strings.NewReader("c\ny\n"), io.Discard)
@@ -89,6 +92,7 @@ func TestChoosePersonalDriveRequiresCreateConfirmation(t *testing.T) {
 }
 
 func TestTerminalSafeTitleStripsControlCharacters(t *testing.T) {
+	isolate_data_dir(t)
 	got := terminalSafeTitle("\x1b[31mEvil\n\tName\x07")
 	if strings.ContainsAny(got, "\x1b\n\t\x07") || got != "[31mEvil Name" {
 		t.Fatalf("terminalSafeTitle = %q", got)

@@ -34,6 +34,7 @@ func (writer *blockedUploadCoordinator) Put(ctx context.Context, request PutRequ
 }
 
 func TestUploadOwnerCanRefreshWithoutAllowingCompetingWrites(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct {
 		name    string
 		failure error
@@ -140,6 +141,7 @@ func TestUploadOwnerCanRefreshWithoutAllowingCompetingWrites(t *testing.T) {
 }
 
 func TestUnconditionalUploadKeepsTemporaryLockUntilReturn(t *testing.T) {
+	isolate_data_dir(t)
 	for _, cancelled := range []bool{false, true} {
 		t.Run(fmt.Sprintf("cancelled=%v", cancelled), func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
