@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "Znajdź zduplikowane pliki",
   "composer_placeholder": "Zapytaj TDrive…",
   "context_label": "Kontekst",
-  "scope_drive_root": "Użyj całego dysku",
   "scope_remove_folder": "Usuń ten folder z kontekstu",
   "send": "Wyślij",
   "voice_label": "Wprowadzanie głosowe",
@@ -38,5 +37,10 @@
   "error_invalid_key": "Model odrzucił klucz API. Sprawdź klucz w Ustawieniach.",
   "error_rate_limit": "Model jest zajęty lub osiągnął limit. Spróbuj ponownie za chwilę.",
   "error_generic": "Nie udało się dokończyć odpowiedzi.",
-  "retry": "Ponów"
+  "retry": "Ponów",
+  "model_manage": "Zarządzaj modelami…",
+  "scope_menu_label": "Dysk i folder tego czatu",
+  "scope_current_folder": "Bieżący folder",
+  "scope_root_item": "Katalog główny dysku",
+  "scope_drives_heading": "Dyski"
 }

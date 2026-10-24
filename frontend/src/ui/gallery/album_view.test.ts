@@ -4,8 +4,9 @@
 import { describe, expect, it } from 'vitest';
 import type { MediaFolder } from '../../api/gallery';
 import { set_locale } from '../../i18n/i18n';
+import { sidebarState } from '../sidebar/sidebar_store';
 import {
-    ALBUM_LABEL_HEIGHT, drive_root_label, albumCountLabel, albumGridMetrics, albumTile,
+    ALBUM_LABEL_HEIGHT, albumCountLabel, albumGridMetrics, albumTile,
     albumsWorthShowing, buildAlbumTiles,
 } from './album_view';
 
@@ -20,10 +21,20 @@ function folder(overrides: Partial<MediaFolder> = {}): MediaFolder {
 }
 
 describe('album tiles', () => {
-    it('names the drive root the way the trash already does', () => {
+    it('names the personal drive root My Drive', () => {
+        sidebarState.set({ personal: [{ id: CHANNEL, title: 'TDrive', kind: 'personal', isActive: true, inviteLink: '' }], shared: [], pending: [], activeChannelId: CHANNEL, virtualView: null });
         const tile = albumTile(folder({ folderId: '', name: '' }), CHANNEL);
-        expect(tile.name).toBe(drive_root_label());
-        expect(tile.label).toBe(`${drive_root_label()}, 595 photos`);
+        expect(tile.name).toBe('My Drive');
+        expect(tile.label).toBe('My Drive, 595 photos');
+        sidebarState.set({ personal: [], shared: [], pending: [], activeChannelId: null, virtualView: null });
+    });
+
+    it('names a shared drive root after the shared drive', () => {
+        sidebarState.set({ personal: [], shared: [{ id: CHANNEL, title: 'temp', kind: 'shared', isActive: true, inviteLink: '' }], pending: [], activeChannelId: CHANNEL, virtualView: null });
+        const tile = albumTile(folder({ folderId: '', name: '' }), CHANNEL);
+        expect(tile.name).toBe('temp');
+        expect(tile.label).toBe('temp, 595 photos');
+        sidebarState.set({ personal: [], shared: [], pending: [], activeChannelId: null, virtualView: null });
     });
 
     it('groups thousands and never abbreviates them', () => {

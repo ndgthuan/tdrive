@@ -163,7 +163,6 @@
     "failed_detail_canceled": "Загрузка этого файла отменена.",
     "move_title_default": "Переместить элемент",
     "move_subtitle": "Выберите папку назначения",
-    "move_root_name": "Мой диск",
     "move_loading": "Загрузка папок…",
     "move_empty": "Здесь нет папок.",
     "move_cant_move_here": "Сюда переместить нельзя",

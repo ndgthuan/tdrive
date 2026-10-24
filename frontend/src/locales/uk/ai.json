@@ -19,7 +19,6 @@
     "suggest_find_duplicates": "Знайти повторювані файли",
     "composer_placeholder": "Запитайте TDrive…",
     "context_label": "Контекст",
-    "scope_drive_root": "Використовувати весь диск",
     "scope_remove_folder": "Прибрати цю папку з контексту",
     "send": "Надіслати",
     "voice_label": "Голосове введення",
@@ -38,5 +37,10 @@
     "error_invalid_key": "Модель відхилила ключ API. Перевірте ключ у налаштуваннях.",
     "error_rate_limit": "Модель зайнята або досягнуто ліміт запитів. Спробуйте за хвилину.",
     "error_generic": "Не вдалося завершити відповідь.",
-    "retry": "Повторити"
+    "retry": "Повторити",
+    "model_manage": "Керування моделями…",
+    "scope_menu_label": "Диск і папка для цього чату",
+    "scope_current_folder": "Поточна папка",
+    "scope_root_item": "Корінь диска",
+    "scope_drives_heading": "Диски"
 }

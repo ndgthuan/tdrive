@@ -63,8 +63,8 @@ function fallsTomorrow(purgeAfter: number, now: number): boolean {
 }
 
 /** Where the item came from. An empty parent path is the drive's own root. */
-export function originLabel(parentPath: string): string {
-    return parentPath.trim() || t('trash.drive_root');
+export function originLabel(parentPath: string, root_name: string = t('trash.drive_root')): string {
+    return parentPath.trim() || root_name;
 }
 
 /**
@@ -72,8 +72,8 @@ export function originLabel(parentPath: string): string {
  * it was. The countdown is deliberately not part of it -- it is rendered
  * beside this and never allowed to be the text that gets cut.
  */
-export function entryOrigin(entry: TrashEntry): string {
-    const origin = originLabel(entry.parentPath);
+export function entryOrigin(entry: TrashEntry, root_name?: string): string {
+    const origin = originLabel(entry.parentPath, root_name);
     return entry.kind === 'file' && entry.size > 0 ? `${origin} · ${formatBytes(entry.size)}` : origin;
 }
 

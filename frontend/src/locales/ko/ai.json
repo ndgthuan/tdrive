@@ -19,7 +19,6 @@
     "suggest_find_duplicates": "중복 파일 찾기",
     "composer_placeholder": "TDrive에 질문하기…",
     "context_label": "컨텍스트",
-    "scope_drive_root": "전체 드라이브 사용",
     "scope_remove_folder": "컨텍스트에서 이 폴더 제거",
     "send": "보내기",
     "voice_label": "음성 입력",
@@ -38,5 +37,10 @@
     "error_invalid_key": "모델이 API 키를 거부했습니다. 설정에서 키를 확인하세요.",
     "error_rate_limit": "모델이 바쁘거나 요청 한도를 초과했습니다. 잠시 후 다시 시도하세요.",
     "error_generic": "응답을 완료할 수 없습니다.",
-    "retry": "다시 시도"
+    "retry": "다시 시도",
+    "model_manage": "모델 관리…",
+    "scope_menu_label": "이 채팅의 드라이브 및 폴더",
+    "scope_current_folder": "현재 폴더",
+    "scope_root_item": "드라이브 루트",
+    "scope_drives_heading": "드라이브"
 }

@@ -19,7 +19,6 @@
     "suggest_find_duplicates": "Tìm tệp trùng lặp",
     "composer_placeholder": "Hỏi trợ lý TDrive…",
     "context_label": "Ngữ cảnh",
-    "scope_drive_root": "Dùng toàn bộ ổ",
     "scope_remove_folder": "Bỏ thư mục này khỏi ngữ cảnh",
     "send": "Gửi",
     "voice_label": "Ghi âm",
@@ -38,5 +37,10 @@
     "error_invalid_key": "Mô hình từ chối khóa API. Hãy kiểm tra khóa trong Cài đặt.",
     "error_rate_limit": "Mô hình đang bận hoặc vượt giới hạn. Thử lại sau ít phút.",
     "error_generic": "Không thể hoàn tất câu trả lời.",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "model_manage": "Quản lý mô hình…",
+    "scope_menu_label": "Ổ đĩa và thư mục cho cuộc trò chuyện này",
+    "scope_current_folder": "Thư mục hiện tại",
+    "scope_root_item": "Gốc ổ đĩa",
+    "scope_drives_heading": "Ổ đĩa"
 }

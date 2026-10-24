@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"TDrive/backend/ai"
 	"TDrive/backend/projection"
@@ -33,6 +34,19 @@ func (d *aiDrive) CanOrganize(channel_id int64) error {
 		}
 	}
 	return errors.New("ai: this is a channel source, which is read-only; choose a drive to organize")
+}
+
+// DriveName is the root name the user sees: My Drive for the personal drive, the
+// title for a shared one. It is empty when the channel row cannot be read.
+func (d *aiDrive) DriveName(channel_id int64) string {
+	channel, err := projection.GetChannel(d.reads.DB, channel_id)
+	if err != nil {
+		return ""
+	}
+	if channel.Kind == projection.KindPersonal {
+		return "My Drive"
+	}
+	return strings.TrimSpace(channel.Title)
 }
 
 // ListFolder returns the direct children of folder_id from the projection.

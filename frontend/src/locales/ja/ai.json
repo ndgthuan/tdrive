@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "重複したファイルを探す",
   "composer_placeholder": "TDrive に質問…",
   "context_label": "コンテキスト",
-  "scope_drive_root": "ドライブ全体を使用",
   "scope_remove_folder": "このフォルダをコンテキストから削除",
   "send": "送信",
   "voice_label": "音声入力",
@@ -38,5 +37,10 @@
   "error_invalid_key": "モデルが API キーを拒否しました。設定でキーを確認してください。",
   "error_rate_limit": "モデルが混み合っているか、利用制限に達しています。しばらくしてから再試行してください。",
   "error_generic": "応答を完了できませんでした。",
-  "retry": "再試行"
+  "retry": "再試行",
+  "model_manage": "モデルを管理…",
+  "scope_menu_label": "このチャットの対象ドライブとフォルダ",
+  "scope_current_folder": "現在のフォルダ",
+  "scope_root_item": "ドライブのルート",
+  "scope_drives_heading": "ドライブ"
 }

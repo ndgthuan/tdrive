@@ -5,12 +5,11 @@ import * as api from './ai_api';
 import type { Plan, ProgressPayload } from './ai_api';
 import { classify_ai_error, subscribe_ai_event } from './ai_api';
 import { build_scope } from './ai_scope';
+import { selected_model_id } from './ai_models_store';
 import {
     busy,
-    include_folder,
     next_item_id,
     organize_preview,
-    selected_model_id,
     transcript,
     type PlanCard,
     type TranscriptItem,
@@ -48,7 +47,7 @@ export async function start_organize(instruction: string): Promise<void> {
     const text = instruction.trim();
     if (!text) return;
     const card_id = next_item_id('plan');
-    const scope = build_scope(get(include_folder));
+    const scope = build_scope();
     push({ kind: 'text', id: next_item_id('user'), role: 'user', text, created_at: Date.now() });
     push({
         kind: 'plan',

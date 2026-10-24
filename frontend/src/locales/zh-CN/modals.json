@@ -145,7 +145,6 @@
   "failed_detail_canceled": "此文件已被取消。",
   "move_title_default": "移动项目",
   "move_subtitle": "选择目标文件夹",
-  "move_root_name": "我的云盘",
   "move_loading": "正在加载文件夹…",
   "move_empty": "此处没有文件夹。",
   "move_cant_move_here": "无法移动到此处",

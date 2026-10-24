@@ -154,7 +154,6 @@
   "failed_detail_canceled": "Este arquivo foi cancelado.",
   "move_title_default": "Mover item",
   "move_subtitle": "Selecione a pasta de destino",
-  "move_root_name": "Meu Drive",
   "move_loading": "Carregando pastas…",
   "move_empty": "Nenhuma pasta aqui.",
   "move_cant_move_here": "Não é possível mover para cá",

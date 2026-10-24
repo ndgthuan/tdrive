@@ -5,6 +5,7 @@
     import ModalShell from './modal_shell.svelte';
     import { isMobilePlatform } from '../../api';
     import { sidebarState } from '../sidebar/sidebar_store';
+    import { active_drive_of, drive_root_name } from '../chrome/drive_root_name';
     import { pushSheet } from './sheet_stack';
     import { moveBrowse, moveModal, type MoveFolderEntry } from './move_modal_store';
     import { t_store } from '../../i18n/i18n';
@@ -23,11 +24,7 @@
     const browse = moveBrowse;
 
     // The root is the active drive, named: a shared drive is not "My Drive".
-    const rootName = $derived.by(() => {
-        const { personal, shared, activeChannelId } = $sidebarState;
-        const active = [...personal, ...shared].find((drive) => drive.id === activeChannelId);
-        return active?.title?.trim() || $t_store('modals.move_root_name');
-    });
+    const rootName = $derived(drive_root_name(active_drive_of($sidebarState), $t_store));
 
     const currentId = $derived($browse.path[$browse.path.length - 1]?.id ?? '');
     // The phone sheet shows the destination in its breadcrumb, so its button

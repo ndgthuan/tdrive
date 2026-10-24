@@ -154,7 +154,6 @@
   "failed_detail_canceled": "Questo file è stato annullato.",
   "move_title_default": "Sposta elemento",
   "move_subtitle": "Seleziona la cartella di destinazione",
-  "move_root_name": "Il mio Drive",
   "move_loading": "Caricamento cartelle…",
   "move_empty": "Nessuna cartella qui.",
   "move_cant_move_here": "Impossibile spostare qui",

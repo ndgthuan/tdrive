@@ -7,14 +7,7 @@ import { fileThumbnailIdentity } from '../../modules/file_list';
 import type { FileThumbnailIdentity } from '../file_list/types';
 import type { RowMetrics } from '../file_list/row_window';
 import { format_number, t } from '../../i18n/i18n';
-
-/**
- * The drive's own root has no name of its own. The trash already calls this
- * place "Drive root"; a second wording for it would read as a second place.
- */
-export function drive_root_label(): string {
-    return t('photos.drive_root');
-}
+import { drive_root_name_for_id } from '../chrome/drive_root_name';
 
 /**
  * Tile geometry. A cover is square because a 4:3 crop of a portrait photo
@@ -57,8 +50,12 @@ export function albumCountLabel(count: number): string {
     return t('photos.album_count', { count: shown, number: format_number(shown) });
 }
 
-export function albumTileName(folder: Pick<MediaFolder, 'folderId' | 'name'>): string {
-    return folder.name || (folder.folderId ? t('photos.untitled_folder') : drive_root_label());
+/**
+ * The drive's own root is named after the drive it belongs to: My Drive, or a
+ * shared drive's title. A plain "Drive root" would hide which drive is open.
+ */
+export function albumTileName(folder: Pick<MediaFolder, 'folderId' | 'name'>, channelId: number): string {
+    return folder.name || (folder.folderId ? t('photos.untitled_folder') : drive_root_name_for_id(channelId));
 }
 
 /**
@@ -67,7 +64,7 @@ export function albumTileName(folder: Pick<MediaFolder, 'folderId' | 'name'>): s
  * every other thumbnail on screen instead of decoding a second way.
  */
 export function albumTile(folder: MediaFolder, channelId: number): AlbumTile {
-    const name = albumTileName(folder);
+    const name = albumTileName(folder, channelId);
     const countLabel = albumCountLabel(folder.itemCount);
     return {
         folderId: folder.folderId,

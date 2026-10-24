@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "Yinelenen dosyaları bul",
   "composer_placeholder": "TDrive'a sorun…",
   "context_label": "Bağlam",
-  "scope_drive_root": "Tüm sürücüyü kullan",
   "scope_remove_folder": "Bu klasörü bağlamdan çıkar",
   "send": "Gönder",
   "voice_label": "Sesle giriş",
@@ -38,5 +37,10 @@
   "error_invalid_key": "Model API anahtarını reddetti. Ayarlar'daki anahtarı kontrol edin.",
   "error_rate_limit": "Model meşgul ya da istek sınırına ulaşıldı. Biraz sonra yeniden deneyin.",
   "error_generic": "Yanıt tamamlanamadı.",
-  "retry": "Yeniden dene"
+  "retry": "Yeniden dene",
+  "model_manage": "Modelleri yönet…",
+  "scope_menu_label": "Bu sohbetin sürücüsü ve klasörü",
+  "scope_current_folder": "Geçerli klasör",
+  "scope_root_item": "Sürücünün kökü",
+  "scope_drives_heading": "Sürücüler"
 }

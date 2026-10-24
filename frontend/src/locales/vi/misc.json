@@ -7,7 +7,6 @@
     "check_again": "Kiểm tra lại",
     "check_now": "Kiểm tra ngay",
     "check_prompt": "Kiểm tra cập nhật để giữ TDrive luôn mới.",
-    "checked_at": "Đã kiểm tra lúc {time}",
     "checking": "Đang kiểm tra cập nhật…",
     "checking_short": "Đang kiểm tra…",
     "confirm_restart": "Xác nhận khởi động lại",
@@ -21,7 +20,6 @@
     "macos_intel": "macOS · Intel",
     "managed_by_store": "Cập nhật do Microsoft Store quản lý.",
     "newer_available": "Đã có phiên bản mới hơn.",
-    "not_checked": "Chưa kiểm tra",
     "open_store": "Mở Microsoft Store",
     "ready_detail": "TDrive {version} sẽ hoàn tất cập nhật sau khi khởi động lại.",
     "ready_title": "Sẵn sàng cài đặt",
@@ -38,6 +36,5 @@
     "undo_skip": "Hoàn tác bỏ qua",
     "up_to_date": "TDrive đã là phiên bản mới nhất.",
     "version": "Phiên bản {version}",
-    "version_unknown": "Không rõ phiên bản",
     "whats_new": "Có gì mới"
 }

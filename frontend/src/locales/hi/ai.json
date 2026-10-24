@@ -19,7 +19,6 @@
   "suggest_find_duplicates": "डुप्लिकेट फ़ाइलें खोजें",
   "composer_placeholder": "TDrive से पूछें…",
   "context_label": "संदर्भ",
-  "scope_drive_root": "पूरी ड्राइव का उपयोग करें",
   "scope_remove_folder": "इस फ़ोल्डर को संदर्भ से हटाएं",
   "send": "भेजें",
   "voice_label": "वॉइस इनपुट",
@@ -38,5 +37,10 @@
   "error_invalid_key": "मॉडल ने उसकी API कुंजी अस्वीकार कर दी। सेटिंग्स में कुंजी जांचें।",
   "error_rate_limit": "मॉडल व्यस्त है या दर-सीमित है। थोड़ी देर बाद फिर से कोशिश करें।",
   "error_generic": "जवाब पूरा नहीं हो सका।",
-  "retry": "फिर से कोशिश करें"
+  "retry": "फिर से कोशिश करें",
+  "model_manage": "मॉडल प्रबंधित करें…",
+  "scope_menu_label": "इस चैट के लिए ड्राइव और फ़ोल्डर",
+  "scope_current_folder": "वर्तमान फ़ोल्डर",
+  "scope_root_item": "ड्राइव का मूल",
+  "scope_drives_heading": "ड्राइव"
 }

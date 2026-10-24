@@ -7,7 +7,6 @@
   "check_again": "Periksa Lagi",
   "check_now": "Periksa Sekarang",
   "check_prompt": "Periksa pembaruan agar TDrive tetap terbaru.",
-  "checked_at": "Diperiksa pada {time}",
   "checking": "Memeriksa pembaruan…",
   "checking_short": "Memeriksa…",
   "confirm_restart": "Konfirmasi mulai ulang",
@@ -21,7 +20,6 @@
   "macos_intel": "macOS · Intel",
   "managed_by_store": "Pembaruan dikelola oleh Microsoft Store.",
   "newer_available": "Versi yang lebih baru tersedia.",
-  "not_checked": "Belum diperiksa",
   "open_store": "Buka Microsoft Store",
   "ready_detail": "TDrive {version} akan selesai diperbarui setelah dimulai ulang.",
   "ready_title": "Siap dipasang",
@@ -38,6 +36,5 @@
   "undo_skip": "Batalkan lewati",
   "up_to_date": "TDrive sudah yang terbaru.",
   "version": "Versi {version}",
-  "version_unknown": "Versi tidak diketahui",
   "whats_new": "Yang baru"
 }

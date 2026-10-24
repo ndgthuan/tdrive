@@ -136,7 +136,6 @@
   "failed_detail_canceled": "このファイルはキャンセルされました。",
   "move_title_default": "項目を移動",
   "move_subtitle": "移動先のフォルダを選択",
-  "move_root_name": "マイドライブ",
   "move_loading": "フォルダを読み込み中…",
   "move_empty": "ここにフォルダはありません。",
   "move_cant_move_here": "ここには移動できません",

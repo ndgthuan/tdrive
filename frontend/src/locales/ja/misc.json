@@ -7,7 +7,6 @@
   "check_again": "再確認",
   "check_now": "今すぐ確認",
   "check_prompt": "TDrive を最新の状態に保つため、アップデートを確認してください。",
-  "checked_at": "確認日時: {time}",
   "checking": "アップデートを確認中…",
   "checking_short": "確認中…",
   "confirm_restart": "再起動を確認",
@@ -21,7 +20,6 @@
   "macos_intel": "macOS · Intel",
   "managed_by_store": "アップデートは Microsoft Store で管理されています。",
   "newer_available": "新しいバージョンがあります。",
-  "not_checked": "まだ確認していません",
   "open_store": "Microsoft Store を開く",
   "ready_detail": "TDrive {version} は再起動後にアップデートが完了します。",
   "ready_title": "インストールの準備ができました",
@@ -38,6 +36,5 @@
   "undo_skip": "スキップを取り消す",
   "up_to_date": "TDrive は最新です。",
   "version": "バージョン {version}",
-  "version_unknown": "バージョン不明",
   "whats_new": "新機能"
 }

@@ -7,7 +7,6 @@
   "check_again": "Yeniden denetle",
   "check_now": "Şimdi denetle",
   "check_prompt": "TDrive'ı güncel tutmak için güncellemeleri denetleyin.",
-  "checked_at": "{time} saatinde denetlendi",
   "checking": "Güncellemeler denetleniyor…",
   "checking_short": "Denetleniyor…",
   "confirm_restart": "Yeniden başlatmayı onayla",
@@ -21,7 +20,6 @@
   "macos_intel": "macOS · Intel",
   "managed_by_store": "Güncellemeler Microsoft Store tarafından yönetilir.",
   "newer_available": "Daha yeni bir sürüm var.",
-  "not_checked": "Henüz denetlenmedi",
   "open_store": "Microsoft Store'u aç",
   "ready_detail": "TDrive {version}, yeniden başlatıldıktan sonra güncellemeyi tamamlayacak.",
   "ready_title": "Kurulmaya hazır",
@@ -38,6 +36,5 @@
   "undo_skip": "Atlamayı geri al",
   "up_to_date": "TDrive güncel.",
   "version": "Sürüm {version}",
-  "version_unknown": "Sürüm bilinmiyor",
   "whats_new": "Yenilikler"
 }

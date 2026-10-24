@@ -19,7 +19,6 @@
   "locked_pill": "Terkunci",
   "loading_albums": "Memuat album",
   "albums_list_label": "Album",
-  "drive_root": "Akar drive",
   "untitled_folder": "Folder tanpa judul",
   "album_count_other": "{number} foto",
   "album_tile_label": "{name}, {count_label}",
@@ -27,7 +26,6 @@
   "photos_view_label": "Tampilan foto",
   "albums_tab": "Album",
   "all_photos": "Semua foto",
-
   "backup_card_label": "Cadangan foto dan video",
   "switch_title": "Cadangkan foto & video",
   "in_this_drive": "Di drive ini",
@@ -49,7 +47,6 @@
   "wifi_only_note": "Tidak pernah menggunakan data seluler.",
   "try_again": "Coba lagi",
   "loading_settings": "Memuat setelan cadangan…",
-
   "action_back_up_now": "Cadangkan sekarang",
   "action_unlock_back_up": "Buka kunci dan cadangkan",
   "action_resume": "Lanjutkan",
@@ -87,7 +84,6 @@
   "choose_body": "Tambahkan folder atau pustaka foto di bawah untuk memulai.",
   "ready_title": "Siap",
   "nothing_backed_up": "Belum ada yang dicadangkan.",
-
   "activity_scanning": "Memindai foto dan video",
   "activity_backup": "Cadangan foto",
   "activity_preparing": "Menyiapkan cadangan foto",
@@ -95,7 +91,6 @@
   "result_attention": "Cadangan foto perlu perhatian · {failed} gagal",
   "result_paused": "Cadangan foto dijeda",
   "result_completed_other": "Cadangan foto selesai · {count} item",
-
   "notice_title": "Mencadangkan foto",
   "notice_text": "Menyelesaikan item saat ini",
   "attention_title": "Cadangan foto perlu perhatian",
@@ -104,7 +99,6 @@
   "background_cleanup_failed": "Pembersihan cadangan latar belakang tidak dapat diselesaikan. Akan dicoba lagi saat status cadangan berubah.",
   "background_unavailable": "Cadangan latar belakang tidak tersedia di build ini. Biarkan TDrive terbuka untuk melanjutkan.",
   "background_start_failed": "Cadangan latar belakang tidak dapat dimulai. Biarkan TDrive terbuka untuk melanjutkan.",
-
   "unlock_message": "Buka kunci enkripsi untuk melanjutkan cadangan foto.",
   "backup_unavailable": "Cadangan foto tidak tersedia. Coba lagi.",
   "wifi_check_failed": "Tidak dapat memeriksa Wi-Fi. Cadangan akan mencoba memeriksa koneksi lagi.",
@@ -121,7 +115,6 @@
   "photo_not_read": "Foto tidak dapat dibaca.",
   "media_not_read": "Media tidak dapat dibaca.",
   "cleanup_failed": "Pembersihan media sementara gagal. Buka kembali TDrive untuk mencoba pembersihan lagi.",
-
   "library_unavailable": "Akses ke pustaka foto tidak tersedia.",
   "picker_unavailable": "Build ini tidak dapat membuka pemilih folder.",
   "media_unavailable": "Build ini tidak dapat membaca media yang dipilih.",

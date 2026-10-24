@@ -7,7 +7,6 @@
   "check_again": "Sprawdź ponownie",
   "check_now": "Sprawdź teraz",
   "check_prompt": "Sprawdź aktualizacje, aby utrzymać TDrive w najnowszej wersji.",
-  "checked_at": "Sprawdzono o {time}",
   "checking": "Sprawdzanie aktualizacji…",
   "checking_short": "Sprawdzanie…",
   "confirm_restart": "Potwierdź ponowne uruchomienie",
@@ -21,7 +20,6 @@
   "macos_intel": "macOS · Intel",
   "managed_by_store": "Aktualizacjami zarządza Microsoft Store.",
   "newer_available": "Dostępna jest nowsza wersja.",
-  "not_checked": "Jeszcze nie sprawdzono",
   "open_store": "Otwórz Microsoft Store",
   "ready_detail": "TDrive {version} zakończy aktualizację po ponownym uruchomieniu.",
   "ready_title": "Gotowe do instalacji",
@@ -38,6 +36,5 @@
   "undo_skip": "Cofnij pominięcie",
   "up_to_date": "TDrive jest aktualny.",
   "version": "Wersja {version}",
-  "version_unknown": "Nieznana wersja",
   "whats_new": "Co nowego"
 }

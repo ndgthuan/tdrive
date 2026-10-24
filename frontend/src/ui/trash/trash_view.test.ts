@@ -64,6 +64,13 @@ describe('originLabel', () => {
     });
 });
 
+describe('originLabel for a shared drive', () => {
+    it('names the shared drive root by the drive', () => {
+        expect(originLabel('', 'temp')).toBe('temp');
+        expect(originLabel('Trips', 'temp')).toBe('Trips');
+    });
+});
+
 describe('entryOrigin', () => {
     it('says where it was and how big it was', () => {
         expect(entryOrigin(entry({ parentPath: 'Trips', size: 2048 }))).toBe('Trips · 2 KB');

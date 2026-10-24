@@ -145,7 +145,6 @@
     "failed_detail_canceled": "Diese Datei wurde abgebrochen.",
     "move_title_default": "Element verschieben",
     "move_subtitle": "Zielordner auswählen",
-    "move_root_name": "Mein Laufwerk",
     "move_loading": "Ordner werden geladen…",
     "move_empty": "Hier gibt es keine Ordner.",
     "move_cant_move_here": "Hier kann nicht verschoben werden",

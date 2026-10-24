@@ -37,14 +37,6 @@ if (typeof window !== 'undefined') {
     });
 }
 
-// Nonce bumped to ask the account menu to open straight to the update view
-// (the macOS "Check for Updates…" item, the login-screen link).
-export const updatesPanelRequest = writable(0);
-
-export function requestUpdatesPanel(): void {
-    updatesPanelRequest.update((n) => n + 1);
-}
-
 export const updateBadge = derived(updateState, menuBadge);
 
 export function setAutoDownload(enabled: boolean): void {

@@ -163,7 +163,6 @@
   "failed_detail_canceled": "To przesyłanie zostało anulowane.",
   "move_title_default": "Przenieś element",
   "move_subtitle": "Wybierz folder docelowy",
-  "move_root_name": "Mój dysk",
   "move_loading": "Wczytywanie folderów…",
   "move_empty": "Brak folderów.",
   "move_cant_move_here": "Nie można przenieść tutaj",

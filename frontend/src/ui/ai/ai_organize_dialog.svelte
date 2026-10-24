@@ -6,10 +6,15 @@
     import ModalShell from '../modals/modal_shell.svelte';
     import { apply_card, close_preview, plan_file_count, set_file_excluded } from './ai_organize';
     import { organize_preview } from './ai_store';
-    import { drive_name } from './ai_scope';
+    import { drive_root_name, sidebar_drives } from '../chrome/drive_root_name';
+    import { sidebarState } from '../sidebar/sidebar_store';
     import { t_store } from '../../i18n/i18n';
 
     const preview = $derived($organize_preview);
+    // The plan names the drive it was made for, which need not be the open one.
+    const plan_drive = $derived(
+        drive_root_name(sidebar_drives($sidebarState).find((drive) => drive.id === preview?.plan.scope.channel_id) ?? null, $t_store),
+    );
     const total = $derived(preview ? plan_file_count(preview.plan) : 0);
     const excluded_count = $derived(preview ? preview.excluded.length : 0);
     const to_apply = $derived(total - excluded_count);
@@ -79,7 +84,7 @@
                                 <span class="ai-tag">{$t_store('ai_organize.new_badge')}</span>
                             {/if}
                             <span class="ai-spacer"></span>
-                            <span class="ai-group-path">{drive_name()} / {folder.name}</span>
+                            <span class="ai-group-path">{plan_drive} / {folder.name}</span>
                         </header>
                         {#each folder.files ?? [] as file (file.file_id)}
                             {@const off = is_excluded(file.file_id)}

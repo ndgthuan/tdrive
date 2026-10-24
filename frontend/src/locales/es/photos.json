@@ -19,7 +19,6 @@
   "locked_pill": "Bloqueada",
   "loading_albums": "Cargando álbumes",
   "albums_list_label": "Álbumes",
-  "drive_root": "Raíz de la unidad",
   "untitled_folder": "Carpeta sin título",
   "album_count_one": "{number} foto",
   "album_count_many": "{number} fotos",
@@ -31,7 +30,6 @@
   "photos_view_label": "Vista de fotos",
   "albums_tab": "Álbumes",
   "all_photos": "Todas las fotos",
-
   "backup_card_label": "Copia de seguridad de fotos y vídeos",
   "switch_title": "Hacer copia de seguridad de fotos y vídeos",
   "in_this_drive": "En esta unidad",
@@ -53,7 +51,6 @@
   "wifi_only_note": "No usa nunca datos móviles.",
   "try_again": "Inténtalo de nuevo",
   "loading_settings": "Cargando ajustes de copia de seguridad…",
-
   "action_back_up_now": "Hacer copia ahora",
   "action_unlock_back_up": "Desbloquear y hacer copia",
   "action_resume": "Reanudar",
@@ -95,7 +92,6 @@
   "choose_body": "Añade una carpeta o una biblioteca de fotos abajo para empezar.",
   "ready_title": "Lista",
   "nothing_backed_up": "Todavía no se ha copiado nada.",
-
   "activity_scanning": "Buscando fotos y vídeos",
   "activity_backup": "Copia de seguridad de fotos",
   "activity_preparing": "Preparando la copia de seguridad de fotos",
@@ -105,7 +101,6 @@
   "result_completed_one": "Copia de seguridad de fotos completada · {count} elemento",
   "result_completed_many": "Copia de seguridad de fotos completada · {count} elementos",
   "result_completed_other": "Copia de seguridad de fotos completada · {count} elementos",
-
   "notice_title": "Haciendo copia de seguridad de fotos",
   "notice_text": "Terminando el elemento actual",
   "attention_title": "La copia de seguridad de fotos requiere atención",
@@ -116,7 +111,6 @@
   "background_cleanup_failed": "La limpieza de la copia de seguridad en segundo plano no pudo terminar. Se reintentará cuando cambie el estado de la copia.",
   "background_unavailable": "La copia de seguridad en segundo plano no está disponible en esta versión. Mantén TDrive abierta para continuar.",
   "background_start_failed": "La copia de seguridad en segundo plano no pudo iniciarse. Mantén TDrive abierta para continuar.",
-
   "unlock_message": "Desbloquea el cifrado para continuar la copia de seguridad de fotos.",
   "backup_unavailable": "La copia de seguridad de fotos no está disponible. Inténtalo de nuevo.",
   "wifi_check_failed": "No se pudo comprobar la Wi-Fi. La copia de seguridad volverá a comprobar la conexión.",
@@ -133,7 +127,6 @@
   "photo_not_read": "No se pudo leer la foto.",
   "media_not_read": "No se pudo leer el archivo multimedia.",
   "cleanup_failed": "Falló la limpieza de los archivos multimedia temporales. Vuelve a abrir TDrive para reintentar la limpieza.",
-
   "library_unavailable": "El acceso a la biblioteca de fotos no está disponible.",
   "picker_unavailable": "Esta versión no puede abrir un selector de carpetas.",
   "media_unavailable": "Esta versión no puede leer el archivo multimedia seleccionado.",

@@ -19,7 +19,6 @@
     "locked_pill": "Vergrendeld",
     "loading_albums": "Albums laden",
     "albums_list_label": "Albums",
-    "drive_root": "Hoofdmap van drive",
     "untitled_folder": "Map zonder naam",
     "album_count_one": "{number} foto",
     "album_count_other": "{number} foto's",
@@ -29,7 +28,6 @@
     "photos_view_label": "Fotoweergave",
     "albums_tab": "Albums",
     "all_photos": "Alle foto's",
-
     "backup_card_label": "Back-up van foto's en video's",
     "switch_title": "Foto's en video's back-uppen",
     "in_this_drive": "In deze drive",
@@ -51,7 +49,6 @@
     "wifi_only_note": "Gebruikt nooit mobiele data.",
     "try_again": "Probeer het opnieuw",
     "loading_settings": "Back-upinstellingen laden…",
-
     "action_back_up_now": "Nu back-uppen",
     "action_unlock_back_up": "Ontgrendelen en back-uppen",
     "action_resume": "Hervatten",
@@ -91,7 +88,6 @@
     "choose_body": "Voeg hieronder een map of fotobibliotheek toe om te beginnen.",
     "ready_title": "Klaar",
     "nothing_backed_up": "Er is nog niets geback-upt.",
-
     "activity_scanning": "Foto's en video's scannen",
     "activity_backup": "Fotoback-up",
     "activity_preparing": "Fotoback-up voorbereiden",
@@ -100,7 +96,6 @@
     "result_paused": "Fotoback-up gepauzeerd",
     "result_completed_one": "Fotoback-up voltooid · {count} item",
     "result_completed_other": "Fotoback-up voltooid · {count} items",
-
     "notice_title": "Foto's worden geback-upt",
     "notice_text": "Het huidige item wordt afgerond",
     "attention_title": "Fotoback-up vraagt om aandacht",
@@ -110,7 +105,6 @@
     "background_cleanup_failed": "Het opruimen van de achtergrondback-up kon niet worden afgerond. Het wordt opnieuw geprobeerd zodra de back-upstatus verandert.",
     "background_unavailable": "Achtergrondback-up is niet beschikbaar in deze build. Houd TDrive open om door te gaan.",
     "background_start_failed": "De achtergrondback-up kon niet starten. Houd TDrive open om door te gaan.",
-
     "unlock_message": "Ontgrendel de versleuteling om de fotoback-up te vervolgen.",
     "backup_unavailable": "Fotoback-up is niet beschikbaar. Probeer het opnieuw.",
     "wifi_check_failed": "Wifi kon niet worden gecontroleerd. De back-up probeert de verbindingscontrole opnieuw.",
@@ -127,7 +121,6 @@
     "photo_not_read": "De foto kon niet worden gelezen.",
     "media_not_read": "De media konden niet worden gelezen.",
     "cleanup_failed": "Het opruimen van tijdelijke media is mislukt. Open TDrive opnieuw om het opruimen opnieuw te proberen.",
-
     "library_unavailable": "Toegang tot de fotobibliotheek is niet beschikbaar.",
     "picker_unavailable": "Deze build kan geen mapkiezer openen.",
     "media_unavailable": "Deze build kan de geselecteerde media niet lezen.",

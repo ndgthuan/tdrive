@@ -19,7 +19,6 @@
     "suggest_find_duplicates": "Dubbele bestanden zoeken",
     "composer_placeholder": "Vraag het aan TDrive…",
     "context_label": "Context",
-    "scope_drive_root": "De hele drive gebruiken",
     "scope_remove_folder": "Deze map uit de context verwijderen",
     "send": "Verzenden",
     "voice_label": "Spraakinvoer",
@@ -38,5 +37,10 @@
     "error_invalid_key": "Het model heeft de API-sleutel geweigerd. Controleer de sleutel in Instellingen.",
     "error_rate_limit": "Het model is bezet of heeft een limiet bereikt. Probeer het zo opnieuw.",
     "error_generic": "Het antwoord kon niet worden voltooid.",
-    "retry": "Opnieuw proberen"
+    "retry": "Opnieuw proberen",
+    "model_manage": "Modellen beheren…",
+    "scope_menu_label": "Schijf en map voor deze chat",
+    "scope_current_folder": "Huidige map",
+    "scope_root_item": "Hoofdmap van de schijf",
+    "scope_drives_heading": "Schijven"
 }

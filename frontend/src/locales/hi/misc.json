@@ -7,7 +7,6 @@
   "check_again": "फिर से जांचें",
   "check_now": "अभी जांचें",
   "check_prompt": "TDrive को अप टू डेट रखने के लिए अपडेट जांचें।",
-  "checked_at": "{time} पर जांचा गया",
   "checking": "अपडेट जांचे जा रहे हैं…",
   "checking_short": "जांच हो रही है…",
   "confirm_restart": "रीस्टार्ट की पुष्टि करें",
@@ -21,7 +20,6 @@
   "macos_intel": "macOS · Intel",
   "managed_by_store": "अपडेट Microsoft Store द्वारा प्रबंधित होते हैं।",
   "newer_available": "एक नया संस्करण उपलब्ध है।",
-  "not_checked": "अभी तक नहीं जांचा गया",
   "open_store": "Microsoft Store खोलें",
   "ready_detail": "रीस्टार्ट के बाद TDrive {version} का अपडेट पूरा होगा।",
   "ready_title": "इंस्टॉल के लिए तैयार",
@@ -38,6 +36,5 @@
   "undo_skip": "छोड़ना पूर्ववत करें",
   "up_to_date": "TDrive अप टू डेट है।",
   "version": "संस्करण {version}",
-  "version_unknown": "संस्करण अज्ञात",
   "whats_new": "नया क्या है"
 }

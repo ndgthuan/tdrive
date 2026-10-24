@@ -19,7 +19,6 @@
     "suggest_find_duplicates": "ค้นหาไฟล์ที่ซ้ำกัน",
     "composer_placeholder": "ถาม TDrive…",
     "context_label": "บริบท",
-    "scope_drive_root": "ใช้ทั้งไดรฟ์",
     "scope_remove_folder": "นำโฟลเดอร์นี้ออกจากบริบท",
     "send": "ส่ง",
     "voice_label": "การป้อนข้อมูลด้วยเสียง",
@@ -38,5 +37,10 @@
     "error_invalid_key": "โมเดลปฏิเสธคีย์ API ตรวจสอบคีย์ในการตั้งค่า",
     "error_rate_limit": "โมเดลกำลังทำงานหนักหรือถูกจำกัดอัตราการใช้งาน ลองอีกครั้งในอีกสักครู่",
     "error_generic": "ไม่สามารถตอบกลับให้เสร็จได้",
-    "retry": "ลองอีกครั้ง"
+    "retry": "ลองอีกครั้ง",
+    "model_manage": "จัดการโมเดล…",
+    "scope_menu_label": "ไดรฟ์และโฟลเดอร์ของแชทนี้",
+    "scope_current_folder": "โฟลเดอร์ปัจจุบัน",
+    "scope_root_item": "รูทของไดรฟ์",
+    "scope_drives_heading": "ไดรฟ์"
 }

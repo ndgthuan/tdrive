@@ -64,6 +64,7 @@ type fake_drive struct {
 	next_folder int
 	moves       []fake_move
 	created     []string
+	drive_name  string
 }
 
 type fake_move struct {
@@ -76,6 +77,13 @@ func (d *fake_drive) CanOrganize(channel_id int64) error {
 		return errors.New("channel source is read-only")
 	}
 	return nil
+}
+
+func (d *fake_drive) DriveName(channel_id int64) string {
+	if d.drive_name != "" {
+		return d.drive_name
+	}
+	return ""
 }
 
 func (d *fake_drive) ListFolder(ctx context.Context, channel_id int64, folder_id string) ([]FolderNode, []FileNode, error) {

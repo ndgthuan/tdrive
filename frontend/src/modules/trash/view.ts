@@ -15,6 +15,7 @@ import type { TrashEntry } from '../../api/trash';
 import { buildFileRow, buildFolderRow, fileThumbnailIdentity, renderFileListRows, renderFileState } from '../file_list';
 import { askPurgeTrashEntry, loadTrash, restoreEntry, trashEntries } from './controller';
 import { entryOrigin, purgeCountdown } from '../../ui/trash/trash_view';
+import { drive_root_name_for_id } from '../../ui/chrome/drive_root_name';
 import type { FileListAction, FileListFileRow, FolderListRow } from '../../ui/file_list/types';
 import { setFileThumbnailsActive } from '../../ui/file_list/file_thumbnail_controller';
 import { fileListColumnMode } from '../../ui/file_list/column_mode_store';
@@ -70,7 +71,7 @@ function trashActions(entry: TrashEntry): FileListAction[] {
  */
 export function trashRow(entry: TrashEntry, now: number, channelId: number): FolderListRow | FileListFileRow {
     const countdown = purgeCountdown(entry.purgeAfter, now);
-    const origin = entryOrigin(entry);
+    const origin = entryOrigin(entry, drive_root_name_for_id(channelId));
     const shared = {
         key: `trash:${entry.objectId}`,
         selectionKey: `trash:${entry.objectId}`,

@@ -3,6 +3,7 @@
     import CheckCircleIcon from 'phosphor-svelte/lib/CheckCircleIcon';
     import EyeIcon from 'phosphor-svelte/lib/EyeIcon';
     import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlashIcon';
+    import BrandIcon from '../ai/brand_icon.svelte';
     import WarningCircleIcon from 'phosphor-svelte/lib/WarningCircleIcon';
     import {
         add_model,
@@ -59,8 +60,8 @@
         return provider_brand_label(provider) || $t_store('settings_ai.provider_custom');
     }
 
-    function setProvider(value: string): void {
-        draft.provider = value as Provider;
+    function setProvider(value: Provider): void {
+        draft.provider = value;
     }
 
     function toggle(field: 'vision_enabled' | 'is_default'): void {
@@ -122,14 +123,25 @@
             <input class="settings-input" type="text" autocomplete="off" bind:value={draft.display_name} />
         </label>
 
-        <label class="settings-field">
-            <span class="settings-field-label">{$t_store('settings_ai.field_provider')}</span>
-            <select class="settings-input" value={draft.provider} onchange={(event) => setProvider(event.currentTarget.value)}>
+        <div class="settings-field">
+            <span id="ai-provider-label" class="settings-field-label">{$t_store('settings_ai.field_provider')}</span>
+            <div class="ai-provider-grid" role="radiogroup" aria-labelledby="ai-provider-label">
                 {#each PROVIDER_OPTIONS as provider (provider)}
-                    <option value={provider}>{providerName(provider)}</option>
+                    {@const checked = draft.provider === provider}
+                    <button
+                        type="button"
+                        class="ai-provider"
+                        class:is-on={checked}
+                        role="radio"
+                        aria-checked={checked ? 'true' : 'false'}
+                        onclick={() => setProvider(provider)}
+                    >
+                        <BrandIcon {provider} size={20} />
+                        <span class="ai-provider-name">{providerName(provider)}</span>
+                    </button>
                 {/each}
-            </select>
-        </label>
+            </div>
+        </div>
 
         {#if takesBaseUrl}
             <label class="settings-field">
@@ -319,4 +331,44 @@
     /* The form sits in the same fixed-height pane, so its controls keep to a
        single column and the footer stays where the eye expects it. */
     .ai-form :global(select.settings-input) { appearance: auto; }
+
+    .ai-provider-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: var(--space-2);
+    }
+
+    .ai-provider {
+        min-width: 0;
+        min-height: var(--control-md);
+        padding: 0 var(--space-2-5);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-2);
+        color: var(--color-text);
+        font: inherit;
+        font-size: var(--type-sm);
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .ai-provider.is-on {
+        border-color: var(--color-accent);
+        box-shadow: inset 0 0 0 1px var(--color-accent);
+    }
+
+    .ai-provider:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--color-accent);
+    }
+
+    .ai-provider-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 </style>
