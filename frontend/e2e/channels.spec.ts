@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Locator } from '@playwright/test';
-import { RED_BASE64 } from './gallery-fixtures';
-import { bootTDrive, deferred, rejects, resolves, test as mockTest } from './wails-mock';
+import { RED_BASE64 } from './gallery_fixtures';
+import { bootTDrive, deferred, rejects, resolves, test as mockTest } from './wails_mock';
 
 const source = { peer_kind: 'channel', peer_id: 50, channel_id: 50, title: 'Field Recordings', username: 'fieldrec', connected: true, protected: false, available: true, account_id: 7, generation: 'source-a' };
 const candidate = { ...source, peer_id: 60, channel_id: 60, title: 'Tech Talks', username: 'techtalks', connected: false, generation: '' };
@@ -46,7 +46,7 @@ test('desktop channels sit beside the drives and keep the app header', async ({ 
     await channel.click();
     await expect(page.getByRole('heading', { name: 'Field Recordings' })).toBeVisible();
     await expect(channel).toHaveAttribute('aria-current', 'page');
-    await expect(page.getByRole('button', { name: 'Personal', exact: true })).not.toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('#drives-nav').getByRole('button', { name: 'My Drive', exact: true })).not.toHaveAttribute('aria-current', 'page');
     // The notification bell and account menu stay; nothing can be uploaded into a channel.
     await expect(page.locator('.notif-bell')).toBeVisible();
     await expect(page.locator('.upload-menu-wrap')).toBeHidden();
@@ -66,7 +66,7 @@ test('desktop channels sit beside the drives and keep the app header', async ({ 
     await expect(dialog).toBeHidden();
     expect((await mock.calls('ConnectChannelSource')).map((call) => call.args)).toEqual([['channel', 60, '', 7]]);
 
-    await page.getByRole('button', { name: 'Personal', exact: true }).click();
+    await page.locator('#drives-nav').getByRole('button', { name: 'My Drive', exact: true }).click();
     await expect(page.locator('#file-list')).toBeVisible();
     await expect(page.locator('.channel-view')).toHaveCount(0);
 
@@ -581,7 +581,7 @@ for (const mobile of [false, true]) {
             await page.getByRole('button', { name: /Switch drive/ }).click();
             await page.locator('.drive-switcher-sheet').getByRole('button', { name: 'Supergroup Field Recordings', exact: true }).click();
         } else {
-            await page.getByRole('button', { name: 'Personal', exact: true }).click();
+            await page.locator('#drives-nav').getByRole('button', { name: 'My Drive', exact: true }).click();
             await page.locator('.sidebar').getByRole('button', { name: 'Supergroup Field Recordings', exact: true }).click();
         }
         await expect(page.getByRole('button', { name: 'Choose topic: Movies' })).toBeVisible();

@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n';
 // Upload/Download progress handling for TDrive frontend.
 //
 // All transfer state surfaces through the notification bell — there is no
@@ -7,13 +8,13 @@
 
 import { invalidateFolderIndex, state, setTransferDirectionActive, type DownloadQueueItem, type UploadTransfer } from '../state';
 import { createFolder, downloadFile, downloadFolder, importPaths, isAndroidPlatform, isMobilePlatform, onRuntimeEvent, planImport, selectFiles, selectFolder, uploadToDriveFs, retryUploadToDriveFs, type RuntimeEventMap, type RuntimeUnsubscribe } from '../api';
-import { canSaveToDownloads, saveToDownloads } from './android-downloads';
-import { rememberDownloadSharePath } from '../ui/mobile/mobile-shell-store';
+import { canSaveToDownloads, saveToDownloads } from './android_downloads';
+import { rememberDownloadSharePath } from '../ui/mobile/mobile_shell_store';
 import { get } from 'svelte/store';
-import { failedUploadsModal, failedUploadReports, rememberFailedUploadReport, type FailedUploadsPayload } from '../ui/modals/failed-uploads-store';
+import { failedUploadsModal, failedUploadReports, rememberFailedUploadReport, type FailedUploadsPayload } from '../ui/modals/failed_uploads_store';
 import type { UploadFailure } from '../types';
 import type { ImportPlan, OperationError } from '../types';
-import type { TransferEvent } from '../ui/notifications/notif-store';
+import type { TransferEvent } from '../ui/notifications/notif_store';
 import { dismissNotification, notify } from './notifications';
 import {
     canPickFolder,
@@ -24,22 +25,22 @@ import {
     releaseAndroidFiles,
     type AndroidFolderFile,
     type AndroidFolderManifest,
-} from './android-folder';
+} from './android_folder';
 import { humanizeBackendError } from './errors';
-import { appActions } from './app-actions';
+import { appActions } from './app_actions';
 import { loadEncryptionStatus } from './encryption';
-import { openUploadOptionsModal } from './modals/upload-options';
-import { activateFileSelectionProgress } from './file-selection';
-import { openImportOptionsModal } from './modals/import-options';
-import { openEncryptionSetupModal } from './modals/encryption-setup';
-import { openEncryptionPasswordModal } from './modals/encryption-password';
-import { postSystemNotification } from './android-foreground';
-import { retryTransferAction } from './notification-actions';
-import { createImportProgress, reduceImportProgress } from './import-progress';
-import { TransferBatch, type UploadOutcome } from './transfer-batch';
-import { activateTransferPersistence } from './transfer-persistence';
-import { acknowledgeCompletedDownload, refreshResumableDownloads } from './resumable-downloads';
-import { onDownloadRunIdle, tryBeginDownloadRun } from './download-run';
+import { openUploadOptionsModal } from './modals/upload_options';
+import { activateFileSelectionProgress } from './file_selection';
+import { openImportOptionsModal } from './modals/import_options';
+import { openEncryptionSetupModal } from './modals/encryption_setup';
+import { openEncryptionPasswordModal } from './modals/encryption_password';
+import { postSystemNotification } from './android_foreground';
+import { retryTransferAction } from './notification_actions';
+import { createImportProgress, reduceImportProgress } from './import_progress';
+import { TransferBatch, type UploadOutcome } from './transfer_batch';
+import { activateTransferPersistence } from './transfer_persistence';
+import { acknowledgeCompletedDownload, refreshResumableDownloads } from './resumable_downloads';
+import { onDownloadRunIdle, tryBeginDownloadRun } from './download_run';
 import {
     pushQueuedTransfer,
     pushTransferStart,
@@ -50,7 +51,7 @@ import {
     setTransferNote,
     transferKey,
     wasUploadCanceled,
-} from './notif-bell';
+} from './notif_bell';
 
 
 let transferUnsubscribers: RuntimeUnsubscribe[] = [];
@@ -193,8 +194,8 @@ async function announceMobileDownload(item: DownloadQueueItem, savedPath: string
             note('Saved inside TDrive, not in your Downloads folder');
             notify({
                 level: 'warning',
-                title: 'Could not reach your Downloads folder',
-                body: `${item.name} is saved inside TDrive. Try saving it again from Transfers.`,
+                title: t('messages.downloads_folder_unreachable'),
+                body: t('messages.downloads_saved_inside', { name: item.name }),
             });
             return false;
         }
@@ -254,7 +255,7 @@ async function startNextDownload() {
             else if (next.kind === 'folder') {
                 notify({
                     level: 'success',
-                    title: 'Folder downloaded',
+                    title: t('messages.folder_downloaded'),
                     body: result.savedPath ? 'Saved to ' + result.savedPath : next.name + ' saved',
                 });
             }
@@ -370,7 +371,7 @@ function notifyDownloadFailure(item: DownloadQueueItem, error: OperationError | 
     // row they are already looking at.
     void postSystemNotification({
         kind: 'problem',
-        title: `Couldn't download ${item.name}`,
+        title: t('messages.download_failed_title', { name: item.name }),
         text: reason || 'The download could not be completed.',
         action: retryTransferAction(transferKey('down', item.key)),
     }).catch(() => undefined);
@@ -383,11 +384,11 @@ function notifyDownloadFailure(item: DownloadQueueItem, error: OperationError | 
     notify({
         id: toastId,
         level: 'error',
-        title: `Couldn't download ${item.name}`,
+        title: t('messages.download_failed_title', { name: item.name }),
         body: reason || 'The download could not be completed.',
         history: false,
         action: {
-            label: 'Retry',
+            label: t('common.retry'),
             // One shot. The toast is sticky, so without this it sits there
             // offering to retry a download that is already running again, and
             // a second tap re-queues a key that is mid-flight -- which resets
@@ -516,8 +517,8 @@ export async function withTransferFlow(run: () => Promise<void>): Promise<void> 
     if (!await tryWithTransferFlow(run)) {
         notify({
             level: 'info',
-            title: 'A transfer is already in progress',
-            body: 'Wait for it to finish, then start another.',
+            title: t('messages.transfer_in_progress'),
+            body: t('messages.transfer_in_progress_body'),
         });
     }
 }
@@ -577,7 +578,7 @@ function refreshImportRow() {
 }
 
 // refreshUploadBatchRow renders the frontend's own aggregate for a multi-file
-// upload. Same shape, same bound; see modules/transfer-batch.ts.
+// upload. Same shape, same bound; see modules/transfer_batch.ts.
 function refreshUploadBatchRow() {
     if (!uploadBatch) return;
     const snapshot = uploadBatch.snapshot();
@@ -971,7 +972,7 @@ export async function importFolderWithParentID(parentID: string) {
             dir = await selectFolder();
         } catch (err) {
             console.error("SelectFolder failed:", err);
-            notify({ level: 'error', title: 'Could not open the folder picker', body: humanizeBackendError(err) });
+            notify({ level: 'error', title: t('messages.folder_picker_failed'), body: humanizeBackendError(err) });
             return;
         }
         if (!dir) return;
@@ -1002,7 +1003,7 @@ async function importAndroidFolder(parentID: string) {
             console.error("PickFolder failed:", err);
             setTransferNote({ id: IMPORT_TRANSFER_ID, direction: 'up', note: humanizeBackendError(err) });
             markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status: 'failed' });
-            notify({ level: 'error', title: 'Could not open the folder picker', body: humanizeBackendError(err), history: false });
+            notify({ level: 'error', title: t('messages.folder_picker_failed'), body: humanizeBackendError(err), history: false });
             return;
         }
         if (!manifest) {
@@ -1018,7 +1019,7 @@ async function importAndroidFolder(parentID: string) {
         console.error('Android folder import failed:', err);
         setTransferNote({ id: IMPORT_TRANSFER_ID, direction: 'up', note: humanizeBackendError(err) });
         markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status: 'failed' });
-        notify({ level: 'error', title: 'Import failed', body: humanizeBackendError(err), history: false });
+        notify({ level: 'error', title: t('messages.import_failed'), body: humanizeBackendError(err), history: false });
     } finally {
         state.cancelingUpload = false;
     }
@@ -1254,7 +1255,7 @@ async function importSelection(parentID: string, paths: string[]) {
         if (!plan) {
             // Don't fall through to the plain uploader: a directory path would be
             // sent to UploadToDriveFS and fail. Surface it and stop.
-            notify({ level: 'error', title: 'Could not read the selection', body: 'Please try again.' });
+            notify({ level: 'error', title: t('messages.selection_read_failed'), body: t('messages.please_try_again') });
             return;
         }
 
@@ -1262,8 +1263,8 @@ async function importSelection(parentID: string, paths: string[]) {
             const maxItems = Math.max(1, Math.floor(Number(plan.maxItems) || 10_000));
             notify({
                 level: 'info',
-                title: 'Selection is too large',
-                body: `Keep it under ${maxItems.toLocaleString()} items by removing generated/cache folders or splitting it into smaller batches.`,
+                title: t('messages.selection_too_large'),
+                body: t('messages.selection_too_large_body', { max: maxItems.toLocaleString() }),
             });
             return;
         }
@@ -1318,7 +1319,7 @@ async function importSelection(parentID: string, paths: string[]) {
             importThrew = true;
             console.error('Import failed:', error);
             if (!state.cancelingUpload && !importCompleteReceived) {
-                notify({ level: 'error', title: 'Import failed', body: humanizeBackendError(error) });
+                notify({ level: 'error', title: t('messages.import_failed'), body: humanizeBackendError(error) });
             }
             if (!importCompleteReceived && !state.importBatch) {
                 pushTransferStart({ id: IMPORT_TRANSFER_ID, direction: 'up', name: 'Import failed', total: 0 });
@@ -1385,8 +1386,8 @@ function showFailedUploadNotice(payload: FailedUploadsPayload, body: string, gen
     if (generation !== transferSurfaceGeneration) return;
     rememberFailedUploadReport(payload);
     notify({
-        level: 'error', title: 'Upload failed', body,
-        action: { label: 'Review failed files', run: () => {
+        level: 'error', title: t('messages.upload_failed'), body,
+        action: { label: t('messages.review_failed_files'), run: () => {
             if (generation !== transferSurfaceGeneration) return;
             reviewFailedUploads(payload);
         } },
@@ -1506,7 +1507,7 @@ export function chooseFolderForCurrentFolder(): void {
 
 function activateFileDropEvents(): void {
     // The drop target itself is opted in via the `data-file-drop-target`
-    // attribute on #file-list (AppShell.svelte); Go delivers native drops as
+    // attribute on #file-list (app_shell.svelte); Go delivers native drops as
     // the ordinary files_dropped event below.
     subscribeTransferEvent('files_dropped', (payload) => {
         // If an in-app drag-to-move is underway, ignore native drops entirely

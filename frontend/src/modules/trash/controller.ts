@@ -5,16 +5,17 @@ import { get, writable } from 'svelte/store';
 import {
     deleteFromTrashPermanently, emptyTrash, listTrash, restoreFromTrash, type TrashEntry,
 } from '../../api/trash';
-import { sortedByDeletion, trashSummary } from '../../ui/trash/trash-view';
-import { trashConfirmModal } from '../../ui/trash/trash-confirm-store';
+import { sortedByDeletion, trashSummary } from '../../ui/trash/trash_view';
+import { trashConfirmModal } from '../../ui/trash/trash_confirm_store';
 import type { OperationResult } from '../../types';
 import { invalidateFolderIndex, state } from '../../state';
 import { clearSearch } from '../search';
-import { closeChannel } from '../../ui/channels/channel-store';
+import { closeChannel } from '../../ui/channels/channel_store';
 import { renderTrashError, renderTrashRows } from './view';
-import { appActions } from '../app-actions';
+import { appActions } from '../app_actions';
 import { humanizeBackendError } from '../errors';
 import { notify } from '../notifications';
+import { t } from '../../i18n/i18n';
 
 /** The busy key for an operation that spans the whole trash, not one row. */
 export const EMPTY_TRASH_KEY = '*';
@@ -81,7 +82,7 @@ export async function loadTrash(): Promise<void> {
 
 export async function restoreEntry(objectId: string): Promise<void> {
     const channelId = Number(state.activeChannel?.id ?? 0);
-    if (await mutate(objectId, 'Could not restore from the Trash', () => restoreFromTrash(channelId, objectId))) {
+    if (await mutate(objectId, t('trash.restore_failed'), () => restoreFromTrash(channelId, objectId))) {
         // The item is back in a folder the user may be looking at.
         invalidateFolderIndex();
         if (state.activeChannel?.id === channelId) {
@@ -112,13 +113,13 @@ export async function confirmTrashAction(): Promise<void> {
     trashConfirmModal.close();
     if (!target) return;
     if (target.kind === 'empty') {
-        if (await mutate(EMPTY_TRASH_KEY, 'Could not empty the Trash', emptyTrash)) {
+        if (await mutate(EMPTY_TRASH_KEY, t('trash.empty_failed'), emptyTrash)) {
             trashEntries.set([]);
             publishTrashRows();
         }
         return;
     }
-    if (await mutate(target.objectId, 'Could not delete permanently', () => deleteFromTrashPermanently(target.objectId))) {
+    if (await mutate(target.objectId, t('trash.delete_failed'), () => deleteFromTrashPermanently(target.objectId))) {
         dropEntry(target.objectId);
     }
 }

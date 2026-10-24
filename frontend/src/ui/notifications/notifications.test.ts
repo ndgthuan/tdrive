@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import EventRow from './EventRow.svelte';
-import type { NoticeEvent } from './notif-store';
+import EventRow from './event_row.svelte';
+import type { NoticeEvent } from './notif_store';
 
 describe('EventRow server rendering', () => {
     it('escapes untrusted notification titles', () => {

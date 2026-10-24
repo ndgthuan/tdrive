@@ -14,15 +14,16 @@ import { clearSelection } from '../selection';
 import { ensureNotInsideDeletedFolder } from '../navigation';
 import { dismissNotification, notify } from '../notifications';
 import { humanizeBackendError } from '../errors';
-import { appActions } from '../app-actions';
-import { callWithPasswordRetry } from './encryption-password';
-import { closeDeleteModalView, openDeleteModalView } from '../../ui/modals/delete-modal-store';
-import { markRowsBusy } from '../../ui/file-list/busy-rows';
+import { appActions } from '../app_actions';
+import { callWithPasswordRetry } from './encryption_password';
+import { closeDeleteModalView, openDeleteModalView } from '../../ui/modals/delete_modal_store';
+import { markRowsBusy } from '../../ui/file_list/busy_rows';
+import { t } from '../../i18n/i18n';
 import type {
     FileCommandItem,
     FileCommandTarget,
     FolderCommandItem,
-} from '../../ui/file-list/types';
+} from '../../ui/file_list/types';
 let pendingTarget: FileCommandTarget | null = null;
 let pendingChannelId: number | null = null;
 
@@ -35,15 +36,21 @@ function failureBatchTitle(items: FileCommandItem[]): string {
     if (items.length === 1) return failureTitle(items[0]);
     const folders = items.filter(isFolder).length;
     const files = items.length - folders;
-    if (folders === 0) return `Could not delete ${files} files`;
-    if (files === 0) return `Could not delete ${folders} folders`;
-    return `Could not delete ${items.length} items`;
+    if (folders === 0) return t('messages.delete_failed_files', { count: files });
+    if (files === 0) return t('messages.delete_failed_folders', { count: folders });
+    return t('messages.delete_failed_items', { count: items.length });
 }
 
 function failureTitle(item: FileCommandItem): string {
     const name = item.name.trim();
-    if (!name) return item.type === 'folder' ? 'Could not delete folder' : 'Could not delete file';
-    return item.type === 'folder' ? `Could not delete folder "${name}"` : `Could not delete "${name}"`;
+    if (!name) {
+        return item.type === 'folder'
+            ? t('messages.delete_failed_folder_unnamed')
+            : t('messages.delete_failed_file_unnamed');
+    }
+    return item.type === 'folder'
+        ? t('messages.delete_failed_folder_named', { name })
+        : t('messages.delete_failed_file_named', { name });
 }
 
 function isFolder(item: FileCommandItem): item is FolderCommandItem {
@@ -65,7 +72,7 @@ function deleteInChannel(channelId: number, operation: () => Promise<OperationRe
     if (activeChannelId() !== channelId) {
         return Promise.resolve({
             ok: false,
-            error: { code: 'canceled', message: 'The active drive changed before deletion' },
+            error: { code: 'canceled', message: t('messages.delete_drive_changed') },
         });
     }
     return operation();
@@ -78,7 +85,7 @@ export function openDeleteModal(target: FileCommandTarget): void {
         : [target.channelId ?? activeId];
     const channelId = channels[0] ?? activeId;
     if (channelId !== activeId || channels.some((id) => id !== channelId)) {
-        notify({ level: 'info', title: 'Switch back to that drive to delete this item' });
+        notify({ level: 'info', title: t('messages.switch_drive_delete') });
         return;
     }
     pendingTarget = target;
@@ -97,30 +104,30 @@ export function openDeleteModal(target: FileCommandTarget): void {
         const total = allowed.length;
         const folders = allowed.filter(isFolder).length;
         const files = total - folders;
-        title = total === 1 ? 'Move 1 item to Trash?' : `Move ${total} items to Trash?`;
+        title = t('messages.delete_trash_title', { count: total });
         const skippedNote = skipped > 0
-            ? ` ${skipped} item(s) you don't own will be skipped.`
+            ? ` ${t('messages.delete_skipped_note', { count: skipped })}`
             : '';
         if (total === 0) {
-            subtitle = `Nothing in your selection can be deleted. ${skipped} item(s) you don't own were skipped.`;
+            subtitle = t('messages.delete_nothing_deletable', { count: skipped });
         } else if (folders > 0 && files > 0) {
-            subtitle = `${folders} folder(s) with everything inside them and ${files} file(s) move to the Trash. You can restore them from the Trash until they are purged.${skippedNote}`;
+            subtitle = t('messages.delete_mixed_subtitle', { folders, files }) + skippedNote;
         } else if (folders > 0) {
-            subtitle = `${folders} folder(s) and everything inside them move to the Trash. You can restore them from the Trash until they are purged.${skippedNote}`;
+            subtitle = t('messages.delete_folders_subtitle', { folders }) + skippedNote;
         } else {
-            subtitle = `${files} file(s) move to the Trash. You can restore them from the Trash until they are purged.${skippedNote}`;
+            subtitle = t('messages.delete_files_subtitle', { files }) + skippedNote;
         }
-        confirmLabel = total === 0 ? 'Close' : 'Move to Trash';
+        confirmLabel = total === 0 ? t('common.close') : t('messages.delete_move_to_trash');
     } else if (target.type === 'folder') {
-        title = 'Move folder to Trash?';
+        title = t('messages.delete_folder_title');
         itemName = target.name.trim();
-        subtitle = 'The folder and everything inside it moves to the Trash. You can restore it from the Trash until it is purged.';
-        confirmLabel = 'Move to Trash';
+        subtitle = t('messages.delete_folder_subtitle');
+        confirmLabel = t('messages.delete_move_to_trash');
     } else {
-        title = 'Move file to Trash?';
+        title = t('messages.delete_file_title');
         itemName = target.name.trim();
-        subtitle = 'It moves to the Trash. You can restore it from the Trash until it is purged.';
-        confirmLabel = 'Move to Trash';
+        subtitle = t('messages.delete_file_subtitle');
+        confirmLabel = t('messages.delete_move_to_trash');
     }
 
     openDeleteModalView({ title, itemName, subtitle, confirmLabel });
@@ -134,7 +141,7 @@ export function openDeleteModal(target: FileCommandTarget): void {
  */
 async function undoDelete(objectIds: string[], channelId: number): Promise<void> {
     if (activeChannelId() !== channelId) {
-        notify({ level: 'info', title: 'Switch back to that drive to restore from the Trash' });
+        notify({ level: 'info', title: t('messages.switch_drive_restore') });
         return;
     }
     let restored = 0;
@@ -158,10 +165,10 @@ async function undoDelete(objectIds: string[], channelId: number): Promise<void>
         if (activeChannelId() === channelId) appActions().refreshFiles();
     }
     if (switchedDrive) {
-        notify({ level: 'info', title: 'Switch back to that drive to restore from the Trash' });
+        notify({ level: 'info', title: t('messages.switch_drive_restore') });
     }
     if (reasons.length > 0) {
-        notify({ level: 'error', title: 'Could not restore from the Trash', body: reasons[0] });
+        notify({ level: 'error', title: t('messages.restore_failed_title'), body: reasons[0] });
     }
 }
 
@@ -169,12 +176,14 @@ async function undoDelete(objectIds: string[], channelId: number): Promise<void>
 function notifyMovedToTrash(items: FileCommandItem[], channelId: number): void {
     if (items.length === 0) return;
     const objectIds = items.map(trashObjectId);
-    const title = items.length === 1 ? 'Moved to Trash' : `Moved ${items.length} items to Trash`;
+    const title = items.length === 1
+        ? t('messages.delete_moved_one')
+        : t('messages.delete_moved_many', { count: items.length });
     const toastId = notify({
         level: 'success',
         title,
         action: {
-            label: 'Undo',
+            label: t('messages.undo'),
             run: () => {
                 dismissNotification(toastId);
                 void undoDelete(objectIds, channelId);
@@ -193,7 +202,7 @@ export async function confirmDelete(): Promise<void> {
     // The backend delete API uses the active drive. Never let an open dialog
     // redirect an item's ID after the user switches drives.
     if (activeChannelId() !== channelId) {
-        notify({ level: 'info', title: 'Switch back to that drive to delete this item' });
+        notify({ level: 'info', title: t('messages.switch_drive_delete') });
         return;
     }
 
@@ -247,7 +256,7 @@ export async function confirmDelete(): Promise<void> {
             }
 
             if (interrupted || activeChannelId() !== channelId) {
-                notify({ level: 'info', title: 'Switch back to that drive to finish deleting' });
+                notify({ level: 'info', title: t('messages.switch_drive_finish') });
             }
 
             clearSelection();
@@ -261,7 +270,7 @@ export async function confirmDelete(): Promise<void> {
                     title: failureBatchTitle(failures.map((entry) => entry.item)),
                     body: failures.length === 1
                         ? first.error
-                        : `${first.error} Open Transfers for the rest.`,
+                        : t('messages.delete_rest_hint', { error: first.error }),
                 });
             }
             if (succeeded.length > 0) {
@@ -293,7 +302,7 @@ export async function confirmDelete(): Promise<void> {
         console.error('Delete failed:', error);
         notify({
             level: 'error',
-            title: 'Delete failed',
+            title: t('messages.delete_failed_title'),
             body: humanizeBackendError(error),
         });
     } finally {

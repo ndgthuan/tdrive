@@ -15,11 +15,11 @@ vi.mock('../../api/gallery', () => ({
     listMediaFolderPage: mocks.folderPage, listMediaFolders: mocks.folders, locateMedia: vi.fn(),
 }));
 vi.mock('../../modules/search', () => ({ clearSearch: vi.fn() }));
-vi.mock('../../modules/app-actions', () => ({ appActions: () => ({ refreshFiles: vi.fn(), triggerRefresh: vi.fn() }) }));
+vi.mock('../../modules/app_actions', () => ({ appActions: () => ({ refreshFiles: vi.fn(), triggerRefresh: vi.fn() }) }));
 vi.mock('../../modules/transfers', () => ({ chooseFilesForCurrentFolder: vi.fn() }));
 vi.mock('../../modules/selection', () => ({ updateSelectionBar: vi.fn() }));
-vi.mock('../file-list/touch', () => ({ bindLongPress: () => () => {}, bindPullToRefresh: () => () => {} }));
-vi.mock('./gallery-controller', () => ({
+vi.mock('../file_list/touch', () => ({ bindLongPress: () => () => {}, bindPullToRefresh: () => () => {} }));
+vi.mock('./gallery_controller', () => ({
     beginRender: vi.fn(), cachedThumb: () => '', rearmLocked: vi.fn(), setActive: vi.fn(),
     setRoot: vi.fn(), teardown: vi.fn(), registerCell: vi.fn(), unregisterCell: vi.fn(),
 }));
@@ -27,10 +27,10 @@ vi.mock('./gallery-controller', () => ({
 import type { MediaFolder } from '../../api/gallery';
 import { state } from '../../state';
 import { activateGallery, renderGallery, teardownGallery } from '../../modules/gallery';
-import { albumsView, galleryView, photosMode } from './gallery-store';
-import { closeTopSheet } from '../modals/sheet-stack';
-import PhotosSurface from './PhotosSurface.svelte';
-import PhotosModeBar from './PhotosModeBar.svelte';
+import { albumsView, galleryView, photosMode } from './gallery_store';
+import { closeTopSheet } from '../modals/sheet_stack';
+import PhotosSurface from './photos_surface.svelte';
+import PhotosModeBar from './photos_mode_bar.svelte';
 
 // The api boundary is mocked, so these are the normalized rows it hands over.
 const CAMERA: MediaFolder = { folderId: 'd:camera', name: 'Camera', itemCount: 595, latestUploadTime: 9, coverMsgId: 5, coverRevision: 2, coverName: 'IMG_5.jpg' };

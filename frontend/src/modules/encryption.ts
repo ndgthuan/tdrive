@@ -4,9 +4,9 @@
 
 import { state } from '../state';
 import { getEncryptionStatus } from '../api';
-import { openEncryptionPasswordModal } from './modals/encryption-password';
-import { openEncryptionSetupModal } from './modals/encryption-setup';
-import { encryptionEntryVisible } from '../ui/chrome/profile-store';
+import { openEncryptionPasswordModal } from './modals/encryption_password';
+import { openEncryptionSetupModal } from './modals/encryption_setup';
+import { encryptionEntryVisible } from '../ui/chrome/profile_store';
 import { isEncryptionPasswordRequired } from './errors';
 import type { EncryptionStatusView } from '../types';
 
@@ -39,7 +39,7 @@ export async function loadEncryptionStatus(throwOnError = false): Promise<Encryp
     }
 }
 
-// renderEncryptionSettingsEntry lives here (not in profile-menu.ts) so this
+// renderEncryptionSettingsEntry lives here (not in profile_menu.ts) so this
 // module never imports the profile menu, whose modal imports circle back to
 // loadEncryptionStatus.
 export function renderEncryptionSettingsEntry() {

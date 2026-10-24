@@ -1,28 +1,29 @@
+import { t } from '../../i18n/i18n';
 import { closeMedia, isMobilePlatform, openExternalUrl, openOriginalImage } from '../../api';
 import { state } from '../../state';
 import { notify } from '../notifications';
 import { isEncryptionPasswordRequired } from '../errors';
 import { enqueueDownload } from '../transfers';
-import { renderImageInfoHTML } from './preview-info';
-import { activateModalOwnership, deactivateModalOwnership, installModalA11y } from '../../ui/modals/modal-a11y';
-import { pushSheet, type SheetHandle } from '../../ui/modals/sheet-stack';
-import { bindTouchGestures, type TouchGestureHandlers } from '../../ui/preview/touch-gestures';
-import { createZoomPanController } from '../../ui/preview/zoom-pan';
+import { renderImageInfoHTML } from './preview_info';
+import { activateModalOwnership, deactivateModalOwnership, installModalA11y } from '../../ui/modals/modal_a11y';
+import { pushSheet, type SheetHandle } from '../../ui/modals/sheet_stack';
+import { bindTouchGestures, type TouchGestureHandlers } from '../../ui/preview/touch_gestures';
+import { createZoomPanController } from '../../ui/preview/zoom_pan';
 import { acquireRendition, subscribeRenditionReset, type ImageRequest } from '../renditions/runtime';
 import type { RenditionLease } from '../renditions/broker';
-import { acquireOriginalViewerBudget, subscribeGalleryPolicy } from '../gallery-policy';
-import { setActive as setGalleryThumbnailScheduling } from '../../ui/gallery/gallery-controller';
-import { getInteractiveFileListRows } from '../../ui/file-list/file-list-store';
-import { canOpenFileViewer, isVideoFile } from '../media-types';
-import { appActions } from '../app-actions';
-import type { FileCommandItem } from '../../ui/file-list/types';
+import { acquireOriginalViewerBudget, subscribeGalleryPolicy } from '../gallery_policy';
+import { setActive as setGalleryThumbnailScheduling } from '../../ui/gallery/gallery_controller';
+import { getInteractiveFileListRows } from '../../ui/file_list/file_list_store';
+import { canOpenFileViewer, isVideoFile } from '../media_types';
+import { appActions } from '../app_actions';
+import type { FileCommandItem } from '../../ui/file_list/types';
 import {
     capturePreviewTransitionSource,
     createPreviewTransitionController,
     type PreviewTransitionSource,
-} from './preview-transition';
-import { previewElementsLive, resolvePreviewElements, type PreviewElements } from './preview-elements';
-import { createUnlockCard, type UnlockCard } from './preview-unlock-card';
+} from './preview_transition';
+import { previewElementsLive, resolvePreviewElements, type PreviewElements } from './preview_elements';
+import { createUnlockCard, type UnlockCard } from './preview_unlock_card';
 type PreviewCommandItem = Extract<FileCommandItem, { type: 'file' }>;
 type PreviewSelection =
     | { reason: 'none' | 'multiple' }
@@ -281,7 +282,7 @@ function preparePreviewSurface(filename: string, { keepCurrentImage = false } = 
     if (!dom) return;
     hideLockedState();
     if (!keepCurrentImage) {
-        dom.filename.textContent = filename || "Preview";
+        dom.filename.textContent = filename || t('messages.preview_default_title');
     }
     showPreviewLoading();
     dom.error.style.display = "none";
@@ -302,7 +303,7 @@ function showPreviewError(message: string, { keepCurrentImage = false } = {}) {
     dom.modal.classList.remove("is-preview-locked");
     hidePreviewProgress();
     if (!keepCurrentImage) resetImageSurface();
-    dom.error.textContent = message || "Download failed";
+    dom.error.textContent = message || t('messages.preview_download_failed');
     dom.error.style.display = "block";
     dom.modal.classList.add("is-preview-error");
     setChromeVisible(true);
@@ -318,13 +319,13 @@ function showPreviewImage(src: string, alt: string, { keepLoading = false } = {}
     if (!keepLoading) {
         hidePreviewProgress();
     } else {
-        showPreviewLoading(alt || "Preview");
+        showPreviewLoading(alt || t('messages.preview_default_title'));
     }
     dom.error.style.display = "none";
     dom.error.textContent = "";
     dom.modal.classList.remove("is-preview-error");
-    dom.filename.textContent = alt || "Preview";
-    dom.image.alt = alt || "Preview";
+    dom.filename.textContent = alt || t('messages.preview_default_title');
+    dom.image.alt = alt || t('messages.preview_default_title');
     dom.image.src = src;
     dom.image.hidden = false;
     // The CSS layer transition promotes the original over its thumbnail in
@@ -340,7 +341,7 @@ function showPreviewThumbnail(src: string, alt: string): void {
     dom.thumbnail.alt = '';
     dom.thumbnail.src = src;
     dom.thumbnail.hidden = false;
-    dom.thumbnail.setAttribute('aria-label', `Thumbnail for ${alt}`);
+    dom.thumbnail.setAttribute('aria-label', t('messages.preview_thumbnail_aria', { name: alt }));
     if (previewTransition.isRunning()) previewTransition.finishOpen(dom.thumbnail);
 }
 
@@ -365,16 +366,16 @@ function normalizePreviewError(err: unknown) {
     if (typeof err === "string" && err.trim()) return new Error(err.trim());
     const message = (err as { message?: unknown } | null | undefined)?.message;
     if (typeof message === "string" && message.trim()) return new Error(message.trim());
-    return new Error("Download failed");
+    return new Error(t('messages.preview_download_failed'));
 }
 
 function showSelectionPreviewError(selection: PreviewSelection) {
     if (selection.reason === "multiple") {
-        flashStatus("Preview works with one image at a time");
+        flashStatus(t('messages.preview_one_at_a_time'));
         return;
     }
     if (selection.reason === "unsupported") {
-        flashStatus("TDrive cannot open this kind of file");
+        flashStatus(t('messages.preview_unsupported_kind'));
     }
 }
 
@@ -384,7 +385,7 @@ function showSelectionPreviewError(selection: PreviewSelection) {
 function readyElements(): PreviewElements | null {
     if (els) return els;
     console.error("Preview modal is unavailable because setup did not complete.");
-    flashStatus("Preview unavailable");
+    flashStatus(t('messages.preview_unavailable'));
     return null;
 }
 
@@ -412,10 +413,10 @@ function releasePreviewResources(): void {
 
 export async function loadPreview(target: PreviewNavigationItem, { keepThumbnail = false } = {}) {
     const dom = readyElements();
-    if (!dom) throw new Error('Preview unavailable');
+    if (!dom) throw new Error(t('messages.preview_unavailable'));
     const token = ++previewRequestToken;
     hideLockedState();
-    const filename = target.name || 'Preview';
+    const filename = target.name || t('messages.preview_default_title');
     activePreviewKey = getPreviewKey(target);
     activePreviewItem = target;
     releasePreviewResources();
@@ -456,8 +457,8 @@ export async function loadPreview(target: PreviewNavigationItem, { keepThumbnail
         activeFullSrc = opened.imagePreview ? '' : opened.url;
         showPreviewImage(opened.url, filename, { keepLoading: true });
         dom.image.title = opened.imagePreview
-            ? 'Resized preview. Download for original quality.'
-            : 'Original image';
+            ? t('messages.preview_resized_note')
+            : t('messages.preview_original_image');
         refreshInfoPanel();
         return { src: opened.url };
     } catch (error) {
@@ -476,7 +477,7 @@ export async function loadPreview(target: PreviewNavigationItem, { keepThumbnail
         // than replacing it with the full error state.
         if (dom.thumbnail.getAttribute('src')) {
             hidePreviewProgress();
-            dom.image.title = 'Original image unavailable';
+            dom.image.title = t('messages.preview_original_unavailable');
             dom.error.textContent = normalized.message;
             dom.error.style.display = 'block';
         } else showPreviewError(normalized.message);
@@ -536,11 +537,11 @@ async function openPreviewItem(item: PreviewNavigationItem, transitionSource: Pr
     // releases below-the-overlay work and keeps mobile memory predictable.
     setGalleryThumbnailScheduling(false);
     setChromeVisible(true);
-    preparePreviewSurface(item.name || "Preview", { keepCurrentImage });
+    preparePreviewSurface(item.name || t('messages.preview_default_title'), { keepCurrentImage });
     const sharedTransition = !wasOpen && transitionSource
         ? previewTransition.beginOpen(transitionSource, dom.modal)
         : false;
-    if (sharedTransition && transitionSource) showPreviewThumbnail(transitionSource.imageSrc, item.name || "Preview");
+    if (sharedTransition && transitionSource) showPreviewThumbnail(transitionSource.imageSrc, item.name || t('messages.preview_default_title'));
 
     try {
         await loadPreview(item, { keepThumbnail: sharedTransition });
@@ -650,7 +651,7 @@ async function navigatePreview(delta: number) {
         navigationPending = false;
         await openPreviewItem(item, findGalleryPreviewSource(item));
     } catch {
-        if (epoch === navigationEpoch && isPreviewOpen()) flashStatus('Could not load the next photo. Try again.');
+        if (epoch === navigationEpoch && isPreviewOpen()) flashStatus(t('messages.preview_next_failed'));
     } finally {
         if (epoch === navigationEpoch) {
             navigationPending = false;
@@ -1150,7 +1151,7 @@ export function activatePreviewModal(): () => void {
     listenPreview(dom.image, "error", (() => {
         if (isPreviewOpen() && dom.image.getAttribute("src")) {
             releaseOriginalSession();
-            showPreviewError("Not a supported image", { keepCurrentImage: true });
+            showPreviewError(t('messages.preview_not_image'), { keepCurrentImage: true });
         }
     }) as EventListener);
     listenPreview(dom.image, "load", (() => {

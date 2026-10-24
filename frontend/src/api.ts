@@ -2,8 +2,8 @@
 // Domain implementations stay internal; UI modules import only from this file.
 export * from "./api/drives";
 export * from "./api/files";
-export * from "./api/resumable-uploads";
-export * from "./api/resumable-downloads";
+export * from "./api/resumable_uploads";
+export * from "./api/resumable_downloads";
 export * from "./api/gallery";
 export * from "./api/media";
 export * from "./api/renditions";
@@ -13,7 +13,7 @@ export * from "./api/runtime";
 export { BackendInvocationError } from "./api/gateway";
 export * from "./api/session";
 export * from "./api/updates";
-export * from "./api/channel-sources";
+export * from "./api/channel_sources";
 export * from "./api/biometric";
 
 export type {

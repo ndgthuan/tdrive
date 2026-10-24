@@ -20,8 +20,8 @@ vi.mock('../../api', () => ({
 vi.mock('../notifications', () => ({ notify: vi.fn() }));
 vi.mock('../encryption', () => ({ loadEncryptionStatus: vi.fn() }));
 vi.mock('../transfers', () => ({ enqueueDownload: vi.fn() }));
-vi.mock('./preview-info', () => ({ renderImageInfoHTML: vi.fn(() => '') }));
-vi.mock('./preview-transition', () => ({
+vi.mock('./preview_info', () => ({ renderImageInfoHTML: vi.fn(() => '') }));
+vi.mock('./preview_transition', () => ({
     capturePreviewTransitionSource: vi.fn(() => null),
     createPreviewTransitionController: vi.fn(() => ({
         cancel: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock('./preview-transition', () => ({
         playClose: vi.fn(),
     })),
 }));
-vi.mock('../../ui/preview/PreviewModal.svelte', () => ({ default: {} }));
+vi.mock('../../ui/preview/preview_modal.svelte', () => ({ default: {} }));
 
 const PREVIEW_MARKUP = `
     <div id="preview-shell" role="dialog">

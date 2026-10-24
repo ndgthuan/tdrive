@@ -1,9 +1,9 @@
 // Breadcrumb and folder navigation for TDrive frontend
 
 import { state } from '../state';
-import { canDropOnFolder, setDropHighlight, performDropMove } from './drag-drop';
-import { appActions } from './app-actions';
-import { breadcrumbPath, type BreadcrumbDrag } from '../ui/chrome/breadcrumb-store';
+import { canDropOnFolder, setDropHighlight, performDropMove } from './drag_drop';
+import { appActions } from './app_actions';
+import { breadcrumbPath, type BreadcrumbDrag } from '../ui/chrome/breadcrumb_store';
 
 // renderBreadcrumb mirrors state.folderPath (the source of truth, mutated by
 // several modules) into the breadcrumb store.

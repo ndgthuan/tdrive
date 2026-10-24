@@ -127,7 +127,7 @@
 }
 .notif-section-label {
     font-size: 0.68rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--text-muted);
@@ -345,15 +345,16 @@
     pointer-events: auto;
     display: grid;
     grid-template-columns: 22px 1fr 22px;
-    gap: 10px;
+    gap: 12px;
     align-items: start;
-    padding: 10px 12px;
-    border-radius: var(--radius-lg);
-    background: var(--color-surface-1);
+    /* Mockup toast: raised surface, hairline border, 8px corners, 13px copy. */
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-2);
     border: 1px solid var(--color-border-soft);
-    box-shadow: var(--shadow-sm);
-    color: var(--text-main);
-    font-size: var(--type-base);
+    box-shadow: var(--shadow-md);
+    color: var(--color-text);
+    font-size: var(--type-sm);
     line-height: 1.4;
     transform-origin: top center;
     --motion-enter-y: -8px;

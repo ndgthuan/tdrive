@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import Gallery from './Gallery.svelte';
-import GalleryCell from './GalleryCell.svelte';
-import { galleryView } from './gallery-store';
-import { GallerySource } from './gallery-source';
+import Gallery from './gallery.svelte';
+import GalleryCell from './gallery_cell.svelte';
+import { galleryView } from './gallery_store';
+import { GallerySource } from './gallery_source';
 import type { FileItem } from '../../types';
 
 function makeItem(overrides: Partial<FileItem> = {}): FileItem {

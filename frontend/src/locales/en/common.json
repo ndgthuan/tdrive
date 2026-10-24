@@ -1,0 +1,15 @@
+{
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "close": "Close",
+    "retry": "Retry",
+    "done": "Done",
+    "back": "Back",
+    "loading": "Loading…",
+    "search_placeholder": "Search",
+    "error_generic": "Something went wrong.",
+    "items_one": "{count} item",
+    "items_other": "{count} items"
+}

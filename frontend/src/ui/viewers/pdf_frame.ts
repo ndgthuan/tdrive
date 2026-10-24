@@ -1,0 +1,31 @@
+export const PDF_VIEWER_FRAME_SOURCE = 'tdrive-pdf-frame';
+
+export interface PdfFrameLoadedMessage {
+    source: typeof PDF_VIEWER_FRAME_SOURCE;
+    type: 'loaded';
+    pages: number;
+}
+
+export interface PdfFrameErrorMessage {
+    source: typeof PDF_VIEWER_FRAME_SOURCE;
+    type: 'error';
+    message: string;
+}
+
+export type PdfFrameMessage = PdfFrameLoadedMessage | PdfFrameErrorMessage;
+
+export function pdfViewerFrameSrc(fileURL: string, protectedContent = false, no_save = false): string {
+    const params = new URLSearchParams({ file: fileURL });
+    if (protectedContent) params.set('protected', '1');
+    if (no_save) params.set('no_save', '1');
+    return `/pdf-viewer.html?${params.toString()}`;
+}
+
+export function isPdfFrameMessage(value: unknown): value is PdfFrameMessage {
+    if (!value || typeof value !== 'object') return false;
+    const candidate = value as Partial<PdfFrameMessage>;
+    if (candidate.source !== PDF_VIEWER_FRAME_SOURCE) return false;
+    if (candidate.type === 'loaded') return typeof candidate.pages === 'number';
+    if (candidate.type === 'error') return typeof candidate.message === 'string';
+    return false;
+}

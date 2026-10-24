@@ -1,0 +1,11 @@
+{
+    "untitled": "Chưa đặt tên",
+    "pending_request": "Yêu cầu đang chờ",
+    "waiting_error": "Đang chờ duyệt - {error}",
+    "waiting_admin": "Đang chờ quản trị viên duyệt",
+    "my_drive": "Ổ của tôi",
+    "loading": "Đang tải...",
+    "no_shared": "Chưa có ổ chia sẻ nào",
+    "actions_for": "Thao tác với {title}",
+    "pending_tag": "đang chờ"
+}

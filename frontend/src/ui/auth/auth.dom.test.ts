@@ -2,14 +2,14 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import AuthScreens from './AuthScreens.svelte';
-import { showAuthView, showStartupView } from '../app/app-store';
+import AuthScreens from './auth_screens.svelte';
+import { showAuthView, showStartupView } from '../app/app_store';
 import {
     authPhone,
     beginAuthSubmission,
     failAuthSubmission,
     resetAuthSubmissions,
-} from './auth-store';
+} from './auth_store';
 
 let host: HTMLElement;
 let app: Record<string, unknown>;

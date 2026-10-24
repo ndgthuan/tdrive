@@ -6,10 +6,11 @@
 .gallery-title {
     display: none;
     align-items: center;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: 0.01em;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
 }
 .main-content.photos-mode .gallery-title { display: flex; }
 
@@ -31,7 +32,7 @@
 .gallery-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 64px; }
 .gallery-empty-icon { width: 48px; height: 48px; color: var(--border); }
 .gallery-empty-icon svg { width: 100%; height: 100%; }
-.gallery-empty-title { color: var(--text-main); font-weight: 700; font-size: 1rem; }
+.gallery-empty-title { color: var(--text-main); font-weight: 600; font-size: 1rem; }
 .gallery-empty-sub { font-size: 0.85rem; }
 
 .gallery-group { margin-bottom: 18px; }
@@ -41,7 +42,7 @@
     z-index: 1;
     padding: 16px 2px 12px;
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.01em;
     color: var(--text-main);
     /* Opaque so grid cells never ghost through the sticky header on scroll. */
@@ -50,35 +51,43 @@
 
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
-    gap: 5px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
 }
 .gallery-virtual { position: relative; overflow-anchor: none; }
 .gallery-virtual-row { position: absolute; left: 0; right: 0; contain: layout style; }
 .gallery-grid-cell { min-width: 0; min-height: 0; }
 .gallery-grid-cell > .gallery-cell { width: 100%; height: 100%; }
 .gallery-virtual-header { position: absolute; left: 0; right: 0; box-sizing: border-box; line-height: 20px; }
+/* Day or month headings read as small secondary labels above their tiles. */
+html:not(.mobile) .gallery-virtual-header {
+    padding-top: 8px;
+    font-size: var(--type-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-text-muted);
+}
 .gallery-pending { width: 100%; background: var(--bg-panel); }
 .gallery-page-error { position: sticky; bottom: 12px; padding: 12px; background: var(--bg-panel); color: var(--text-muted); border-radius: var(--radius-md); text-align: center; }
 
 .gallery-cell {
     appearance: none;
     -webkit-appearance: none;
-    border: none;
+    border: 1px solid var(--color-border-soft);
     margin: 0;
     padding: 0;
     font: inherit;
     color: inherit;
     position: relative;
     aspect-ratio: 1 / 1;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-sm);
     overflow: hidden;
     cursor: pointer;
-    background: var(--bg-panel);
-    transition: transform 140ms var(--ease-standard), box-shadow 140ms var(--ease-standard);
+    background: var(--color-surface-2);
+    transition: border-color var(--motion-fast) var(--ease-standard);
 }
-.gallery-cell:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-.gallery-cell:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.gallery-cell:hover { border-color: var(--color-border); }
+.gallery-cell:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; box-shadow: none; }
+.gallery-cell.is-selected { outline: 2px solid var(--color-accent); outline-offset: 0; }
 
 .gallery-thumb {
     width: 100%;
@@ -92,7 +101,6 @@
 
 /* Loading shimmer while a thumbnail is being fetched/generated. */
 .gallery-cell.is-loading {
-    background-image: linear-gradient(100deg, var(--bg-panel) 30%, var(--overlay-accent-1) 50%, var(--bg-panel) 70%);
     background-size: 200% 100%;
     animation: gallery-shimmer 1.3s linear infinite;
 }
@@ -120,21 +128,23 @@
     width: 22px; height: 22px;
     border-radius: var(--radius-sm);
     background: rgba(12, 14, 22, 0.55);
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
 }
 
+/* A video reads as a small dark pill in the corner, like the duration tag. */
 .gallery-video-badge {
     position: absolute;
     right: 8px;
     bottom: 8px;
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    color: #fff;
-    background: rgba(0, 0, 0, .66);
-    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    min-width: 22px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    color: var(--color-text);
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: var(--radius-sm);
     pointer-events: none;
 }
 .gallery-lock svg { width: 13px; height: 13px; }
@@ -144,13 +154,7 @@
    written out by hand (#7aa2f7, Tokyo Night), which left it off-hue in every
    other palette -- and the default is not that one. */
 .gallery-cell.is-locked {
-    background: repeating-linear-gradient(
-        45deg,
-        var(--bg-panel),
-        var(--bg-panel) 10px,
-        color-mix(in srgb, var(--accent) 5%, transparent) 10px,
-        color-mix(in srgb, var(--accent) 5%, transparent) 20px
-    );
+    background: var(--color-surface-3);
 }
 
 /* ----- Lightbox: download, list navigation, counter ----- */
@@ -215,7 +219,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.86);
     font-size: 0.8rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 0.02em;
     -webkit-backdrop-filter: blur(14px);
     backdrop-filter: blur(14px);
@@ -289,7 +293,7 @@
 .info-date {
     color: rgba(255, 255, 255, 0.96);
     font-size: 1.04rem;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.45;
     margin-bottom: 20px;
     padding-right: 34px; /* clear the close button */
@@ -299,7 +303,7 @@
 .info-section-title {
     color: rgba(255, 255, 255, 0.5);
     font-size: 0.7rem;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin-bottom: 8px;
@@ -322,7 +326,7 @@
     background: rgba(255, 255, 255, 0.04);
     color: var(--viewer-accent);
     font-size: 0.82rem;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     transition: background 0.15s ease;
 }
@@ -477,14 +481,14 @@
 .preview-unlock-error {
     margin-top: 16px;
     color: var(--viewer-danger);
-    font-family: system-ui, -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+    font-family: var(--font-ui);
     font-size: 0.8rem;
     text-align: center;
 }
 .preview-unlock-hint {
     margin-top: 16px;
     color: var(--viewer-text-muted);
-    font-family: system-ui, -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+    font-family: var(--font-ui);
     font-size: 0.8rem;
     font-weight: 500;
     letter-spacing: 0.01em;
@@ -533,7 +537,7 @@ html.mobile .gallery-cell {
     -webkit-touch-callout: none;
 }
 html.mobile .gallery-cell:hover { transform: none; box-shadow: none; }
-html.mobile .gallery-cell:focus-visible { box-shadow: inset var(--focus-ring); }
+html.mobile .gallery-cell:focus-visible { box-shadow: inset 0 0 0 2px var(--color-accent); }
 html.mobile .gallery-cell::after {
     content: "";
     position: absolute;
@@ -595,7 +599,6 @@ html.mobile .gallery-skeleton { padding-top: 2px; }
 html.mobile .gallery-skeleton-cell {
     aspect-ratio: 1 / 1;
     background-color: var(--bg-panel);
-    background-image: linear-gradient(100deg, transparent 25%, var(--overlay-neutral-2) 48%, transparent 70%);
     background-size: 240% 100%;
     animation: file-skeleton-shimmer 1.65s linear var(--skeleton-delay, 0ms) infinite;
 }
@@ -760,6 +763,9 @@ html.mobile .preview-unlock-go {
 /* Sits in the breadcrumb row beside the "Photos" heading, and only there:
    outside photos mode the row belongs to the folder trail. */
 .photos-mode-bar { display: none; align-items: center; gap: 10px; margin-left: auto; }
+/* The count sits beside the title as secondary text, as in the design. */
+.photos-count { color: var(--color-text-muted); font-size: var(--type-sm); white-space: nowrap; }
+.photos-mode-bar:has(.photos-count) { margin-left: var(--space-3); }
 .main-content.photos-mode .photos-mode-bar { display: flex; }
 
 /* Leaving an album is a step back up, so it reads like the breadcrumb's back
@@ -853,7 +859,7 @@ html.mobile .preview-unlock-go {
    arbitrary user content and can be any brightness, and this UI is flat -- it
    has no scrim idiom, and inventing one for this screen alone would leave
    "Screenshots" unreadable over a bright collage anyway. Its height is fixed
-   so the row window can measure a row before the row exists; album-view.ts
+   so the row window can measure a row before the row exists; album_view.ts
    holds the same number and sets it here. */
 .album-label {
     display: flex;
@@ -881,18 +887,11 @@ html.mobile .preview-unlock-go {
 /* The photo grid's own states, reused verbatim rather than restated: the
    shimmer while a cover loads, and the stripes a locked vault draws. */
 .album-cover.is-loading {
-    background-image: linear-gradient(100deg, var(--bg-panel) 30%, var(--overlay-accent-1) 50%, var(--bg-panel) 70%);
     background-size: 200% 100%;
     animation: gallery-shimmer 1.3s linear infinite;
 }
 .album-cover.is-locked {
-    background: repeating-linear-gradient(
-        45deg,
-        var(--bg-panel),
-        var(--bg-panel) 10px,
-        color-mix(in srgb, var(--accent) 5%, transparent) 10px,
-        color-mix(in srgb, var(--accent) 5%, transparent) 20px
-    );
+    background: var(--color-surface-3);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -920,3 +919,214 @@ html.mobile .album-grid-root {
 html.mobile .photos-modes { width: 100%; }
 html.mobile .photos-modes button { flex: 1 1 0; min-height: var(--touch-target); }
 html.mobile .photos-mode-bar { margin-left: 0; }
+
+/* ----- Photo viewer, desktop: the Viewer design -----
+   A black stage under a 64px top bar with a hairline, the file name as plain
+   text, square 32px controls, and the info panel as a 320px rail on surface-1
+   that narrows the stage rather than floating over the photo. The rules below
+   are scoped to the desktop shell so the phone viewer keeps its own design. */
+html:not(.mobile) .preview-overlay::before {
+    background: var(--color-canvas);
+}
+html:not(.mobile) .preview-chrome {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    padding: 0 24px;
+    gap: var(--space-3);
+    align-items: center;
+    background: var(--color-canvas);
+    border-bottom: 1px solid var(--color-border-soft);
+    pointer-events: auto;
+}
+html:not(.mobile) .preview-filename {
+    max-width: min(60vw, 720px);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    color: var(--color-text);
+    font-size: var(--type-base);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0;
+    pointer-events: none;
+}
+html:not(.mobile) .preview-chrome-actions {
+    gap: var(--space-2);
+    margin-left: auto;
+}
+html:not(.mobile) .preview-icon-btn,
+html:not(.mobile) .preview-close-btn {
+    width: var(--control-md);
+    height: var(--control-md);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+html:not(.mobile) .preview-icon-btn:hover,
+html:not(.mobile) .preview-icon-btn:focus-visible,
+html:not(.mobile) .preview-close-btn:hover,
+html:not(.mobile) .preview-close-btn:focus-visible {
+    background: var(--color-surface-3);
+    border-color: var(--color-border);
+    color: var(--color-text);
+    transform: none;
+}
+html:not(.mobile) .preview-icon-btn:focus-visible,
+html:not(.mobile) .preview-close-btn:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+html:not(.mobile) .preview-icon-btn svg,
+html:not(.mobile) .preview-close-btn svg { width: 16px; height: 16px; }
+html:not(.mobile) .preview-close-btn { font-size: var(--type-base); }
+
+html:not(.mobile) .preview-content {
+    padding: 64px 32px 64px;
+    background: transparent;
+}
+html:not(.mobile) .preview-content img {
+    max-width: 100%;
+    max-height: calc(100vh - 128px);
+    box-shadow: none;
+    border-radius: var(--radius-md);
+}
+html:not(.mobile) .preview-thumbnail,
+html:not(.mobile) .preview-original {
+    inset: 64px 32px 64px;
+    width: calc(100% - 64px);
+    height: calc(100% - 128px);
+    margin: auto;
+}
+/* With the rail open the photo centres in the space left of it. */
+html:not(.mobile) .preview-overlay.is-info-open .preview-thumbnail,
+html:not(.mobile) .preview-overlay.is-info-open .preview-original {
+    inset: 64px 352px 64px 32px;
+    width: auto;
+}
+html:not(.mobile) .preview-overlay.is-info-open .preview-content {
+    padding-right: 352px;
+}
+
+html:not(.mobile) .preview-nav {
+    width: var(--control-md);
+    height: var(--control-md);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    opacity: 1;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+html:not(.mobile) .preview-nav:hover:not(:disabled) {
+    opacity: 1;
+    background: var(--color-surface-3);
+    color: var(--color-text);
+}
+html:not(.mobile) .preview-nav:disabled { opacity: 0.4; }
+html:not(.mobile) .preview-nav svg { width: 16px; height: 16px; }
+html:not(.mobile) .preview-nav-prev { left: 24px; }
+html:not(.mobile) .preview-nav-next { right: 24px; }
+html:not(.mobile) .preview-overlay.is-info-open .preview-nav-next { right: 344px; }
+
+/* The zoom-pill position: the counter sits centred under the photo as a
+   small surface-2 pill. */
+html:not(.mobile) .preview-counter {
+    bottom: 16px;
+    height: var(--control-md);
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    font-size: var(--type-sm);
+    font-weight: var(--weight-medium);
+    letter-spacing: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* Details rail: 320px on surface-1, hairline on its left, no float or blur. */
+html:not(.mobile) .preview-info {
+    top: 65px;
+    right: 0;
+    bottom: 0;
+    width: 320px;
+    max-width: none;
+    border: 0;
+    border-left: 1px solid var(--color-border-soft);
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--color-surface-1);
+}
+html:not(.mobile) .preview-info::before {
+    background: var(--color-surface-1);
+    border-radius: 0;
+}
+html:not(.mobile) #preview-info-body { padding: var(--space-6); }
+html:not(.mobile) .preview-info-close {
+    top: 12px;
+    right: 12px;
+    width: var(--control-sm);
+    height: var(--control-sm);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+}
+html:not(.mobile) .preview-info-close:hover { background: var(--color-surface-3); color: var(--color-text); }
+html:not(.mobile) .info-date {
+    color: var(--color-text);
+    font-size: var(--type-base);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-snug);
+    margin-bottom: var(--space-5);
+    padding-right: 36px;
+    letter-spacing: 0;
+}
+html:not(.mobile) .info-section { margin-bottom: var(--space-5); }
+html:not(.mobile) .info-section-title {
+    color: var(--color-text-muted);
+    font-size: var(--type-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.04em;
+    margin-bottom: var(--space-1);
+}
+html:not(.mobile) .info-row {
+    align-items: center;
+    padding: 0;
+    height: 36px;
+    font-size: var(--type-sm);
+    border-bottom: 1px solid var(--color-border-soft);
+}
+html:not(.mobile) .info-row:last-child { border-bottom: 0; }
+html:not(.mobile) .info-label { color: var(--color-text-muted); }
+html:not(.mobile) .info-value { color: var(--color-text); }
+html:not(.mobile) .info-map-link {
+    margin-top: var(--space-3);
+    height: var(--control-md);
+    padding: 0 var(--space-3);
+    box-sizing: border-box;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-accent-text);
+    font-size: var(--type-sm);
+    font-weight: var(--weight-medium);
+}
+html:not(.mobile) .info-map-link:hover { background: var(--color-surface-3); }
+html:not(.mobile) .info-empty { color: var(--color-text-muted); font-size: var(--type-sm); }

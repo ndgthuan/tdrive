@@ -1,7 +1,7 @@
 <script lang="ts">
     import { openNewFolderModal } from '../../modules/modals/folder';
     import { chooseFilesForCurrentFolder, chooseFolderForCurrentFolder } from '../../modules/transfers';
-    import UploadMenu from '../chrome/UploadMenu.svelte';
+    import UploadMenu from '../chrome/upload_menu.svelte';
 
     interface Props {
         // The menu installs window and document listeners and, on a phone, opens
@@ -24,7 +24,7 @@
      Android offers the folder upload too, because the app's own bridge walks
      the chosen tree and the upload copies out of it a window at a time, so the
      item is no longer a button that could only fail. See
-     modules/android-folder.ts. -->
+     modules/android_folder.ts. -->
 <div class="mobile-fab">
     {#if dashboardVisible}
         <UploadMenu

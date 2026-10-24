@@ -9,12 +9,11 @@
     let { user, large = false }: Props = $props();
 
     const view = $derived(avatarViewFor(user));
+    // Only a photo sets an inline style; initials take the neutral fallback from account.css.
     const style = $derived(
         view.photoUrl
             ? `background-image: url("${view.photoUrl}"); background-size: cover; background-position: center;`
-            : view.color
-                ? `background: ${view.color};`
-                : 'background: var(--surface-2, rgba(255,255,255,0.06));',
+            : '',
     );
 </script>
 

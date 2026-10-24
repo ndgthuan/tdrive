@@ -8,19 +8,23 @@
 .main-content.channel-mode > :is(.drive-breadcrumb, .file-table-header, .file-list-box, .gallery-view),
 .main-content.channel-mode .upload-menu-wrap { display: none; }
 
+/* The sidebar is a 260px column on the canvas's darker step, separated from the
+   main area by one hairline and nothing else. */
 .sidebar {
-    width: 240px; flex-shrink: 0; background: var(--bg-sidebar); border-right: 1px solid var(--color-surface-1);
-    padding: 20px; display: flex; flex-direction: column; min-height: 0;
+    width: 260px; flex-shrink: 0; background: var(--bg-sidebar); border-right: 1px solid var(--color-border-soft);
+    padding: 12px; display: flex; flex-direction: column; min-height: 0;
 }
 .logo {
     display: flex;
     align-items: center;
-    gap: 9px;
-    margin-bottom: 40px;
-    font-size: 1.2rem;
-    font-weight: 800;
+    gap: 8px;
+    height: 36px;
+    margin-bottom: 12px;
+    padding: 0 8px;
+    font-size: var(--type-xl);
+    font-weight: var(--weight-semibold);
     color: var(--color-text);
-    letter-spacing: -0.5px;
+    letter-spacing: -0.01em;
 }
 
 /* The mark is the one piece of warmth in an otherwise severe column, so it is
@@ -33,9 +37,13 @@
     object-fit: contain;
 }
 
-.storage-info { padding-top: 20px; border-top: 1px solid var(--border); }
-.storage-info p { font-size: var(--type-xs); color: var(--text-muted); display: flex; justify-content: space-between; gap: var(--space-2); }
-#storage-used { text-align: right; min-width: 0; }
+.storage-info {
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid var(--color-border-soft);
+}
+.storage-info p { font-size: var(--type-xs); color: var(--text-muted); display: flex; justify-content: space-between; gap: var(--space-2); margin: 0; }
+#storage-used { text-align: right; min-width: 0; color: var(--color-text); font-weight: var(--weight-medium); }
 
 .drives-nav {
     display: flex;
@@ -48,25 +56,30 @@
     flex: 1;
     min-height: 0;
     flex-direction: column;
-    gap: 18px;
+    gap: 16px;
     overflow-y: auto;
-    padding-bottom: 18px;
+    padding-bottom: 12px;
 }
 .drives-section { display: flex; flex-direction: column; }
+/* Section captions are small uppercase labels in the subtle text step, the
+   same caption the Sources group uses. */
 .drives-section-title {
-    font-size: var(--type-xs); font-weight: var(--weight-semibold); letter-spacing: 0;
-    color: var(--text-muted); padding: 0 12px 6px;
+    font-size: var(--type-xs); font-weight: var(--weight-semibold); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--color-text-subtle); padding: 0 8px; margin-bottom: 4px;
 }
 .drives-list { display: flex; flex-direction: column; gap: 2px; }
+/* A navigation row: 32px, 16px glyph, 8px gap, 14px medium text. The selected
+   row takes the accent-soft fill and the primary text colour, not the accent. */
 .drive-item {
-    display: flex; align-items: center; gap: 12px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 8px; color: var(--text-muted);
     background: transparent; border: none; cursor: pointer;
-    padding: 9px 12px; border-radius: var(--radius-md); font-size: var(--type-base); font-weight: var(--weight-medium);
+    height: 32px; min-height: 32px; padding: 0 8px; border-radius: var(--radius-sm);
+    font-size: var(--type-base); font-weight: var(--weight-medium);
     transition: background-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard); text-align: left; width: 100%;
 }
-.drive-item:hover { background: var(--bg-panel); color: var(--text-main); }
-.drive-item.active { background: var(--overlay-accent-1); color: var(--accent); }
-.drive-item .icon { width: 18px; height: 18px; flex-shrink: 0; }
+.drive-item:hover { background: var(--color-surface-3); color: var(--text-main); }
+.drive-item.active { background: var(--overlay-accent-1); color: var(--color-text); }
+.drive-item .icon { width: 16px; height: 16px; flex-shrink: 0; }
 .drive-item-title {
     flex: 1;
     min-width: 0;
@@ -75,7 +88,7 @@
     white-space: nowrap;
 }
 .drive-empty {
-    padding: 6px 12px; font-size: 0.8rem; color: var(--text-muted); opacity: 0.6;
+    padding: 6px 8px; font-size: 0.8rem; color: var(--text-muted); opacity: 0.6;
 }
 .pending-drive-item {
     opacity: 0.82;
@@ -83,7 +96,7 @@
 .pending-drive-tag {
     flex-shrink: 0;
     font-size: 0.62rem;
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--accent);
@@ -94,19 +107,21 @@
 .drives-actions {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     margin-top: auto;
-    padding: 14px 0 18px;
+    padding: 12px 0 0;
 }
+/* Sidebar actions are rows like the destinations above them, not bordered
+   boxes: the sidebar carries no boxes, so the actions don't either. */
 .drive-action-btn {
-    display: flex; align-items: center; gap: 10px; background: transparent; border: 1px solid var(--border);
-    color: var(--text-muted); padding: 8px 12px; border-radius: var(--radius-md); cursor: pointer;
-    font-size: var(--type-sm); text-align: left; transition: color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
+    display: flex; align-items: center; gap: 8px; background: transparent; border: 0;
+    color: var(--text-muted); height: 32px; padding: 0 8px; border-radius: var(--radius-sm); cursor: pointer;
+    font-size: var(--type-base); font-weight: var(--weight-medium); text-align: left; transition: color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
 }
 .drive-action-btn:hover,
 .drive-action-btn:focus-visible {
     color: var(--text-main);
-    background: var(--bg-panel);
+    background: var(--color-surface-3);
 }
 .drive-action-btn .icon { width: 16px; height: 16px; }
 
@@ -128,4 +143,3 @@
     white-space: nowrap;
 }
 .uploader-chip:empty { display: none; }
-

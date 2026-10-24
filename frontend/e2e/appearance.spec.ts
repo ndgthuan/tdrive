@@ -1,4 +1,4 @@
-import { bootTDrive, expect, test } from './wails-mock';
+import { bootTDrive, expect, test } from './wails_mock';
 import type { Page } from '@playwright/test';
 
 type Platform = 'desktop' | 'android' | 'ios';
@@ -12,7 +12,8 @@ async function usePlatform(page: Page, platform: Platform): Promise<void> {
 async function openAppearance(page: Page, platform: Platform): Promise<void> {
     if (platform === 'desktop') {
         await page.locator('#profile-trigger').click();
-        await page.getByRole('menuitem', { name: 'Appearance' }).click();
+        await page.getByRole('menuitem', { name: 'Settings' }).click();
+        await page.getByRole('navigation', { name: 'Settings sections' }).getByRole('button', { name: 'Appearance' }).click();
         return;
     }
 
@@ -41,6 +42,9 @@ for (const platform of ['desktop', 'android', 'ios'] as const) {
 test('a saved System preference becomes fixed at the current appearance', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' });
     await page.addInitScript(() => {
+        // The one-time move to TDrive has already run for this person; the saved
+        // System choice is what this test is about.
+        localStorage.setItem('tdrive_theme_migrated_v1', '1');
         localStorage.setItem('tdrive.appearance.v1', JSON.stringify({
             mode: 'system',
             lightThemeId: 'porcelain',

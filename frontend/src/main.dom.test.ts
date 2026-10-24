@@ -5,12 +5,12 @@ const themeLifecycle = vi.hoisted(() => ({
     initialize: vi.fn(),
 }));
 
-vi.mock('./ui/theme/theme-controller', () => ({
+vi.mock('./ui/theme/theme_controller', () => ({
     initializeTheme: themeLifecycle.initialize,
 }));
 
-vi.mock('./ui/theme/native-theme', () => ({ initializeNativeTheme: vi.fn(async () => vi.fn()) }));
-vi.mock('./modules/app-shell', () => ({
+vi.mock('./ui/theme/native_theme', () => ({ initializeNativeTheme: vi.fn(async () => vi.fn()) }));
+vi.mock('./modules/app_shell', () => ({
     mountApplication: vi.fn(() => ({ destroy: vi.fn(async () => {}) })),
 }));
 vi.mock('../bindings/TDrive/internal/app/app', () => ({ CheckSystemStatus: vi.fn(async () => 'NEEDS_SETUP') }));

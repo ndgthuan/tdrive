@@ -1,4 +1,4 @@
-import { bootTDrive, expect, rejects, resolves, test } from './wails-mock';
+import { bootTDrive, expect, rejects, resolves, test } from './wails_mock';
 import type { Page } from '@playwright/test';
 
 type Platform = 'desktop' | 'android';

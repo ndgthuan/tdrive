@@ -1,9 +1,9 @@
 // Type-only, so the state <-> folder-index cycle it would otherwise form is
 // erased before it reaches the bundler.
-import type { FolderIndex } from './modules/folder-index';
-import type { ImportProgress } from './modules/import-progress';
+import type { FolderIndex } from './modules/folder_index';
+import type { ImportProgress } from './modules/import_progress';
 import type { DriveChannel, DriveKind, PendingJoin, RootFile } from './types';
-import type { FileCommandItem, FileDragState } from './ui/file-list/types';
+import type { FileCommandItem, FileDragState } from './ui/file_list/types';
 
 // Centralized state shared by the typed controllers and rendered surfaces.
 

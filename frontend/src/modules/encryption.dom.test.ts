@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../api', () => ({ getEncryptionStatus: mocks.getStatus }));
-vi.mock('./modals/encryption-password', () => ({ openEncryptionPasswordModal: mocks.prompt }));
-vi.mock('../ui/chrome/profile-store', () => ({ encryptionEntryVisible: { set: vi.fn() } }));
+vi.mock('./modals/encryption_password', () => ({ openEncryptionPasswordModal: mocks.prompt }));
+vi.mock('../ui/chrome/profile_store', () => ({ encryptionEntryVisible: { set: vi.fn() } }));
 
 import { state } from '../state';
 import { accessEncryptedResource } from './encryption';

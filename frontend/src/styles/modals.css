@@ -1,4 +1,6 @@
-/* MODAL */
+/* MODAL: one dialog surface for every desktop dialog. Mockup: 12px corners,
+   a hairline border, the raised surface, one floating shadow, 24px padding and
+   a 16px rhythm between header, body and footer. */
 .modal-overlay {
     position: fixed; inset: 0; z-index: var(--z-modal);
     display: flex; align-items: center; justify-content: center;
@@ -6,15 +8,37 @@
     padding: 24px;
 }
 .modal-card {
-    width: 100%; max-width: 440px;
-    background: var(--bg-sidebar); border: 1px solid var(--border);
-    border-radius: var(--radius-xl); padding: 20px;
+    width: 100%; max-width: 520px;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
     box-shadow: var(--shadow-lg);
     --motion-enter-scale: 0.985;
     animation: tdrive-surface-enter var(--motion-slow) var(--ease-enter) both;
 }
-.modal-title { color: var(--color-text); font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
-.modal-subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 18px; }
+html:not(.mobile) .modal-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+/* Header: the title is the one 20px semibold line; the description reads as
+   a 13px secondary line under it. */
+.modal-header { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.modal-title {
+    color: var(--color-text);
+    font-size: var(--type-xl);
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
+    line-height: var(--leading-tight);
+    margin: 0;
+}
+.modal-subtitle {
+    color: var(--text-muted);
+    font-size: var(--type-sm);
+    line-height: var(--leading-normal);
+    margin: 0;
+}
 .share-drive-link {
     width: 100%;
     min-height: 44px;
@@ -33,7 +57,7 @@
    in a bordered, filled box that read as an input waiting to be typed into. */
 .delete-target-name {
     max-height: 5.5rem;
-    margin: var(--space-1) 0 var(--space-4);
+    margin: 0;
     overflow: auto;
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -44,12 +68,15 @@
 }
 /* A visible label above a dialog field. The input keeps its accessible name
    from the `for`/id link, so the placeholder no longer has to stand in for it. */
+/* A label and its input travel together: 8px between them, one field per block. */
+.modal-field { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .field-label {
     display: block;
-    margin-bottom: var(--space-1-5);
-    color: var(--text-main);
+    margin: 0;
+    color: var(--text-muted);
     font-size: var(--type-sm);
     font-weight: var(--weight-medium);
+    line-height: var(--leading-normal);
 }
 /* Help text is already the muted role; the extra opacity put it under the
    contrast floor in more than half the themes, so it is gone. */
@@ -59,12 +86,81 @@
     line-height: 1.35;
     margin: -8px 0 16px;
 }
-.modal-actions { display: flex; gap: 12px; justify-content: flex-end; align-items: center; }
-/* Desktop dialog buttons are the 36px control size; the filled button is the
-   heavier of the two by colour and should not be the taller one as well. The
-   phone sheet overrides these to the 44px touch floor below. */
-.modal-actions .primary-btn,
-.modal-actions .secondary-btn { width: auto; min-height: var(--control-lg); padding: 0 var(--space-4); }
+/* Dialog inputs: 32px, a 1px input border (not the decorative hairline), the
+   theme's focus ring on focus. Checkboxes and radios are styled below. */
+.modal-card input:not([type="radio"]):not([type="checkbox"]) {
+    width: 100%;
+    height: var(--control-md);
+    margin: 0;
+    padding: 0 var(--space-3);
+    background: var(--color-canvas);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: var(--type-base);
+    line-height: 1;
+}
+.modal-card input:not([type="radio"]):not([type="checkbox"])::placeholder { color: var(--color-text-subtle); }
+.modal-card input:not([type="radio"]):not([type="checkbox"]):focus-visible,
+.modal-card input:not([type="radio"]):not([type="checkbox"]):focus {
+    border-color: var(--color-accent);
+    box-shadow: var(--focus-ring);
+    outline: none;
+}
+.modal-card input:disabled { color: var(--text-muted); border-color: var(--color-border-soft); }
+
+/* Footer: right-aligned, neutral Cancel and one accent primary. */
+.modal-actions {
+    display: flex; gap: var(--space-2); justify-content: flex-end; align-items: center;
+}
+.modal-card .modal-actions .primary-btn,
+.modal-card .modal-actions .secondary-btn,
+.modal-card .modal-actions .danger-btn {
+    width: auto;
+    height: var(--control-md);
+    min-height: var(--control-md);
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-sm);
+    font-size: var(--type-base);
+    font-weight: var(--weight-semibold);
+    line-height: 1;
+    gap: var(--space-2);
+}
+.modal-card .modal-actions .primary-btn {
+    background: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    color: var(--color-on-accent);
+}
+.modal-card .modal-actions .primary-btn:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+    transform: none;
+}
+.modal-card .modal-actions .primary-btn:disabled,
+.modal-card .modal-actions .secondary-btn:disabled,
+.modal-card .modal-actions .danger-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.modal-card .modal-actions .secondary-btn {
+    background: transparent;
+    border: 1px solid var(--color-border-soft);
+    color: var(--color-text);
+}
+.modal-card .modal-actions .secondary-btn:hover:not(:disabled) {
+    background: var(--color-surface-3);
+    transform: none;
+}
+.modal-card .modal-actions .danger-btn {
+    background: var(--color-danger);
+    border: 1px solid var(--color-danger);
+    color: var(--color-on-danger);
+}
+.modal-card .modal-actions .danger-btn:hover:not(:disabled) {
+    filter: brightness(1.05);
+    transform: none;
+}
+
 .modal-empty {
     padding: 14px;
     color: var(--text-muted);
@@ -73,28 +169,84 @@
     border-radius: var(--radius-lg);
     background: var(--overlay-white-1);
 }
+
+/* Option cards: a bordered row with a radio or checkbox, the title in 14px
+   semibold and the explanation in 13px muted. A chosen radio card takes the
+   accent border and the selected tint. */
 .modal-choice-row {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    color: var(--text-main);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 12px;
-    margin: -4px 0 18px;
+    gap: var(--space-3);
+    color: var(--color-text);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    margin: 0;
     cursor: pointer;
+    transition: border-color var(--motion-med) var(--ease-standard), background-color var(--motion-med) var(--ease-standard);
+}
+.modal-choice-row:hover { border-color: var(--color-border); }
+.modal-choice-row:has(input[type="radio"]:checked) {
+    border-color: var(--color-accent);
+    background: var(--overlay-accent-1);
 }
 .modal-choice-row input[type="checkbox"],
 .modal-choice-row input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
     flex: 0 0 auto;
     width: 16px;
     height: 16px;
     margin: 2px 0 0;
     padding: 0;
-    accent-color: var(--accent);
+    border: 1px solid var(--color-border);
+    background: transparent;
+    cursor: pointer;
 }
-.modal-choice-row + .modal-choice-row {
-    margin-top: -10px;
+.modal-choice-row input[type="radio"] { border-radius: 50%; }
+.modal-choice-row input[type="checkbox"] { border-radius: 4px; }
+.modal-choice-row input[type="checkbox"]:checked {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-6' fill='none' stroke='%230A0F16' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: 14px 14px;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.modal-choice-row input[type="radio"]:checked {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    box-shadow: inset 0 0 0 3px var(--overlay-accent-1);
+}
+.modal-choice-row input[type="checkbox"]:focus-visible,
+.modal-choice-row input[type="radio"]:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+.modal-choice-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.modal-choice-row > span {
+    display: block;
+    flex: 1;
+    min-width: 0;
+}
+.modal-choice-row strong {
+    display: block;
+    font-size: var(--type-base);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-snug);
+}
+.modal-choice-row small {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--text-muted);
+    font-size: var(--type-sm);
+    line-height: var(--leading-normal);
+}
+.modal-error {
+    margin: 0;
+    font-size: var(--type-sm);
+    color: var(--danger);
+    line-height: 1.3;
 }
 
 /* === MOBILE: dialogs become bottom sheets ============================== */

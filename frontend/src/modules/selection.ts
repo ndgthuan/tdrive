@@ -1,16 +1,20 @@
 // Selection handling module for TDrive frontend
 
+import { get } from 'svelte/store';
 import { state } from '../state';
-import { getInteractiveFileListRows } from '../ui/file-list/file-list-store';
+import { isMobilePlatform } from '../api';
+import { getInteractiveFileListRows } from '../ui/file_list/file_list_store';
 import { openDeleteModal } from './modals/delete';
 import { openMoveModal } from './modals/move';
 import { enqueueDownload, enqueueFolderDownload } from './transfers';
 import { notify } from './notifications';
-import { setSelectionCount, setSelectionModeActive } from '../ui/selection/selection-bar-store';
-import { setSelectedFileRowKeys } from '../ui/file-list/row-state-store';
-import { fileListRowForElement } from '../ui/file-list/row-lookup';
-import { rangeSelectionKeys } from '../ui/file-list/keyboard';
-import type { FileCommandItem, FileListFileRow, FolderListRow } from '../ui/file-list/types';
+import { t } from '../i18n/i18n';
+import { selectionModeOn, setSelectionCount, setSelectionModeActive } from '../ui/selection/selection_bar_store';
+import { setSelectedFileRowKeys } from '../ui/file_list/row_state_store';
+import { fileListRowForElement } from '../ui/file_list/row_lookup';
+import { setActiveFileRowKey } from '../ui/file_list/row_state_store';
+import { rangeSelectionKeys } from '../ui/file_list/keyboard';
+import type { FileCommandItem, FileListFileRow, FolderListRow } from '../ui/file_list/types';
 
 const SELECTABLE_ROW_SELECTOR = '.drive-row[data-type="folder"], .drive-row[data-type="file"]';
 const MAX_BULK_DOWNLOAD_ITEMS = 500;
@@ -97,12 +101,21 @@ function renderedRowsByKey(list: HTMLElement): Map<string, HTMLElement> {
         .map((row) => [getRowKey(row), row] as const)
         .filter(([key]) => Boolean(key)));
 }
+// Whether the desktop list is in selection mode. A plain click selects one row
+// without it; Ctrl/Shift click, Ctrl+A, a press and hold, and the Select button
+// enter it, and Done, Clear, Escape or emptying the selection leave it.
+export function is_selection_mode_on(): boolean {
+    return get(selectionModeOn);
+}
+
 export function updateSelectionBar(): void {
     syncSelectedRowKeys();
-    if (!state.selectionBarEl) return;
     const count = state.selectedItems.size;
     setSelectionCount(count);
-    state.selectionBarEl.style.display = count === 0 ? 'none' : 'flex';
+    if (!state.selectionBarEl) return;
+    // The phone keeps its own rule: the bar shows whenever anything is selected.
+    const visible = isMobilePlatform() ? count > 0 : is_selection_mode_on() && count > 0;
+    state.selectionBarEl.style.display = visible ? 'flex' : 'none';
 }
 
 export function clearSelection({ keepAnchor = false }: { keepAnchor?: boolean } = {}): void {
@@ -117,6 +130,7 @@ export function clearSelection({ keepAnchor = false }: { keepAnchor?: boolean } 
 
 export function startSelectionMode(): void {
     setSelectionModeActive(true);
+    updateSelectionBar();
 }
 
 export function selectRow(row: HTMLElement, rowIndex: number): void {
@@ -132,6 +146,8 @@ export function deselectRow(row: HTMLElement): void {
     const key = getRowKey(row);
     if (!key) return;
     state.selectedItems.delete(key);
+    // Unticking the last row ends the mode, as Clear does.
+    if (state.selectedItems.size === 0) setSelectionModeActive(false);
     updateSelectionBar();
 }
 
@@ -186,7 +202,8 @@ export function handleRowSelection(
         : renderedRows.indexOf(row);
     if (index === -1) return;
 
-    const isToggle = event.metaKey || event.ctrlKey;
+    // In selection mode a plain click toggles the row, as Ctrl+click does.
+    const isToggle = event.metaKey || event.ctrlKey || is_selection_mode_on();
     const anchorIndex = selectionAnchorKey
         ? logicalRows
             ? logicalRows.findIndex((candidate) => candidate.selectionKey === selectionAnchorKey)
@@ -198,6 +215,7 @@ export function handleRowSelection(
         const start = Math.min(anchorIndex, index);
         const end = Math.max(anchorIndex, index);
         if (!isToggle) clearSelection({ keepAnchor: true });
+        startSelectionMode();
         const renderedByKey = list ? renderedRowsByKey(list) : new Map<string, HTMLElement>();
 
         for (let cursor = start; cursor <= end; cursor += 1) {
@@ -221,13 +239,51 @@ export function handleRowSelection(
     }
 
     if (isToggle) {
-        if (isRowSelected(row)) deselectRow(row);
-        else selectRow(row, index);
+        if (isRowSelected(row)) {
+            deselectRow(row);
+        } else {
+            selectRow(row, index);
+            startSelectionMode();
+        }
         return;
     }
 
     clearSelection({ keepAnchor: true });
     selectRow(row, index);
+}
+
+// A press and hold on a row: one selected row, and the mode on. Anything selected
+// before is dropped, because the hold is the start of a fresh selection.
+export function enter_selection_with_row(row: HTMLElement): void {
+    const index = getInteractiveFileListRows().findIndex((candidate) => candidate.selectionKey === getRowKey(row));
+    clearSelection();
+    if (index === -1) return;
+    selectRow(row, index);
+    // The held row also becomes the keyboard's row, so its ring is the one shown.
+    setActiveFileRowKey(getRowKey(row));
+    startSelectionMode();
+}
+
+// Ctrl/Cmd+click semantics for one row: add it when it is not selected, drop it
+// when it is. The row's position in the published list becomes its anchor, so a
+// later Shift+click ranges from it. Used by the checkbox and the phone tap.
+export function toggle_row_selection(row: HTMLElement): void {
+    if (isRowSelected(row)) {
+        deselectRow(row);
+        return;
+    }
+    const index = getInteractiveFileListRows().findIndex((candidate) => candidate.selectionKey === getRowKey(row));
+    selectRow(row, index);
+    startSelectionMode();
+}
+
+// The header checkbox: selects every row when some are unselected, and clears
+// the selection when every row already is.
+export function toggle_select_all(logicalRows: readonly LogicalFileListRow[] = getInteractiveFileListRows()): void {
+    if (logicalRows.length === 0) return;
+    const allSelected = logicalRows.every((row) => state.selectedItems.has(row.selectionKey));
+    if (allSelected) clearSelection();
+    else selectAllRows(logicalRows);
 }
 
 // Rebuilds the selection from a set of logical rows, attaching the rendered
@@ -253,6 +309,7 @@ export function selectAllRows(logicalRows: readonly LogicalFileListRow[] = getIn
         ? logicalRows.findIndex((row) => row.selectionKey === selectionAnchorKey)
         : -1;
     setSelectionFromRows(logicalRows);
+    startSelectionMode();
     if (anchorIndex < 0) {
         selectionAnchorKey = logicalRows[0].selectionKey;
         state.selectionAnchorIndex = 0;
@@ -284,6 +341,7 @@ export function extendSelectionToIndex(
     }
     const keys = new Set(rangeSelectionKeys(logicalRows, anchorIndex, targetIndex));
     setSelectionFromRows(logicalRows.filter((row) => keys.has(row.selectionKey)));
+    startSelectionMode();
 }
 
 export function ensureRowSelectedForContextMenu(row: HTMLElement): void {
@@ -325,8 +383,8 @@ export function openSelectedItemsDownload(): void {
     if (items.length > MAX_BULK_DOWNLOAD_ITEMS) {
         notify({
             level: 'warning',
-            title: 'Too many downloads',
-            body: `Select up to ${MAX_BULK_DOWNLOAD_ITEMS} items at a time.`,
+            title: t('selection.too_many_title'),
+            body: t('selection.too_many_body', { count: MAX_BULK_DOWNLOAD_ITEMS }),
         });
         return;
     }
@@ -339,8 +397,8 @@ export function openSelectedItemsDownload(): void {
     if (downloads.some(({ channelId }) => channelId === null)) {
         notify({
             level: 'error',
-            title: 'Download unavailable',
-            body: 'Refresh the drive and select the items again.',
+            title: t('selection.unavailable_title'),
+            body: t('selection.unavailable_body'),
         });
         return;
     }

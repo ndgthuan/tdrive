@@ -20,7 +20,7 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { bootTDrive, expect, rejects, resolves, test } from './wails-mock';
+import { bootTDrive, expect, rejects, resolves, test } from './wails_mock';
 import type { Page } from '@playwright/test';
 
 /** Two seconds of navy with a 440Hz tone: small enough to commit, real enough to decode. */

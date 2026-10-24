@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
-import { toasts } from '../ui/notifications/toast-store';
+import { toasts } from '../ui/notifications/toast_store';
 import { activateConnectivityWatch, isOffline, offline } from './connectivity';
 
 const OFFLINE_TOAST_ID = 'connectivity-offline';
@@ -62,7 +62,7 @@ describe('connectivity watch', () => {
 
     it('offers a refresh that clears the toast it came from', async () => {
         const triggerRefresh = vi.fn(async () => {});
-        const { configureAppActions } = await import('./app-actions');
+        const { configureAppActions } = await import('./app_actions');
         configureAppActions({ triggerRefresh } as never);
 
         deactivate = activateConnectivityWatch();

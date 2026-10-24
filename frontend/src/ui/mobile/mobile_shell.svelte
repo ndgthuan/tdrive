@@ -1,0 +1,292 @@
+<script lang="ts">
+    import { onMount } from 'svelte';
+    import { t_store } from '../../i18n/i18n';
+    import { get } from 'svelte/store';
+    // Aliased: a local binding named `state` would make the `$state` rune read as
+    // a store subscription (Svelte 5 ambiguity), which breaks the shell at render.
+    import { state as appState } from '../../state';
+    import { navigateToIndex } from '../../modules/navigation';
+    import { enterPhotos, exitPhotos } from '../../modules/gallery';
+    import { closeTrash } from '../../modules/trash/controller';
+    import { clearSelection, openSelectedItemsDelete, openSelectedItemsDownload, openSelectedItemsMove } from '../../modules/selection';
+    import { selectionBarState } from '../selection/selection_bar_store';
+    import FeatureLayer from '../app/feature_layer.svelte';
+    import PhotosModeBar from '../gallery/photos_mode_bar.svelte';
+    import PhotosSurface from '../gallery/photos_surface.svelte';
+    import SelectionBar from '../selection/selection_bar.svelte';
+    import AccountTab from './account_tab.svelte';
+    import Fab from './fab.svelte';
+    import DriveSwitcherSheet from './drive_switcher_sheet.svelte';
+    import TabBar from './tab_bar.svelte';
+    import TopBar from './top_bar.svelte';
+    import TransfersTab from './transfers_tab.svelte';
+    import { activateMobileBack } from './mobile_back';
+    import { activateSafeArea } from './safe_area';
+    import { activateKeyboardInsets } from './keyboard_insets';
+    import { activateBackgroundTransfers } from './background_transfers';
+    import { activateNotificationActions } from '../../modules/notification_actions';
+    import { scrollBehavior } from './motion';
+    import { activeTab, keyboardOpen, markTransfersSeen, transferAttentionCount, type MobileTab } from './mobile_shell_store';
+    import { sidebarState } from '../sidebar/sidebar_store';
+    import { breadcrumbPath } from '../chrome/breadcrumb_store';
+    import { fileListView } from '../file_list/file_list_store';
+    import ChannelView from '../channels/channel_view.svelte';
+    import { sourceKey } from '../channels/channel_model';
+    import { closeChannel, openChannel } from '../channels/channel_store';
+    import { openChannelPost, openInTelegram, recentChannelPages, showChannelActions, showPostActions } from '../../modules/channel_sources';
+    import { listChannelSourceTopics, listChannelMedia } from '../../api';
+
+    interface Props {
+        dashboardVisible: boolean;
+    }
+
+    let { dashboardVisible }: Props = $props();
+
+    // Selecting rows swaps the tab bar for the selection bar (spec 2.5); the
+    // count comes from the shared selection store the controller feeds.
+    const selecting = $derived(Boolean($selectionBarState.active || $selectionBarState.count > 0));
+    // A Telegram channel is a place the Files tab shows, like the trash, but
+    // it brings its own top bar and list, so it replaces the drive's.
+    const inChannel = $derived($activeTab === 'files' && $openChannel !== null);
+    // Files and Photos share one content region (the file list vs the gallery);
+    // Transfers and Account are their own panels.
+    const showMain = $derived(($activeTab === 'files' && !inChannel) || $activeTab === 'photos');
+    // An empty Files view already places Upload and Create folder in its
+    // center. Keep that focused state in charge rather than floating a second
+    // creation control over it.
+    const emptyFilesOwnsCreation = $derived(
+        $fileListView.kind === 'state'
+        && $fileListView.stateKind === 'empty'
+        && Boolean($fileListView.actions?.length),
+    );
+    // Nothing is uploaded into the trash or a channel, so the button does not
+    // float over either.
+    const showContextAction = $derived(
+        $activeTab === 'photos'
+        || ($activeTab === 'files' && !inChannel && !emptyFilesOwnsCreation && $sidebarState.virtualView !== 'trash'),
+    );
+    const contextualActionVisible = $derived(showContextAction && !selecting && !$keyboardOpen);
+
+    // The gallery owns whether Photos is showing; the tab is only how the user
+    // asked for it. Hardware BACK and in-app navigation leave the gallery
+    // without touching the tab bar, so follow the gallery whenever the two
+    // disagree, or the Photos tab would stay lit over the file list.
+    $effect(() => {
+        const wanted: MobileTab = $sidebarState.virtualView === 'photos' ? 'photos' : 'files';
+        const current = get(activeTab);
+        if ((current === 'files' || current === 'photos') && current !== wanted) {
+            activeTab.set(wanted);
+        }
+    });
+
+    // Walking into a folder pushes from the right and coming back pops to it,
+    // so the list carries the same sense of depth the back chevron promises.
+    // Only the direction lives here; the movement itself is CSS, which keeps it
+    // off the main thread and lets prefers-reduced-motion drop it wholesale.
+    let navDirection = $state<'forward' | 'back' | null>(null);
+    let lastDepth = -1;
+    let navTimer: ReturnType<typeof setTimeout> | undefined;
+
+    $effect(() => {
+        const depth = $breadcrumbPath.length;
+        if (lastDepth >= 0 && depth !== lastDepth) {
+            navDirection = depth > lastDepth ? 'forward' : 'back';
+            clearTimeout(navTimer);
+            // Cleared so a re-render mid-animation does not replay it.
+            navTimer = setTimeout(() => { navDirection = null; }, 280);
+        }
+        lastDepth = depth;
+    });
+
+    // Files and Photos share the drive's content region; Photos is reached
+    // through its own tab but is the gallery view of the same drive, keyed by
+    // virtualView === 'photos'. A folder, an open channel and the trash are all
+    // Files-tab state. Switching tabs keeps that state so a trip to Transfers or
+    // Account and back lands where the user left off; only re-tapping the active
+    // tab resets it to the drive root.
+    function selectTab(tab: MobileTab): void {
+        const reselect = get(activeTab) === tab;
+        if (tab === 'files') {
+            // Leaving the gallery reveals the file list (or the channel or trash)
+            // the Files tab was already showing underneath it.
+            if (appState.virtualView === 'photos') exitPhotos();
+        } else if (tab === 'photos') {
+            enterPhotos();
+        }
+        activeTab.set(tab);
+        if (tab === 'transfers') markTransfersSeen();
+        if (reselect) resetTab(tab);
+    }
+
+    // Re-tapping the active tab returns to the drive root and scrolls to top
+    // (interactivity-13): a predictable home base from anywhere in a drive.
+    function resetTab(tab: MobileTab): void {
+        if (tab === 'files') {
+            // Re-tapping Files is the one way back to the drive root from
+            // anywhere in it: leave the trash or a channel, then climb out of any
+            // open folder.
+            if (appState.virtualView === 'trash') closeTrash();
+            closeChannel();
+            navigateToIndex(-1);
+        }
+        scrollActiveToTop(tab);
+    }
+
+    // Each tab has its own scrolling surface; Files and Photos swap theirs for
+    // one another inside the shared content region.
+    function activeScroller(tab: MobileTab): HTMLElement | null {
+        if (tab === 'files') return document.getElementById('file-list');
+        if (tab === 'photos') return document.getElementById('gallery-view');
+        return document.querySelector<HTMLElement>(`.mobile-panel[data-tab="${tab}"] .mobile-scroll`);
+    }
+
+    function scrollActiveToTop(tab: MobileTab): void {
+        activeScroller(tab)?.scrollTo?.({ top: 0, behavior: scrollBehavior() });
+    }
+
+    // The top bar carries no divider until content actually passes under it.
+    // A permanent hairline plus the card's own edge draws two separators a few
+    // pixels apart; the bar only needs one once there is something to separate.
+    let scrolled = $state(false);
+
+    // Read from whichever surface is showing. Wired to the file list alone, the
+    // rule stayed on under the Account tab because the list it was watching had
+    // been left part-scrolled, and never came on at all while the gallery moved.
+    $effect(() => {
+        const surface = activeScroller($activeTab);
+        const onScroll = (): void => {
+            scrolled = (surface?.scrollTop ?? 0) > 2;
+        };
+        onScroll();
+        surface?.addEventListener('scroll', onScroll, { passive: true });
+        return () => surface?.removeEventListener('scroll', onScroll);
+    });
+
+    onMount(() => {
+        const disposeBack = activateMobileBack();
+        const disposeSafeArea = activateSafeArea();
+        const disposeKeyboard = activateKeyboardInsets();
+        const disposeBackground = activateBackgroundTransfers();
+        const disposeNotificationActions = activateNotificationActions();
+
+        return () => {
+            disposeNotificationActions();
+            disposeBack();
+            disposeSafeArea();
+            disposeKeyboard();
+            disposeBackground();
+            clearTimeout(navTimer);
+        };
+    });
+</script>
+
+<div
+    id="success-screen"
+    class="mobile-shell"
+    class:is-scrolled={scrolled}
+    class:is-selecting={selecting}
+    class:has-context-action={contextualActionVisible}
+    class:in-channel={inChannel}
+    hidden={!dashboardVisible}
+    aria-hidden={dashboardVisible ? undefined : 'true'}
+>
+    <TopBar active={$activeTab} />
+
+    <div class="mobile-body">
+        <!-- Files and Photos share this region; the gallery controller toggles
+             .photos-mode on it to swap the list for the grid. -->
+        <main class="main-content mobile-panel" data-tab="files" hidden={!showMain}>
+            <div id="gallery-title" class="gallery-title">{$t_store('mobile.photos')}</div>
+            <PhotosModeBar albumInTopBar />
+            <div
+                id="file-list"
+                class="file-list-box"
+                data-file-drop-target
+                data-nav={navDirection ?? undefined}
+                role="grid"
+                aria-label={$t_store('mobile.files')}
+                aria-multiselectable="true"
+                aria-colcount="4"
+                tabindex="-1"
+            ></div>
+            <!-- #gallery-view is the gallery's scroll container, not a seam: the
+                 component measures it, the thumbnail controller uses it as its
+                 IntersectionObserver root, and the click delegation, the preview
+                 modal's return-to-grid and this shell's scroll-to-top all look
+                 it up by this id. So the element stays exactly as it was and only the
+                 portal that filled it from elsewhere is gone. Held back until the
+                 dashboard is up so the grid's window listeners and resize observer
+                 live no longer than the dashboard does. -->
+            <div id="gallery-view" class="gallery-view" tabindex="-1" aria-label={$t_store('mobile.photos')}>
+                {#if dashboardVisible}
+                    <PhotosSurface />
+                {/if}
+            </div>
+        </main>
+
+        <div class="mobile-panel" data-tab="channel" hidden={!inChannel}>
+            {#if dashboardVisible && $openChannel}
+                {#key sourceKey($openChannel)}
+                    <ChannelView
+                        mobile
+                        source={$openChannel}
+                        fetchMedia={listChannelMedia}
+                        fetchTopics={listChannelSourceTopics}
+                        onOpenPost={openChannelPost}
+                        onOpenTelegram={openInTelegram}
+                        onActions={showChannelActions}
+                        onPostActions={showPostActions}
+                        onBack={closeChannel}
+                        recentPages={recentChannelPages}
+                    />
+                {/key}
+            {/if}
+        </div>
+
+        <div class="mobile-panel" data-tab="transfers" hidden={$activeTab !== 'transfers'}>
+            <TransfersTab />
+        </div>
+        <div class="mobile-panel" data-tab="account" hidden={$activeTab !== 'account'}>
+            <AccountTab />
+        </div>
+    </div>
+
+    <!-- The selection bar sits above the tab bar and replaces it while
+         selecting. It keeps its id and its inline display: none because the
+         selection controller is what reveals it, by flipping that style when
+         selection mode begins or a row is picked; the bar is fixed to the bottom of the viewport from
+         its own stylesheet, so where it sits in this shell does not move it. -->
+    <div
+        id="selection-bar"
+        class="selection-bar mobile-selection-bar"
+        style="display: none;"
+        role="status"
+        aria-live="polite"
+    >
+        {#if dashboardVisible}
+            <SelectionBar
+                onDownload={openSelectedItemsDownload}
+                onMove={openSelectedItemsMove}
+                onDelete={openSelectedItemsDelete}
+                onClear={clearSelection}
+            />
+        {/if}
+    </div>
+
+    <!-- Upload/Create is contextual to drive content, not a fifth destination.
+         It stays above the navigation bar on Files and Photos, where a new
+         item has a meaningful destination, and leaves Transfers and Account
+         calm. -->
+    <div class="mobile-context-action" hidden={!contextualActionVisible}>
+        <Fab {dashboardVisible} />
+    </div>
+
+    <div class="mobile-tabbar-slot" hidden={selecting || $keyboardOpen}>
+        <TabBar active={$activeTab} transferBadge={$transferAttentionCount} onSelect={selectTab} />
+    </div>
+
+    <DriveSwitcherSheet />
+
+</div>
+
+<FeatureLayer />

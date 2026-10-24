@@ -19,7 +19,7 @@ vi.mock('../../bindings/TDrive/internal/app/app', () => bindings);
 vi.mock('../../bindings/TDrive/internal/app/updateservice', () => bindings);
 vi.mock('./notifications', () => ({ notify: notifyMock }));
 
-import { initialUpdateState } from '../ui/updates/update-model';
+import { initialUpdateState } from '../ui/updates/update_model';
 
 function available(version = '1.7.0') {
     return {
@@ -54,7 +54,7 @@ async function loadModule() {
     state.transferActivity = idleTransferActivity;
     state.encryption = { available: false, passwordSet: false, passwordRemembered: false, hint: '', loaded: true };
     const mod = await import('./updates');
-    const store = await import('../ui/updates/update-store');
+    const store = await import('../ui/updates/update_store');
     return { mod, store, state };
 }
 

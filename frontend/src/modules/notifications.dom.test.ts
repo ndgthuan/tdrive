@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import ToastStack from '../ui/notifications/ToastStack.svelte';
+import ToastStack from '../ui/notifications/toast_stack.svelte';
 import { get } from 'svelte/store';
 import {
     activateNotificationEffects,
@@ -12,7 +12,7 @@ import {
     resumeAllNotifications,
     resumeToast,
 } from './notifications';
-import { toasts } from '../ui/notifications/toast-store';
+import { toasts } from '../ui/notifications/toast_store';
 
 const START_TIME = new Date('2026-01-01T00:00:00.000Z');
 

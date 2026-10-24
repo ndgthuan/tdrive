@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n';
 // Sidebar — renders the list of drives (personal + shared) and routes
 // clicks to channels.js. Re-renders on every loadChannels() call.
 
@@ -9,21 +10,21 @@ import {
     checkPendingJoin,
     removePendingJoin,
 } from './channels';
-import { openShareDriveModal } from './modals/share-drive';
-import { openLeaveDriveModal } from './modals/leave-drive';
-import { openNewDriveModal } from './modals/new-drive';
-import { openJoinDriveModal } from './modals/join-drive';
-import { openJoinRequestsModal } from './modals/join-requests';
+import { openShareDriveModal } from './modals/share_drive';
+import { openLeaveDriveModal } from './modals/leave_drive';
+import { openNewDriveModal } from './modals/new_drive';
+import { openJoinDriveModal } from './modals/join_drive';
+import { openJoinRequestsModal } from './modals/join_requests';
 import { notify } from './notifications';
 import { humanizeBackendError } from './errors';
 import { enterPhotos, exitPhotos } from './gallery';
-import { closeChannel } from '../ui/channels/channel-store';
+import { closeChannel } from '../ui/channels/channel_store';
 import { closeTrash } from './trash/controller';
-import { showContextMenu, type ContextMenuItem } from './context-menu';
+import { showContextMenu, type ContextMenuItem } from './context_menu';
 import {
     setSidebarState,
     type SidebarActionMenuRequest,
-} from '../ui/sidebar/sidebar-store';
+} from '../ui/sidebar/sidebar_store';
 import type { DriveChannel, PendingJoin } from '../types';
 
 
@@ -94,21 +95,21 @@ export async function handlePendingClick(inviteHash: string): Promise<void> {
         if (result?.status === 'joined') {
             notify({
                 level: 'success',
-                title: 'Request approved',
-                body: 'Joined the drive.',
+                title: t('messages.request_approved'),
+                body: t('messages.joined_drive_body'),
             });
         } else {
             const lastError = result?.pending?.lastError.trim() ?? '';
             notify({
                 level: lastError ? 'error' : 'info',
-                title: lastError ? 'Could not check request' : 'Still waiting for approval',
+                title: lastError ? t('leftovers.could_not_check_request') : t('leftovers.still_waiting_approval'),
                 body: lastError,
             });
         }
     } catch (err) {
         notify({
             level: 'error',
-            title: 'Could not check request',
+            title: t('messages.check_request_failed'),
             body: humanizeBackendError(err),
         });
     }
@@ -117,7 +118,7 @@ export async function handlePendingClick(inviteHash: string): Promise<void> {
 export function showSharedActionsMenu(request: SidebarActionMenuRequest, c: DriveChannel): void {
     const items: ContextMenuItem[] = [
         {
-            label: 'Copy invite link',
+            label: t('leftovers.copy_invite_link'),
             action: async () => {
                 try {
                     const link = await getInviteLink(Number(c.id));
@@ -125,14 +126,14 @@ export function showSharedActionsMenu(request: SidebarActionMenuRequest, c: Driv
                 } catch (err) {
                     notify({
                         level: 'error',
-                        title: 'Could not get invite link',
+                        title: t('messages.invite_link_failed'),
                         body: humanizeBackendError(err),
                     });
                 }
             },
         },
         {
-            label: 'Copy approval link',
+            label: t('leftovers.copy_approval_link'),
             action: async () => {
                 try {
                     const link = await getApprovalInviteLink(Number(c.id));
@@ -140,18 +141,18 @@ export function showSharedActionsMenu(request: SidebarActionMenuRequest, c: Driv
                 } catch (err) {
                     notify({
                         level: 'error',
-                        title: 'Could not get approval link',
+                        title: t('messages.approval_link_failed'),
                         body: humanizeBackendError(err),
                     });
                 }
             },
         },
         {
-            label: 'Join requests',
+            label: t('leftovers.join_requests'),
             action: () => openJoinRequestsModal({ id: Number(c.id), title: c.title }),
         },
         {
-            label: 'Leave drive',
+            label: t('leftovers.leave_drive'),
             danger: true,
             action: () => openLeaveDriveModal({ id: Number(c.id), title: c.title }),
         },
@@ -162,7 +163,7 @@ export function showSharedActionsMenu(request: SidebarActionMenuRequest, c: Driv
 export function showPendingActionsMenu(request: SidebarActionMenuRequest, p: PendingJoin): void {
     showContextMenu(request.x, request.y, [
         {
-            label: 'Check now',
+            label: t('leftovers.check_now'),
             action: async () => {
                 try {
                     const result = await checkPendingJoin(p.inviteHash);
@@ -170,33 +171,33 @@ export function showPendingActionsMenu(request: SidebarActionMenuRequest, p: Pen
                     notify({
                         level: result?.status === 'joined' ? 'success' : (lastError ? 'error' : 'info'),
                         title: result?.status === 'joined'
-                            ? 'Request approved'
-                            : (lastError ? 'Could not check request' : 'Still waiting for approval'),
-                        body: result?.status === 'joined' ? 'Joined the drive.' : lastError,
+                            ? t('messages.request_approved')
+                            : (lastError ? t('messages.check_request_failed') : t('messages.still_waiting')),
+                        body: result?.status === 'joined' ? t('messages.joined_drive_body') : lastError,
                     });
                 } catch (err) {
                     notify({
                         level: 'error',
-                        title: 'Could not check request',
+                        title: t('messages.check_request_failed'),
                         body: humanizeBackendError(err),
                     });
                 }
             },
         },
         {
-            label: 'Remove request',
+            label: t('leftovers.remove_request'),
             danger: true,
             action: async () => {
                 try {
                     await removePendingJoin(p.inviteHash);
                     notify({
                         level: 'success',
-                        title: 'Pending request removed',
+                        title: t('messages.request_removed'),
                     });
                 } catch (err) {
                     notify({
                         level: 'error',
-                        title: 'Could not remove request',
+                        title: t('messages.remove_request_failed'),
                         body: humanizeBackendError(err),
                     });
                 }

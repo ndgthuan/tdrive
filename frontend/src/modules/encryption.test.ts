@@ -3,8 +3,8 @@ import { state } from '../state';
 
 const mocks = vi.hoisted(() => ({ status: vi.fn(), password: vi.fn(), setup: vi.fn() }));
 vi.mock('../api', () => ({ getEncryptionStatus: mocks.status }));
-vi.mock('./modals/encryption-password', () => ({ openEncryptionPasswordModal: mocks.password }));
-vi.mock('./modals/encryption-setup', () => ({ openEncryptionSetupModal: mocks.setup }));
+vi.mock('./modals/encryption_password', () => ({ openEncryptionPasswordModal: mocks.password }));
+vi.mock('./modals/encryption_setup', () => ({ openEncryptionSetupModal: mocks.setup }));
 
 import { loadEncryptionStatus, requireEncryptionPassword } from './encryption';
 

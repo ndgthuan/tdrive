@@ -1,0 +1,125 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { render } from 'svelte/server';
+import FileList from './file_list.svelte';
+import { showFileListRows, showFileListState } from './file_list_store';
+import { setActiveFileRowKey, setSelectedFileRowKeys } from './row_state_store';
+import type { FileListFileRow } from '../file_list/types';
+
+function makeFileRow(overrides: Partial<FileListFileRow> = {}): FileListFileRow {
+    return {
+        kind: 'file',
+        key: 'file:fs:42',
+        selectionKey: 'file:42',
+        id: '42',
+        name: 'clip.mp4',
+        baseName: 'clip',
+        ext: 'MP4',
+        source: 'fs',
+        parentId: '',
+        size: 128,
+        metaLabel: 'Today',
+        sizeLabel: '128 B',
+        ariaLabel: 'File: clip.mp4',
+        uploaderID: 0,
+        uploadTime: 0,
+        encrypted: false,
+        canDelete: true,
+        canRename: true,
+        actions: [],
+        ...overrides,
+    };
+}
+
+afterEach(() => {
+    showFileListState({
+        stateKind: 'loading',
+        title: 'Loading files',
+    });
+    setSelectedFileRowKeys([]);
+    setActiveFileRowKey('');
+});
+
+describe('FileList', () => {
+    it('renders selected and active row state from stores', () => {
+        showFileListRows([makeFileRow()]);
+        setSelectedFileRowKeys(['file:42']);
+        setActiveFileRowKey('file:42');
+
+        const { body } = render(FileList);
+
+        expect(body).toContain('class="file-row drive-row is-selected is-keyboard-active"');
+        expect(body).toContain('data-row-key="file:42"');
+        expect(body).toContain('aria-selected="true"');
+        expect(body).toContain('tabindex="0"');
+    });
+
+    it('renders unselected rows as unfocused data-grid rows', () => {
+        showFileListRows([makeFileRow()]);
+
+        const { body } = render(FileList);
+
+        expect(body).toContain('class="file-row drive-row"');
+        expect(body).toContain('role="row"');
+        expect(body).toContain('role="gridcell"');
+        expect(body).toContain('aria-selected="false"');
+        expect(body).toContain('tabindex="-1"');
+    });
+
+    it('keeps keyboard-active rows semantically unselected when selection is cleared', () => {
+        showFileListRows([makeFileRow()]);
+        setSelectedFileRowKeys([]);
+        setActiveFileRowKey('file:42');
+
+        const { body } = render(FileList);
+
+        expect(body).toContain('class="file-row drive-row is-keyboard-active"');
+        expect(body).toContain('aria-selected="false"');
+        expect(body).toContain('tabindex="0"');
+    });
+
+    it('renders uploader chips as escaped text', () => {
+        showFileListRows([makeFileRow({
+            uploaderChip: { label: 'A<b> 2m ago' },
+        })]);
+
+        const { body } = render(FileList);
+
+        expect(body).toContain('<span class="uploader-chip">A&lt;b> 2m ago</span>');
+        expect(body).not.toContain('<span class="uploader-chip">A<b>');
+        expect(body).not.toContain('data-uploader-slot');
+    });
+
+    it('marks a file row with its type family and shows the name with its extension', () => {
+        showFileListRows([makeFileRow({ name: 'clip.mkv', baseName: 'clip', ext: 'MKV' })]);
+
+        const { body } = render(FileList);
+
+        expect(body).toContain('data-family="video"');
+        // The glyph cannot tell mkv from mp4, so the extension stays in the name.
+        expect(body).toContain('<span class="row-label">clip.mkv</span>');
+        expect(body).not.toContain('file-ext-text');
+    });
+
+    it('falls back to the neutral family for an unrecognised extension', () => {
+        showFileListRows([makeFileRow({ name: 'notes.xyzzy', baseName: 'notes', ext: 'XYZZY' })]);
+
+        const { body } = render(FileList);
+
+        expect(body).toContain('data-family="other"');
+    });
+
+    it('renders long file names through a truncating label with a full-name tooltip', () => {
+        const longName = '@Jesseverse_The_Mentalist_S02E05_720p_WEB_DL_x264_350MB_PaHe_in.mkv';
+        showFileListRows([makeFileRow({
+            name: longName,
+            baseName: longName.replace(/\.mkv$/, ''),
+            ext: 'MKV',
+            ariaLabel: `File: ${longName}`,
+        })]);
+
+        const { body } = render(FileList);
+
+        expect(body).toContain(`title="${longName}"`);
+        expect(body).toContain('<span class="row-label">@Jesseverse_The_Mentalist');
+    });
+});

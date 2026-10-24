@@ -1,53 +1,58 @@
 /* === AUTH SCREENS === */
-#auth-wrapper { display: flex; justify-content: center; align-items: safe center; height: 100vh; height: 100dvh; padding: 24px 16px; overflow-y: auto; background: var(--bg-dark); }
+/* Desktop follows the Connect mockup: a 480px card with an 8px radius and one
+   hairline, flush-left type, 32px controls, and a single full-width accent
+   action. The phone rules further down take over whenever html.mobile is set. */
+#auth-wrapper { display: flex; justify-content: center; align-items: safe center; height: 100vh; height: 100dvh; padding: 24px 16px; overflow-y: auto; background: var(--color-canvas); }
 
 .auth-box {
-    background: var(--bg-sidebar); border: 1px solid var(--border);
-    padding: clamp(1.25rem, 5vw, 2.5rem); border-radius: var(--radius-xl); width: 380px; max-width: 100%; flex-shrink: 0; text-align: center;
-    box-shadow: var(--shadow-md);
+    background: var(--color-surface-1); border: 1px solid var(--color-border-soft);
+    padding: var(--space-8); border-radius: var(--radius-md); width: 480px; max-width: 100%; flex-shrink: 0; text-align: left;
+    box-shadow: none;
     --motion-enter-y: 4px;
     animation: tdrive-surface-enter var(--motion-med) var(--ease-enter) both;
 }
 
+/* The 28px tile that holds the screen's glyph, on a raised surface. */
 .auth-icon-box {
-    width: 60px; height: 60px; margin: 0 auto 1.5rem auto;
-    background: var(--overlay-accent-1); border-radius: var(--radius-lg);
+    width: 28px; height: 28px; margin: 0 0 var(--space-6) 0;
+    background: var(--color-surface-2); border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm);
     display: flex; align-items: center; justify-content: center;
     color: var(--accent);
 }
-.auth-icon-box svg { width: 32px; height: 32px; }
+.auth-icon-box svg { width: 16px; height: 16px; }
 
-.auth-box h2 { color: var(--color-text); margin-bottom: 0.5rem; font-weight: 600; }
-.auth-box p { color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+.auth-box h2 { margin: 0; color: var(--color-text); font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
+.auth-box p { color: var(--color-text-muted); margin: var(--space-2) 0 var(--space-6) 0; font-size: var(--type-base); line-height: 1.6; }
 
 .auth-subtitle { margin-bottom: 1rem; }
 
 .auth-helper-row {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 14px;
-    color: var(--text-muted);
-    font-size: 0.85rem;
+    gap: var(--space-2);
+    margin: calc(-1 * var(--space-2)) 0 var(--space-6) 0;
+    color: var(--color-text-subtle);
+    font-size: var(--type-sm);
 }
 
 .auth-helper-label {
-    font-weight: 600;
-    color: var(--color-text-muted);
+    font-weight: 500;
+    color: var(--color-text-subtle);
 }
 
 .auth-helper-pill {
     display: inline-flex;
     align-items: center;
     max-width: 230px;
-    padding: 6px 10px;
-    border-radius: var(--radius-pill);
-    background: var(--overlay-white-1);
-    border: 1px solid var(--border);
-    color: var(--text-main);
-    font-weight: 600;
+    height: 24px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border-soft);
+    color: var(--color-text);
+    font-weight: 500;
     letter-spacing: 0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -58,11 +63,11 @@
     border: none;
     background: transparent;
     color: var(--accent);
-    font-weight: 600;
-    font-size: 0.85rem;
+    font-weight: 500;
+    font-size: var(--type-sm);
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: var(--radius-md);
+    padding: 2px var(--space-1);
+    border-radius: var(--radius-xs);
     transition: background 0.15s ease, color 0.15s ease;
 }
 
@@ -71,15 +76,36 @@
 
 .auth-caption {
     text-align: left;
-    margin: -2px 0 12px 0;
-    font-size: 0.78rem;
+    margin: 0 0 var(--space-6) 0;
+    font-size: var(--type-sm);
     color: var(--color-text-muted);
-    line-height: 1.35;
+    line-height: 1.6;
 }
 .auth-caption span {
     color: var(--color-text-soft);
     font-weight: 500;
 }
+
+/* Desktop controls: a 32px field on the canvas with a visible #6E7680 border,
+   and the shared focus ring. Scoped to the auth card so other screens keep
+   their own inputs. */
+.auth-box input {
+    width: 100%; height: 32px; min-height: 32px; padding: 0 var(--space-3); margin: 0; background: var(--color-canvas);
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm); color: var(--color-text);
+    font-size: var(--type-base); outline: none;
+}
+.auth-box input::placeholder { color: var(--color-text-subtle); }
+.auth-box input:focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
+
+/* One accent-filled action per screen, full width, 32px tall. */
+.auth-box .primary-btn {
+    height: 32px; min-height: 32px; padding: 0 var(--space-3); margin: 0;
+    justify-content: center;
+    font-size: var(--type-base); font-weight: var(--weight-semibold); line-height: 1;
+    border: 1px solid var(--accent); border-radius: var(--radius-sm);
+}
+.auth-box .primary-btn:hover:not(:disabled) { transform: none; }
+.auth-box .input-with-action { margin-bottom: 0; }
 
 input {
     width: 100%; padding: 12px 15px; background: var(--bg-dark); border: 1px solid var(--border);
@@ -167,7 +193,7 @@ html.mobile .auth-box {
        Padding at the top of a scroller scrolls away with the content, so
        without this the status bar is where a field lands; the scroll stops
        short of it instead. Both the browser's own scroll on focus and
-       ui/mobile/keyboard-insets.ts obey these. */
+       ui/mobile/keyboard_insets.ts obey these. */
     scroll-padding-top: calc(var(--inset-top) + 8px);
     scroll-padding-bottom: 8px;
     padding: 0;
@@ -209,7 +235,7 @@ html.mobile .auth-icon-box { display: none; }
 html.mobile .auth-box h2 {
     margin-bottom: 8px;
     font-size: 1.375rem;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.2;
     text-wrap: balance;
 }

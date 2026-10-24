@@ -1,0 +1,74 @@
+/*
+ * Calm pass: shared rules that settle the neon-era controls into the TDrive
+ * look. Loaded after the component sheets (style.css) and before mobile.css,
+ * so it wins over equal-specificity rules and mobile can still adjust them.
+ */
+
+/* Buttons and chips: one line, 13px, 12px side padding, 6px corners. */
+.ui-button,
+.ui-button.is-small,
+button.btn,
+.btn,
+[class*="chip"],
+.link-button,
+.segmented button,
+.upload-btn,
+.action-btn,
+.file-action,
+.row-action {
+    white-space: nowrap;
+    font-size: var(--type-sm);
+    line-height: 1;
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+}
+
+.ui-button,
+.ui-button.is-small,
+button.btn,
+.btn,
+[class*="chip"],
+.link-button,
+.upload-btn,
+.action-btn,
+.file-action,
+.row-action {
+    border-radius: var(--radius-sm);
+}
+
+/* Controls and list rows. */
+.ui-button { min-height: var(--control-md); }
+.ui-button.is-small { min-height: 28px; }
+.drive-item { min-height: 32px; border-radius: var(--radius-sm); }
+
+/* Only one accent-filled primary action per view: other buttons are neutral. */
+.ui-button.is-secondary,
+.ui-button:not(.is-primary):not(.is-danger) {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+    border: 1px solid var(--color-border-soft);
+}
+.ui-button.is-secondary:hover:not(:disabled),
+.ui-button:not(.is-primary):not(.is-danger):hover:not(:disabled) {
+    background: var(--color-surface-3);
+    border-color: var(--color-border);
+}
+
+/* Focus and selection: one ring, one tint, no glow. */
+:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+::selection {
+    background: var(--overlay-accent-1);
+    color: var(--color-text);
+    text-shadow: none;
+}
+
+/* Typography: strong text is semibold, never heavier. */
+h1, h2, h3, .page-title, .dialog-title {
+    font-weight: var(--weight-semibold);
+}
+.dialog-title, .page-title {
+    font-size: var(--type-xl);
+}

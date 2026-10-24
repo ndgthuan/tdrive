@@ -1,7 +1,7 @@
 import { closeGalleryImages, fetchRendition, openGalleryImages, RenditionError, type GalleryImageSession } from '../../api/renditions';
 import { onRuntimeEvent } from '../../api/runtime';
 import { state } from '../../state';
-import { getGalleryPolicy, subscribeGalleryPolicy } from '../gallery-policy';
+import { getGalleryPolicy, subscribeGalleryPolicy } from '../gallery_policy';
 import { RenditionBroker, type RenditionLease, type RenditionPriority, type RenditionRequest } from './broker';
 
 export type ImageRequest = Omit<RenditionRequest, 'scope'>;

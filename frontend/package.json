@@ -29,13 +29,14 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@lucide/svelte": "^1.34.0",
+    "@fontsource/be-vietnam-pro": "5.3.0",
     "@wailsio/runtime": "3.0.0-beta.22",
     "dompurify": "^3.4.11",
     "highlight.js": "^11.11.1",
     "hls.js": "^1.6.14",
     "libphonenumber-js": "1.13.14",
     "markdown-it": "^14.3.0",
-    "pdfjs-dist": "^6.1.200"
+    "pdfjs-dist": "^6.1.200",
+    "phosphor-svelte": "3.1.1"
   }
 }

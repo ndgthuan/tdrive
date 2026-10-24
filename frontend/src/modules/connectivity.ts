@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n';
 /*
  * Connectivity.
  *
@@ -13,7 +14,7 @@
  */
 
 import { writable } from 'svelte/store';
-import { appActions } from './app-actions';
+import { appActions } from './app_actions';
 import { dismissNotification, notify } from './notifications';
 
 const OFFLINE_TOAST_ID = 'connectivity-offline';
@@ -36,8 +37,8 @@ export function reportOffline(): void {
     notify({
         id: OFFLINE_TOAST_ID,
         level: 'warning',
-        title: "You're offline",
-        body: 'Saved files are available. Reconnect to sync.',
+        title: t('messages.offline_title'),
+        body: t('messages.offline_body'),
     });
 }
 
@@ -48,11 +49,11 @@ export function reportOnline(): void {
     notify({
         id: OFFLINE_TOAST_ID,
         level: 'success',
-        title: 'Back online',
-        body: 'This folder may be out of date.',
+        title: t('messages.online_title'),
+        body: t('messages.online_body'),
         durationMs: 6000,
         action: {
-            label: 'Refresh',
+            label: t('messages.connectivity_refresh'),
             run: () => {
                 dismissNotification(OFFLINE_TOAST_ID);
                 void appActions().triggerRefresh();

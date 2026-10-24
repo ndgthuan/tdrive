@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { state } from '../state';
-import { clearSelection, handleRowSelection, reconcileSelection, selectRow } from './selection';
-import { showFileListRows, showFileListState } from '../ui/file-list/file-list-store';
-import type { FileListFileRow } from '../ui/file-list/types';
+import { clearSelection, handleRowSelection, reconcileSelection, selectRow, toggle_select_all } from './selection';
+import { showFileListRows, showFileListState } from '../ui/file_list/file_list_store';
+import type { FileListFileRow } from '../ui/file_list/types';
 
 let list: HTMLElement | null = null;
 
@@ -134,6 +134,32 @@ describe('selection reconciliation', () => {
 
         selectRow(row, 0);
 
+        expect(state.selectedItems.size).toBe(0);
+    });
+});
+
+describe('select all', () => {
+    it('selects every row of the folder, then clears when they are all selected', () => {
+        const rows = [makeLogicalFileRow(1), makeLogicalFileRow(2), makeLogicalFileRow(3)];
+
+        toggle_select_all(rows);
+        expect([...state.selectedItems.keys()]).toEqual(['file:1', 'file:2', 'file:3']);
+
+        toggle_select_all(rows);
+        expect(state.selectedItems.size).toBe(0);
+    });
+
+    it('completes a partial selection rather than clearing it', () => {
+        const rows = [makeLogicalFileRow(1), makeLogicalFileRow(2)];
+        selectRow(makeFileRow(1), 0);
+
+        toggle_select_all(rows);
+
+        expect(state.selectedItems.size).toBe(2);
+    });
+
+    it('does nothing for a folder with no rows', () => {
+        toggle_select_all([]);
         expect(state.selectedItems.size).toBe(0);
     });
 });
