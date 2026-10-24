@@ -13,6 +13,29 @@ TDrive turns a private Telegram channel into a folder tree you can browse, searc
 
 > **Status:** This fork is in active development. The desktop app is the focus. The AI assistant and the link downloader are new and lightly tested. Mobile builds are inherited from upstream TDrive and are not tested in this fork yet.
 
+## Download
+
+Ready-made builds are on the [**Releases page**](https://github.com/ndgthuan/tdrive/releases/latest). Open the newest release, scroll to **Assets**, and pick the file for your device. You do not need to build anything.
+
+| Device | File to download | Notes |
+|---|---|---|
+| Windows 10/11 (64-bit) | `TDrive-<version>-windows-amd64-setup.exe` | Installer. A portable `...-windows-amd64.zip` is next to it. |
+| macOS (Apple silicon) | `TDrive-<version>-macos-arm64.zip` | Unzip and drag TDrive to Applications. See the first-launch note below. |
+| Linux (64-bit) | `TDrive-<version>-x86_64.AppImage` | `chmod +x` it, then run it. Needs glibc 2.35 or newer. |
+| Android (ARM64) | `TDrive-<version>-android-arm64.apk` | Allow installs from your browser or file manager when Android asks. |
+| iPhone / iPad | `TDrive-<version>-ios-unsigned.ipa` | Not signed. Install with TrollStore, Sideloadly or AltStore. |
+| Command line | `...-cli.zip` / `...-cli.tar.gz` | The `tdrive` CLI for scripting. |
+
+Every release also ships `checksums.txt` and a signed `checksums.txt.sig`, so you can verify what you downloaded.
+
+**macOS first launch.** The app is not notarized. If macOS says it cannot verify the developer, open **System Settings > Privacy & Security** and choose **Open Anyway**.
+
+**Android.** The APK is signed with this fork's own key, so it cannot update over the original TDrive. Uninstall the original first if you have it.
+
+**iOS.** There is no App Store or TestFlight build. The IPA is for sideloading only.
+
+Prefer to compile it yourself? See [Run it](#run-it).
+
 ## What's in it
 
 ### Files and folders
