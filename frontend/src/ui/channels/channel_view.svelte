@@ -980,14 +980,28 @@
 
     .channel-row-download:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
-    @media (hover: hover) {
-        .channel-row-telegram,
-        .channel-row-download { opacity: 0; }
+    /* List rows: Telegram and Save are always visible as muted glyphs; the row
+       under the pointer or holding focus brings them to full strength. */
+    .channel-view.is-list .channel-row-telegram,
+    .channel-view.is-list .channel-row-download { opacity: 0.7; }
 
-        .channel-row:hover .channel-row-telegram,
-        .channel-row:focus-within .channel-row-telegram,
-        .channel-row:hover .channel-row-download,
-        .channel-row:focus-within .channel-row-download { opacity: 1; }
+    .channel-view.is-list .channel-row:hover .channel-row-telegram,
+    .channel-view.is-list .channel-row:focus-within .channel-row-telegram,
+    .channel-view.is-list .channel-row:hover .channel-row-download,
+    .channel-view.is-list .channel-row:focus-within .channel-row-download {
+        opacity: 1;
+        color: var(--color-text);
+    }
+
+    /* Grid tiles keep the hover reveal: their buttons sit over the thumbnail. */
+    @media (hover: hover) {
+        .channel-view.is-grid .channel-row-telegram,
+        .channel-view.is-grid .channel-row-download { opacity: 0; }
+
+        .channel-view.is-grid .channel-row:hover .channel-row-telegram,
+        .channel-view.is-grid .channel-row:focus-within .channel-row-telegram,
+        .channel-view.is-grid .channel-row:hover .channel-row-download,
+        .channel-view.is-grid .channel-row:focus-within .channel-row-download { opacity: 1; }
     }
 
     .channel-skeleton {

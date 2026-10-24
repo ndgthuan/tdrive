@@ -481,21 +481,20 @@ html:not(.mobile) .file-type-icon.has-preview {
 }
 
 .row-actions { min-width: 0; display: flex; gap: var(--space-1); justify-content: flex-end; align-items: center; }
-/* Row actions are quiet until the row is hovered, focused within or selected;
-   on a device with no hover they stay visible, since there is no hover to wait
-   for. The trash's own Restore/Delete are the row's only affordance, so they
-   never hide (is-inline). Scoped away from the phone shell, which keeps its
-   overflow button visible even on a hover-capable device (an emulator). */
-@media (hover: hover) {
-    html:not(.mobile) .file-row .row-actions:not(.is-inline) .action-icon {
-        opacity: 0;
-        transition: opacity var(--motion-fast) var(--ease-standard);
-    }
-    html:not(.mobile) .file-row:hover .row-actions:not(.is-inline) .action-icon,
-    html:not(.mobile) .file-row:focus-within .row-actions:not(.is-inline) .action-icon,
-    html:not(.mobile) .drive-row.is-selected .row-actions:not(.is-inline) .action-icon {
-        opacity: 1;
-    }
+/* Row actions are always visible, but quiet: a muted glyph at 70% opacity. The
+   row under the pointer, the row holding keyboard focus and a selected row turn
+   them to full strength. Touch and keyboard users get the same glyphs with no
+   hover needed. The trash's own Restore/Delete stay the row's only affordance
+   (is-inline). Scoped away from the phone shell, which has its own overflow
+   button (see the html.mobile rules below). */
+html:not(.mobile) .file-row .row-actions:not(.is-inline) .action-icon {
+    opacity: 0.7;
+}
+html:not(.mobile) .file-row:hover .row-actions:not(.is-inline) .action-icon,
+html:not(.mobile) .file-row:focus-within .row-actions:not(.is-inline) .action-icon,
+html:not(.mobile) .drive-row.is-selected .row-actions:not(.is-inline) .action-icon {
+    opacity: 1;
+    color: var(--text-main);
 }
 
 /* A folder and a file type share the slot, so they share the glyph size too. A
