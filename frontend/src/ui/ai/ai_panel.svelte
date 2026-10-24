@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import { onMount } from 'svelte';
     import ArrowLeftIcon from 'phosphor-svelte/lib/ArrowLeftIcon';

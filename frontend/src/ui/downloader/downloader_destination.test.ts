@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SidebarState } from '../sidebar/sidebar_store';

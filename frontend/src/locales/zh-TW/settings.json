@@ -17,5 +17,12 @@
   "account_title": "帳號",
   "account_subtitle": "此裝置登入所使用的 Telegram 帳號。",
   "account_loading": "正在載入帳號…",
-  "account_default_name": "Telegram 帳號"
+  "account_default_name": "Telegram 帳號",
+    "about_title": "關於",
+    "about_name": "應用程式",
+    "about_made_by": "由 {author} 製作",
+    "about_based_on": "基於 {upstream} 的 TDrive",
+    "about_github": "GitHub",
+    "about_licenses": "授權條款",
+    "about_licenses_title": "授權條款與聲明"
 }

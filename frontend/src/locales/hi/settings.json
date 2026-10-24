@@ -17,5 +17,12 @@
   "account_title": "खाता",
   "account_subtitle": "वह Telegram खाता जिससे इस डिवाइस पर साइन इन है।",
   "account_loading": "खाता लोड हो रहा है…",
-  "account_default_name": "Telegram खाता"
+  "account_default_name": "Telegram खाता",
+    "about_title": "के बारे में",
+    "about_name": "ऐप",
+    "about_made_by": "निर्माता: {author}",
+    "about_based_on": "{upstream} के TDrive पर आधारित",
+    "about_github": "GitHub",
+    "about_licenses": "लाइसेंस",
+    "about_licenses_title": "लाइसेंस और सूचनाएँ"
 }

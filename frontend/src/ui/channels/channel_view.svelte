@@ -518,9 +518,11 @@
             </div>
             <div class="channel-bar-tools">
                 {#if forum && fetchTopics}<ChannelTopicPicker {source} fetchTopics={fetchTopics} selected={selectedTopic} onChoose={chooseTopic} onTopics={rememberTopics} />{/if}
-                {@render kindPicker()}
-                <ChannelSortMenu value={sort} onChange={chooseSort} />
-                {#if !mobile}<ChannelViewToggle value={view_mode} onChange={choose_view_mode} />{/if}
+                <div class="channel-bar-filters">
+                    <div class="channel-kinds-scroll">{@render kindPicker()}</div>
+                    <ChannelSortMenu value={sort} onChange={chooseSort} />
+                    {#if !mobile}<ChannelViewToggle value={view_mode} onChange={choose_view_mode} />{/if}
+                </div>
                 <label class="search-field channel-search">
                     <SearchIcon size={15} aria-hidden="true" />
                     <input
@@ -741,8 +743,23 @@
         cursor: default;
     }
 
-    .channel-bar-tools {
+    /* Row two: filters, sort, view toggle, then the search. The filters are
+       one group that never wraps internally; they take their natural width
+       and the chips scroll inside their own box if the group must shrink.
+       The search has a 160px basis and grows into what is left, so it shrinks
+       first. When the line cannot keep 160px for it, the search wraps onto a
+       row of its own and fills that row. */
+    .channel-bar-filters {
         flex: 0 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .channel-bar-tools {
+        flex: 0 0 auto;
         min-width: 0;
         display: flex;
         flex-wrap: wrap;
@@ -750,14 +767,28 @@
         gap: var(--space-2);
     }
 
-    .channel-bar-tools .channel-search { margin-left: auto; }
+    .channel-kinds-scroll {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        /* The padding keeps the focus ring inside the scroll box. */
+        margin: -3px;
+        padding: 3px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
 
     .channel-kinds { flex: 0 0 auto; }
 
     /* More file types fit without squeezing labels or shrinking touch targets. */
     .channel-topbar-kinds { overflow-x: auto; scrollbar-width: none; }
 
-    .channel-search { width: clamp(150px, 18vw, 220px); }
+    .channel-bar-tools .channel-search {
+        flex: 1 1 160px;
+        min-width: 160px;
+        width: auto;
+        max-width: none;
+    }
 
     .channel-search-clear {
         flex: 0 0 auto;

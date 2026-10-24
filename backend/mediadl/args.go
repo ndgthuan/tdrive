@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Package mediadl downloads a single online video with yt-dlp and hands the
 // result to the caller's upload path. It owns tool discovery, argument
 // construction, progress parsing, checksum-verified tool installs and the job

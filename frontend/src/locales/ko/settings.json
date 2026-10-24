@@ -17,5 +17,12 @@
     "account_title": "계정",
     "account_subtitle": "이 기기에 로그인된 Telegram 계정입니다.",
     "account_loading": "계정 로드 중…",
-    "account_default_name": "Telegram 계정"
+    "account_default_name": "Telegram 계정",
+    "about_title": "정보",
+    "about_name": "앱",
+    "about_made_by": "제작: {author}",
+    "about_based_on": "{upstream}의 TDrive를 기반으로 함",
+    "about_github": "GitHub",
+    "about_licenses": "라이선스",
+    "about_licenses_title": "라이선스 및 고지"
 }

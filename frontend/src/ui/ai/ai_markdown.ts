@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Renders assistant replies as sanitized HTML. Raw HTML in the model output is
 // dropped and links stay plain text, so a reply cannot navigate the app.
 import MarkdownIt from 'markdown-it';

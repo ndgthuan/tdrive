@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Package ai holds TDrive's AI assistant backend: model profiles and their keys,
 // provider clients for OpenAI-compatible, Anthropic and Gemini endpoints, chat
 // sessions, and the photo organize planner with apply and undo.

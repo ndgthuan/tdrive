@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import ArrowsClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
     import CheckCircleIcon from 'phosphor-svelte/lib/CheckCircleIcon';

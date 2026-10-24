@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Maps a model provider to its official logo. Monochrome logos inherit the
 // text colour; Gemini and Claude keep their own colours. Custom endpoints have
 // no brand, so they get a neutral icon instead (see brand_icon.svelte).

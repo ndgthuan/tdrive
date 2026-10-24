@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Typed boundary between the AI panel and the Wails AIService binding. Every
 // call goes through here so components never touch the generated bridge, and
 // tests can replace one module.

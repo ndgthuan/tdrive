@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import PlugIcon from 'phosphor-svelte/lib/PlugIcon';
     import { Provider } from '../../../bindings/TDrive/backend/ai/models';

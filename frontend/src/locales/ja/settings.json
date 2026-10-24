@@ -17,5 +17,12 @@
   "account_title": "アカウント",
   "account_subtitle": "この端末でサインインしている Telegram アカウントです。",
   "account_loading": "アカウントを読み込み中…",
-  "account_default_name": "Telegram アカウント"
+  "account_default_name": "Telegram アカウント",
+    "about_title": "このアプリについて",
+    "about_name": "アプリ",
+    "about_made_by": "制作: {author}",
+    "about_based_on": "{upstream} の TDrive をベースにしています",
+    "about_github": "GitHub",
+    "about_licenses": "ライセンス",
+    "about_licenses_title": "ライセンスと告知"
 }

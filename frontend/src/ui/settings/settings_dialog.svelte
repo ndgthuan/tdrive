@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import GlobeIcon from 'phosphor-svelte/lib/GlobeIcon';
     import PaletteIcon from 'phosphor-svelte/lib/PaletteIcon';

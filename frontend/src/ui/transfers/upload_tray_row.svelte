@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import CheckIcon from 'phosphor-svelte/lib/CheckIcon';
     import ClockIcon from 'phosphor-svelte/lib/ClockIcon';

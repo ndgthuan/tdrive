@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Chat turns: sessions, messages, the streamed reply, tool-call activity and
 // inline errors. Organize suggestion chips are handed to ai_organize.ts; the
 // model decides on its own when a typed message needs a tool.

@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 import { afterEach, describe, expect, it } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import AccountPane from './account_pane.svelte';

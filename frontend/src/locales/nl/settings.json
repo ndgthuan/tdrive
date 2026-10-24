@@ -17,5 +17,12 @@
     "account_title": "Account",
     "account_subtitle": "Het Telegram-account waarmee dit apparaat is aangemeld.",
     "account_loading": "Account laden…",
-    "account_default_name": "Telegram-account"
+    "account_default_name": "Telegram-account",
+    "about_title": "Over",
+    "about_name": "App",
+    "about_made_by": "Gemaakt door {author}",
+    "about_based_on": "Gebaseerd op TDrive van {upstream}",
+    "about_github": "GitHub",
+    "about_licenses": "Licenties",
+    "about_licenses_title": "Licenties en kennisgevingen"
 }

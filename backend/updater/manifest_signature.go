@@ -34,9 +34,9 @@ const bootstrapManifestPublicKeyPlaceholderHex = "000000000000000000000000000000
 // Add both old and new raw public keys here for a bridge-release rotation.
 func productionManifestPublicKeyHexes() []string {
 	return []string{
-		// Release signing key, generated 2026-08-26. The private half lives only in
+		// Release signing key for the ndgthuan/tdrive fork, generated 2026-10-24. The private half lives only in
 		// the release-signing GitHub environment as TDRIVE_UPDATE_SIGNING_KEY_PEM.
-		"d899038fd8adec0b152680f87c479620c38abac576adc67d3556a668606e15d8",
+		"750334e47a13ba09d0ad433774dd399c55aa9ab213bd5e7abc3fa22c6ae85820",
 	}
 }
 

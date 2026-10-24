@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Tool-call activity inside a chat turn: the timeline rows, the undo button,
 // the approval cards and the debounced file refresh that follows a change.
 // The model decides which tools run; this file only shows what happened.

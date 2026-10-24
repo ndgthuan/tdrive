@@ -17,5 +17,12 @@
   "account_title": "Cuenta",
   "account_subtitle": "La cuenta de Telegram con la que este dispositivo ha iniciado sesión.",
   "account_loading": "Cargando cuenta…",
-  "account_default_name": "Cuenta de Telegram"
+  "account_default_name": "Cuenta de Telegram",
+    "about_title": "Acerca de",
+    "about_name": "Aplicación",
+    "about_made_by": "Hecho por {author}",
+    "about_based_on": "Basado en TDrive de {upstream}",
+    "about_github": "GitHub",
+    "about_licenses": "Licencias",
+    "about_licenses_title": "Licencias y avisos"
 }

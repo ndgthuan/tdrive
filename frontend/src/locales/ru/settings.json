@@ -17,5 +17,12 @@
     "account_title": "Аккаунт",
     "account_subtitle": "Аккаунт Telegram, в который выполнен вход на этом устройстве.",
     "account_loading": "Загрузка аккаунта…",
-    "account_default_name": "Аккаунт Telegram"
+    "account_default_name": "Аккаунт Telegram",
+    "about_title": "О приложении",
+    "about_name": "Приложение",
+    "about_made_by": "Автор: {author}",
+    "about_based_on": "Основано на TDrive от {upstream}",
+    "about_github": "GitHub",
+    "about_licenses": "Лицензии",
+    "about_licenses_title": "Лицензии и уведомления"
 }

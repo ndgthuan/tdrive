@@ -17,5 +17,12 @@
   "account_title": "Akun",
   "account_subtitle": "Akun Telegram yang digunakan untuk masuk di perangkat ini.",
   "account_loading": "Memuat akun…",
-  "account_default_name": "Akun Telegram"
+  "account_default_name": "Akun Telegram",
+    "about_title": "Tentang",
+    "about_name": "Aplikasi",
+    "about_made_by": "Dibuat oleh {author}",
+    "about_based_on": "Berdasarkan TDrive oleh {upstream}",
+    "about_github": "GitHub",
+    "about_licenses": "Lisensi",
+    "about_licenses_title": "Lisensi dan pemberitahuan"
 }

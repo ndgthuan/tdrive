@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 import { writable } from 'svelte/store';
 import type { JobView } from '../../api/media_download';
 import type { media_progress_event } from '../../api/media_download';

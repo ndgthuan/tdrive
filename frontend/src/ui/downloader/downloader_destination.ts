@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Where a link download is saved: a drive and a folder inside it. The choice is
 // remembered per device, so the next download starts where the last one went.
 import type { SidebarState } from '../sidebar/sidebar_store';

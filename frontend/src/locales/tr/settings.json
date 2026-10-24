@@ -17,5 +17,12 @@
   "account_title": "Hesap",
   "account_subtitle": "Bu cihazın oturum açtığı Telegram hesabı.",
   "account_loading": "Hesap yükleniyor…",
-  "account_default_name": "Telegram hesabı"
+  "account_default_name": "Telegram hesabı",
+    "about_title": "Hakkında",
+    "about_name": "Uygulama",
+    "about_made_by": "Geliştiren: {author}",
+    "about_based_on": "{upstream} tarafından geliştirilen TDrive temel alınarak",
+    "about_github": "GitHub",
+    "about_licenses": "Lisanslar",
+    "about_licenses_title": "Lisanslar ve bildirimler"
 }

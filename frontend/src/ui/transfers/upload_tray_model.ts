@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Pure state for the upload tray. Nothing here touches the DOM, the runtime or
 // the stores: every transition takes the previous model and returns the next
 // one, so the tray's behaviour can be read and tested as data.

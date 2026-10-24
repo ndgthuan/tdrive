@@ -17,5 +17,12 @@
     "account_title": "Tài khoản",
     "account_subtitle": "Tài khoản Telegram mà thiết bị này đang đăng nhập.",
     "account_loading": "Đang tải tài khoản…",
-    "account_default_name": "Tài khoản Telegram"
+    "account_default_name": "Tài khoản Telegram",
+    "about_title": "Giới thiệu",
+    "about_name": "Ứng dụng",
+    "about_made_by": "Thực hiện bởi {author}",
+    "about_based_on": "Dựa trên TDrive của {upstream}",
+    "about_github": "GitHub",
+    "about_licenses": "Giấy phép",
+    "about_licenses_title": "Giấy phép và thông báo"
 }

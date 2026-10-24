@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"TDrive/backend/daemon"
+	"TDrive/internal/buildinfo"
 )
 
 type cliOptions struct {
@@ -141,13 +142,21 @@ var (
 )
 
 type cliVersionInfo struct {
-	Version  string `json:"version"`
-	Commit   string `json:"commit"`
-	Protocol int    `json:"protocol"`
+	Version    string `json:"version"`
+	Commit     string `json:"commit"`
+	Protocol   int    `json:"protocol"`
+	Author     string `json:"author"`
+	Repository string `json:"repository"`
 }
 
 func cliBuildInfo() cliVersionInfo {
-	info := cliVersionInfo{Version: buildVersion, Commit: buildCommit, Protocol: daemon.ProtocolVersion}
+	info := cliVersionInfo{
+		Version:    buildVersion,
+		Commit:     buildCommit,
+		Protocol:   daemon.ProtocolVersion,
+		Author:     buildinfo.Author,
+		Repository: buildinfo.Repository,
+	}
 	if build, ok := debug.ReadBuildInfo(); ok {
 		if info.Version == "dev" && build.Main.Version != "" && build.Main.Version != "(devel)" {
 			info.Version = build.Main.Version

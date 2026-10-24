@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // Pure helpers for the link downloader. They do no I/O and read no locale, so
 // they can be tested directly. Words the user sees come from the i18n keys the
 // dialog picks; this module only decides which key and which number.

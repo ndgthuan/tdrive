@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Nguyễn Dương Gia Thuận
+
 // The drive and folder the assistant works in. By default that is the drive and
 // folder open in the app right now. The composer chip can pick another drive or
 // the drive root; that choice holds only while the same drive stays open, so a

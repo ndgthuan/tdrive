@@ -1,3 +1,5 @@
+<!-- Copyright (c) 2026 Nguyễn Dương Gia Thuận -->
+
 <script lang="ts">
     import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
     import { t_store } from '../../i18n/i18n';
