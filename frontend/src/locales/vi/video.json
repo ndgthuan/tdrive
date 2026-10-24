@@ -32,7 +32,6 @@
     "video_fit": "Cách hiển thị video: {mode}. Nhấn để đổi",
     "open_playlist": "Mở danh sách video",
     "enter_fullscreen": "Vào toàn màn hình",
-
     "playlist_label": "Danh sách phát video",
     "playlist_list_label": "Video trong danh sách này",
     "close_playlist": "Đóng danh sách phát",
@@ -43,7 +42,6 @@
     "playlist_default_title": "Video",
     "untitled_video": "Video chưa đặt tên",
     "format_default": "VIDEO",
-
     "picture": "Hình ảnh",
     "picture_note": "Chọn cách video vừa với khung hình.",
     "picture_mode_label": "Chế độ hình ảnh",
@@ -68,5 +66,6 @@
     "background_color": "Màu nền",
     "transparency": "Độ trong suốt",
     "save": "Lưu",
-    "reset": "Đặt lại"
+    "reset": "Đặt lại",
+    "more_actions": "Thao tác khác"
 }

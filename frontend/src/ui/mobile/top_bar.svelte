@@ -6,6 +6,7 @@
     import CheckIcon from 'phosphor-svelte/lib/CheckIcon';
     import { tick } from 'svelte';
     import { t_store } from '../../i18n/i18n';
+    import { guard_handler } from '../../modules/diagnostics';
     import { breadcrumbPath } from '../chrome/breadcrumb_store';
     import { fileSortState, setFileSortKey } from '../file_list/file_sort_store';
     import type { FileSortKey } from '../file_list/file_sort';
@@ -20,6 +21,7 @@
     import { sidebarState } from '../sidebar/sidebar_store';
     import { askEmptyTrash, closeTrash, openTrash, trashEntries } from '../../modules/trash/controller';
     import SyncRing from './sync_ring.svelte';
+    import ViewOnlyBadge from '../members/view_only_badge.svelte';
     import {
         ACCOUNT_DETAIL_TITLE_KEYS,
         accountDetail,
@@ -54,6 +56,9 @@
     );
     const folderName = $derived($breadcrumbPath[$breadcrumbPath.length - 1]?.name ?? '');
     const driveName = $derived($activeDrive?.title || $t_store('mobile.drive_fallback'));
+    // The board titles the personal drive with the app name; a shared drive
+    // keeps its own name because that is what tells two shared drives apart.
+    const headerTitle = $derived($activeDrive?.kind === 'personal' ? 'TDrive' : driveName);
     const driveKind = $derived($activeDrive?.kind === 'shared' ? $t_store('mobile.kind_shared') : $t_store('mobile.kind_personal'));
     const countLabel = $derived(
         $fileListCount === 0 ? $t_store('mobile.files_none')
@@ -251,7 +256,7 @@
                 {#if active === 'files' && !inTrash}
                     <button type="button" class="topbar-selectall" onclick={() => selectAllRows()}>{$t_store('mobile.select_all')}</button>
                 {/if}
-                <button type="button" class="topbar-done" onclick={() => clearSelection()}>{$t_store('mobile.done')}</button>
+                <button type="button" class="topbar-done" onclick={() => clearSelection()}>{$t_store('common.cancel')}</button>
             </div>
         </div>
     </div>
@@ -297,14 +302,15 @@
                             class="drive-header-btn"
                             aria-haspopup="dialog"
                             aria-label={$t_store('mobile.drive_switch_aria', { name: driveName, kind: driveKind, count: countLabel })}
-                            onclick={openDriveSwitcher}
+                            onclick={guard_handler('header:switch-drive', openDriveSwitcher)}
                         >
-                            <span class="drive-header-name" title={driveName}>{driveName}</span>
+                            <span class="drive-header-name" title={headerTitle}>{headerTitle}</span>
                             <ChevronDownIcon class="drive-header-chevron" size={16} aria-hidden="true" />
                         </button>
                         <SyncRing status={$ringState} onOpenQueue={() => activeTab.set('transfers')} />
                     </div>
                     <span class="drive-header-meta">{driveMeta}</span>
+                    <ViewOnlyBadge />
                 </div>
             {/if}
 
@@ -315,7 +321,7 @@
                     aria-expanded={searchOpen}
                     aria-controls="search-input"
                     aria-label={searchOpen ? $t_store('mobile.hide_search') : $t_store('mobile.search_files')}
-                    onclick={toggleSearch}
+                    onclick={guard_handler('header:search', () => void toggleSearch())}
                 >
                     <SearchIcon size={22} aria-hidden="true" />
                 </button>
@@ -328,7 +334,7 @@
                         aria-expanded={sortOpen}
                         aria-controls="mobile-sort-menu"
                         aria-label={$t_store('mobile.sort_menu_aria', { sort: currentSortLabel, direction: $fileSortState.direction === 'asc' ? $t_store('mobile.sort_asc') : $t_store('mobile.sort_desc') })}
-                        onclick={toggleSort}
+                        onclick={guard_handler('header:more', () => void toggleSort())}
                     >
                         <EllipsisIcon size={22} aria-hidden="true" />
                     </button>

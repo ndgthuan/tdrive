@@ -43,12 +43,21 @@ type MediaDownloadService struct {
 	installer *mediadl.Installer
 	jobs      *mediadl.Manager
 
+	// engine and broker are set only on phones, where yt-dlp runs in the host app.
+	engine mediadl.MobileEngine
+	broker *media_host_broker
+
 	// setup_mu lets one tool install run at a time.
 	setup_mu sync.Mutex
 }
 
 func new_media_download_service(host serviceHost) *MediaDownloadService {
-	return &MediaDownloadService{host: host}
+	s := &MediaDownloadService{host: host}
+	if media_download_mobile {
+		s.broker = new_media_host_broker(host.emit)
+		s.engine = media_host_engine{broker: s.broker}
+	}
+	return s
 }
 
 // ready builds the locator, installer and manager once. The manager clears the
@@ -62,9 +71,14 @@ func (s *MediaDownloadService) ready() error {
 		}
 		s.tools = mediadl.NewTools(data_dir)
 		s.installer = mediadl.NewInstaller(s.tools.Paths())
-		s.jobs = mediadl.NewManager(s.tools, mediadl.NewExecRunner(), media_destination{host: s.host}, func(event mediadl.Event) {
+		emit := func(event mediadl.Event) {
 			s.host.emit(MEDIA_DL_PROGRESS_EVENT, event)
-		})
+		}
+		if s.engine != nil {
+			s.jobs = mediadl.NewMobileManager(s.tools, s.engine, media_destination{host: s.host}, emit)
+		} else {
+			s.jobs = mediadl.NewManager(s.tools, mediadl.NewExecRunner(), media_destination{host: s.host}, emit)
+		}
 	})
 	return s.init_err
 }
@@ -73,6 +87,15 @@ func (s *MediaDownloadService) ready() error {
 func (s *MediaDownloadService) Status() (mediadl.Status, error) {
 	if err := s.ready(); err != nil {
 		return mediadl.Status{}, err
+	}
+	if s.engine != nil {
+		ctx, cancel := context.WithTimeout(s.host.appContext(), MEDIA_HOST_STATUS_TIMEOUT)
+		defer cancel()
+		status, err := s.engine.Status(ctx)
+		if err != nil {
+			return mediadl.Status{}, err
+		}
+		return mediadl.MobileToolStatus(status), nil
 	}
 	return s.tools.Status(), nil
 }
@@ -198,6 +221,13 @@ func (s *MediaDownloadService) InstallTool(ctx context.Context, tool string) err
 	progress := func(stage string, percent int) {
 		s.host.emit(MEDIA_DL_SETUP_EVENT, MediaSetupEvent{Tool: tool, Stage: stage, Percent: percent})
 	}
+	if s.engine != nil {
+		if err := s.engine.Install(ctx, progress); err != nil {
+			s.host.emit(MEDIA_DL_SETUP_EVENT, MediaSetupEvent{Tool: tool, Stage: "error", Error: err.Error()})
+			return err
+		}
+		return nil
+	}
 	if err := s.installer.Install(ctx, tool, progress); err != nil {
 		s.host.emit(MEDIA_DL_SETUP_EVENT, MediaSetupEvent{Tool: tool, Stage: "error", Error: err.Error()})
 		return err
@@ -212,6 +242,11 @@ func (s *MediaDownloadService) UpdateYtDlp(ctx context.Context) (string, error) 
 	}
 	s.setup_mu.Lock()
 	defer s.setup_mu.Unlock()
+	if s.engine != nil {
+		update_ctx, cancel := context.WithTimeout(ctx, media_dl_update_timeout)
+		defer cancel()
+		return s.engine.Update(update_ctx)
+	}
 	bin, err := s.tools.Locate(mediadl.TOOL_YTDLP)
 	if err != nil {
 		return "", errors.New("yt-dlp is not installed")

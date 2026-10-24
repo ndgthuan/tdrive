@@ -137,6 +137,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int PHOTO_BACKUP_PERMISSION_REQUEST = 7012;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 7013;
     private static final int PHOTO_BACKUP_PAGE_LIMIT = 128;
+    // The whole-library source: every image and video on the device, with no
+    // folder filter. It is the only source id that is not a folder.
+    private static final String DEVICE_LIBRARY_SOURCE_ID = "device-library";
     // Two resources may overlap preparation and upload, sharing one byte budget.
     private static final int PHOTO_BACKUP_STAGE_MAX_ITEMS = 2;
     private static final long PHOTO_BACKUP_STAGE_MAX_BYTES = 4L * 1024L * 1024L * 1024L;
@@ -710,6 +713,8 @@ public class MainActivity extends AppCompatActivity {
             Intent battery = registerSticky(Intent.ACTION_BATTERY_CHANGED);
             int level = battery == null ? -1 : battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
             int scale = battery == null ? -1 : battery.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+            int batteryStatus = battery == null ? -1 : battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+            boolean charging = batteryStatus == BatteryManager.BATTERY_STATUS_CHARGING || batteryStatus == BatteryManager.BATTERY_STATUS_FULL;
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
             Network network = connectivityManager == null ? null : connectivityManager.getActiveNetwork();
             NetworkCapabilities caps = connectivityManager == null || network == null ? null : connectivityManager.getNetworkCapabilities(network);
@@ -720,6 +725,7 @@ public class MainActivity extends AppCompatActivity {
             out.put("supported", true).put("status", connected ? "ready" : "offline").put("detail", connected ? "network available" : "no active network")
                     .put("batteryLevel", scale > 0 ? level / (double) scale : -1)
                     .put("lowPowerMode", pm != null && pm.isPowerSaveMode())
+                    .put("charging", charging)
                     .put("wifi", "wifi".equals(type))
                     .put("network", new JSONObject().put("connected", connected).put("type", type)
                             .put("metered", caps != null && !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)));
@@ -738,8 +744,9 @@ public class MainActivity extends AppCompatActivity {
                 // and the whole-library source went with the picker that used
                 // to offer them.
                 String sourceId = request.optString("sourceId", "");
-                TreeSource tree = TreeSource.parse(sourceId);
-                if (tree == null) throw new IOException("unknown media source");
+                boolean library = DEVICE_LIBRARY_SOURCE_ID.equals(sourceId);
+                TreeSource tree = library ? null : TreeSource.parse(sourceId);
+                if (!library && tree == null) throw new IOException("unknown media source");
                 int limit = Math.max(1, Math.min(PHOTO_BACKUP_PAGE_LIMIT, request.optInt("limit", PHOTO_BACKUP_PAGE_LIMIT)));
                 Object cursorValue = request.opt("cursor");
                 // The JS adapter sends "" for the first page. A nonempty or
@@ -766,10 +773,12 @@ public class MainActivity extends AppCompatActivity {
                 // pattern reaches its subfolders. A folder named "100%" is
                 // escaped, or it would match half the volume.
                 String column = treePathColumn();
-                String prefix = tree.pathPrefix(this);
-                if (prefix == null) throw new IOException("that folder is not available on this device");
-                selection += " AND (" + column + "=? OR " + column + " LIKE ? ESCAPE '\\')";
-                args.add(prefix); args.add(escapeLike(prefix) + "%");
+                if (!library) {
+                    String prefix = tree.pathPrefix(this);
+                    if (prefix == null) throw new IOException("that folder is not available on this device");
+                    selection += " AND (" + column + "=? OR " + column + " LIKE ? ESCAPE '\\')";
+                    args.add(prefix); args.add(escapeLike(prefix) + "%");
+                }
                 // _ID is stable for a MediaStore row. DATE_MODIFIED can change
                 // during a multi-page scan and move an unseen row behind the
                 // cursor. New rows above this ID wait for the next scan.
@@ -789,7 +798,7 @@ public class MainActivity extends AppCompatActivity {
                 System.arraycopy(base, 0, projection, 0, base.length);
                 projection[base.length] = treePathColumn();
                 JSONArray assets = new JSONArray(); long lastId = 0; long previousId = id;
-                Uri collection = tree.collection();
+                Uri collection = library ? MediaStore.Files.getContentUri("external") : tree.collection();
                 try (Cursor c = queryMedia(collection, projection, selection, args.toArray(new String[0]), limit)) {
                     if (c == null) throw new IOException("media query returned no cursor");
                     while (assets.length() < limit && c.moveToNext()) {
@@ -807,7 +816,7 @@ public class MainActivity extends AppCompatActivity {
                                 .put("version", changed + ":" + size).put("name", c.isNull(2) ? "media" : c.getString(2))
                                 .put("mediaType", video ? "video" : "image").put("mimeType", c.isNull(3) ? "" : c.getString(3))
                                 .put("resourceID", "media:" + (video ? "video:" : "image:") + mediaId)
-                                .put("relDir", tree.relativeDir(c.isNull(base.length) ? "" : c.getString(base.length)))
+                                .put("relDir", library ? "" : tree.relativeDir(c.isNull(base.length) ? "" : c.getString(base.length)))
                                 .put("size", size).put("modifiedAt", changed * 1000L).put("createdAt", createdAt).put("sourceId", sourceId));
                         lastId = mediaId;
                     }

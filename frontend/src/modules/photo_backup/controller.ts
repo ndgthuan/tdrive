@@ -140,7 +140,7 @@ function schedulePolicyRefresh(): void {
         policyTimer = null;
         try {
             const state = backendState;
-            if (active && documentVisible && state?.platform === 'android' && state.settings.enabled && state.settings.wifiOnly && !manuallyPaused) {
+            if (active && documentVisible && (state?.platform === 'android' || state?.platform === 'ios') && state.settings.enabled && state.settings.wifiOnly && !manuallyPaused) {
                 const permitted = await refreshNativePolicy();
                 if (permitted && epoch === scopeEpoch && !manuallyPaused && !state.encryptionRequired && state.status.uploading === 0 && (state.status.pending > 0 || state.status.failed > 0)) void runDiscoveryScheduler();
             }

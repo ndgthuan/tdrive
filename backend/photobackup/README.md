@@ -203,6 +203,15 @@ paths, scan checkpoints and a partial FIFO claim index. Backup has no charging c
 supported sources and jobs, followed by cleanup of retired sources and orphaned
 unfinished work.
 
+Source kinds are `folder`, `device-folder`, and `device-library`. The last is the
+phone's whole media library (images and videos) under the fixed ID
+`device-library`, used by automatic device backup. The retired `library` and
+`album` kinds are still dropped during migration cleanup, but `device-library`
+is kept: migrations never delete a source of a supported kind or the receipts
+and jobs it wrote. While automatic backup is on, uploads from `device-library` go to My Drive
+under the device folder it names (for example `iPhone`), found by name and
+kept in place when renamed. Otherwise they use `Photo backup / <device> / <source>`.
+
 ## User-visible limits
 
 Backup source selection offers selected folders on desktop, Android and iOS

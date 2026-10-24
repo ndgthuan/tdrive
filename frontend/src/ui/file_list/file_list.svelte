@@ -370,7 +370,7 @@
             onclick={(event) => onActionClick(event, row, action)}
         >
             {@render actionGlyph(action, size)}
-            {#if action.text && !mobile}<span class="action-text">{action.text}</span>{/if}
+            {#if action.text && (!mobile || action.kind === 'restore')}<span class="action-text">{action.text}</span>{/if}
         </button>
     {/each}
 {/snippet}
@@ -478,7 +478,7 @@
                             {@render fileIcon(row)}
                         {/if}
                         <span class="row-text">
-                            {@render phoneLabel(row.name, row.kind === 'file')}
+                            {@render phoneLabel(row.name, row.kind === 'file' && !row.actionsInline)}
                             {#if meta || (row.kind === 'file' && (row.encrypted || row.uploaderChip?.firstName))}
                                 <span class="row-sub">
                                     {#if meta}

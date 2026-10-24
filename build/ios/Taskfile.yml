@@ -80,6 +80,63 @@ tasks:
       CGO_CFLAGS: '-isysroot {{.SDK_PATH}} -target {{.IOS_TARGET}} {{.IOS_VERSION_MIN_FLAG}}'
       CGO_LDFLAGS: '-isysroot {{.SDK_PATH}} -target {{.IOS_TARGET}}'
 
+  # The link downloader's engine: a pinned embedded CPython (BeeWare Python-Apple-support)
+  # plus the pinned yt-dlp wheel. Downloads are checked against their published SHA-256
+  # before anything is unpacked. Layout inside the tarball is not verified on a Mac yet:
+  # the stdlib lookup below is the assumption to check first.
+  mediadl:fetch:
+    internal: true
+    summary: Download and verify the pinned Python runtime and yt-dlp for the link downloader
+    vars:
+      MEDIADL_CACHE: build/ios/mediadl/cache
+      PY_SUPPORT_VERSION: 3.13-b16
+      PY_SUPPORT_URL: https://github.com/beeware/Python-Apple-support/releases/download/3.13-b16/Python-3.13-iOS-support.b16.tar.gz
+      PY_SUPPORT_SHA256: 22b96f3d0c3663225f078556b036d2ee6ce3ff98c885706585240681335c71ea
+      YT_DLP_VERSION: 2026.8.19
+      YT_DLP_URL: https://files.pythonhosted.org/packages/69/b2/8cd1613f56eed7ceb64fbd4df3f1c01246bfb098e6f398228bafda22b80b/yt_dlp-2026.8.19-py3-none-any.whl
+      YT_DLP_SHA256: 1d57897e94c6665a0a6f9bc54b34e584284e32c034ffab3a7df25d8f7b24eedf
+    sources:
+      - build/ios/mediadl/tdrive_mediadl.py
+    generates:
+      - "{{.MEDIADL_CACHE}}/stdlib/**/*"
+      - "{{.MEDIADL_CACHE}}/yt_dlp_site/**/*"
+    cmds:
+      - |
+        set -eu
+        mkdir -p "{{.MEDIADL_CACHE}}"
+        cd "{{.MEDIADL_CACHE}}"
+        if [ ! -f py-support.tar.gz ]; then curl -fsSL -o py-support.tar.gz "{{.PY_SUPPORT_URL}}"; fi
+        echo "{{.PY_SUPPORT_SHA256}}  py-support.tar.gz" | shasum -a 256 -c -
+        rm -rf py && mkdir py && tar -xzf py-support.tar.gz -C py
+        # Device slice only. The stdlib folder is located by name, not by a fixed path.
+        STDLIB=$(find py -type d -name python3.13 -path '*ios-arm64*' | head -n 1)
+        test -n "$STDLIB" || { echo "python3.13 stdlib not found in the iOS support tarball" >&2; exit 1; }
+        rm -rf stdlib && mkdir stdlib && cp -R "$STDLIB/." stdlib/
+        if [ ! -f yt_dlp.whl ]; then curl -fsSL -o yt_dlp.whl "{{.YT_DLP_URL}}"; fi
+        echo "{{.YT_DLP_SHA256}}  yt_dlp.whl" | shasum -a 256 -c -
+        rm -rf yt_dlp_site && mkdir yt_dlp_site && unzip -q -o yt_dlp.whl -d yt_dlp_site
+        echo "fetched yt-dlp {{.YT_DLP_VERSION}} and Python {{.PY_SUPPORT_VERSION}}"
+
+  # Copies the runtime into the built .app so yt-dlp is found at launch. Run after
+  # create:app:bundle. The Xcode path needs the same folder added as a build resource
+  # and the Python framework linked; neither is done by the generator yet.
+  mediadl:stage:
+    internal: true
+    summary: Copy the embedded Python runtime and yt-dlp into the app bundle
+    deps:
+      - task: mediadl:fetch
+    cmds:
+      - |
+        set -eu
+        APP="{{.BIN_DIR}}/{{.APP_NAME}}.app"
+        DEST="$APP/python/lib/python3.13"
+        rm -rf "$APP/python"
+        mkdir -p "$DEST/site-packages"
+        cp -R "{{.MEDIADL_CACHE}}/stdlib/." "$DEST/"
+        cp -R "{{.MEDIADL_CACHE}}/yt_dlp_site/." "$DEST/site-packages/"
+        cp build/ios/mediadl/tdrive_mediadl.py "$DEST/site-packages/"
+        echo "staged the link downloader runtime into $APP"
+
   package:
     summary: Packages a production build of the application into a `.app` bundle
     deps:
@@ -89,6 +146,7 @@ tasks:
     cmds:
       - task: compile:ios:link
       - task: create:app:bundle
+      - task: mediadl:stage
 
   package:ipa:
     summary: Packages a production build into an .ipa (requires IOS_PLATFORM=device and a real CODESIGN_IDENTITY)
@@ -127,7 +185,7 @@ tasks:
           -framework Foundation -framework UIKit -framework WebKit \
           -framework Security -framework CoreFoundation \
           -framework CoreGraphics -framework ImageIO \
-          -framework Photos \
+          -framework Photos -framework Network \
           -framework UniformTypeIdentifiers \
           -framework LocalAuthentication -framework UserNotifications \
           -framework AVFoundation -framework CoreMedia \
@@ -321,11 +379,13 @@ tasks:
       - build/ios/Info.plist
       - build/ios/main.m
       - build/ios/TDrivePhotoBridge.inc
+      - build/ios/TDriveMediaDl.inc
       - build/ios/scripts/build_xcode_archive.sh
       - build/ios/scripts/patch_xcode_project.go
     generates:
       - build/ios/xcode/main/main.m
       - build/ios/xcode/main/TDrivePhotoBridge.inc
+      - build/ios/xcode/main/TDriveMediaDl.inc
       - build/ios/xcode/main/Assets.xcassets/**/*
       - build/ios/xcode/main.xcodeproj/project.pbxproj
     cmds:
@@ -336,11 +396,12 @@ tasks:
       # ships without it while a build driven from here has it.
       - cp build/ios/main.m build/ios/xcode/main/main.m
       - cp build/ios/TDrivePhotoBridge.inc build/ios/xcode/main/TDrivePhotoBridge.inc
+      - cp build/ios/TDriveMediaDl.inc build/ios/xcode/main/TDriveMediaDl.inc
       # Go's c-archive carries ImageIO calls but Xcode links the final binary.
       # The Wails template only includes its own frameworks; add ours to both
       # generated configurations every time the project is regenerated.
       - |
-        perl -0pi -e 's/"-ObjC",/"-ObjC", "-framework", "CoreGraphics", "-framework", "ImageIO", "-framework", "Photos", "-framework", "UniformTypeIdentifiers",/g' build/ios/xcode/main.xcodeproj/project.pbxproj
+        perl -0pi -e 's/"-ObjC",/"-ObjC", "-framework", "CoreGraphics", "-framework", "ImageIO", "-framework", "Photos", "-framework", "Network", "-framework", "UniformTypeIdentifiers",/g' build/ios/xcode/main.xcodeproj/project.pbxproj
       # Make the generated project archive-safe. The patcher validates every
       # Wails template anchor before changing it, so upstream template drift
       # fails here instead of producing a subtly broken TestFlight archive.

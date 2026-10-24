@@ -165,7 +165,10 @@ type download_request struct {
 	URL        string
 	Choice     string
 	FFmpegPath string
-	OutDir     string
+	// FFmpegEmbedded is true when the host app supplies ffmpeg itself (a phone).
+	// No --ffmpeg-location flag is passed then.
+	FFmpegEmbedded bool
+	OutDir         string
 }
 
 // PROGRESS_TEMPLATE prints one machine-readable line per progress tick.
@@ -185,7 +188,7 @@ func build_download_args(request download_request) ([]string, error) {
 	if request.OutDir == "" {
 		return nil, errors.New("download directory is missing")
 	}
-	ffmpeg_ok := request.FFmpegPath != ""
+	ffmpeg_ok := request.FFmpegPath != "" || request.FFmpegEmbedded
 	selector, needs_ffmpeg, err := format_selector(request.Choice, ffmpeg_ok)
 	if err != nil {
 		return nil, err
@@ -207,7 +210,7 @@ func build_download_args(request download_request) ([]string, error) {
 		"-o", OUTPUT_TEMPLATE,
 		"-f", selector,
 	}
-	if ffmpeg_ok {
+	if request.FFmpegPath != "" {
 		args = append(args, "--ffmpeg-location", request.FFmpegPath)
 	}
 	if format := audio_format(request.Choice); format != "" && ffmpeg_ok {

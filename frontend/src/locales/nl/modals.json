@@ -6,9 +6,9 @@
     "folder_name_placeholder": "bijv. Facturen",
     "folder_create": "Map maken",
     "join_drive_title": "Gedeelde drive toevoegen",
-    "join_drive_subtitle": "Plak de t.me-uitnodigingslink die je van een vriend hebt gekregen. Als de drive veel geschiedenis heeft, kan toevoegen enkele seconden duren.",
+    "join_drive_subtitle": "Plak een uitnodigingslink van een gedeelde schijf. Je doet mee met de rol die de link geeft.",
     "join_drive_link_label": "Uitnodigingslink",
-    "join_drive_go": "Toevoegen",
+    "join_drive_go": "Drive toevoegen",
     "leave_drive_title": "Drive verlaten?",
     "leave_drive_subtitle_named": "\"{title}\" verlaten? Je kunt later opnieuw deelnemen met de uitnodigingslink.",
     "leave_drive_subtitle": "Je kunt later opnieuw deelnemen met de uitnodigingslink.",
@@ -160,5 +160,13 @@
     "join_requests_retry": "Opnieuw proberen",
     "join_requests_empty": "Geen openstaande verzoeken.",
     "join_requests_approve": "Goedkeuren",
-    "join_requests_reject": "Afwijzen"
+    "join_requests_reject": "Afwijzen",
+    "join_drive_paste": "Plakken",
+    "join_drive_preview": "Voorbeeld",
+    "join_drive_preview_hint": "Controleer de link en doe mee. De naam van de schijf en je rol verschijnen daarna.",
+    "join_drive_invalid": "Deze link is ongeldig. Controleer hem en probeer het opnieuw.",
+    "new_drive_owner_note": "Je wordt de eigenaar. Na het aanmaken kun je mensen uitnodigen.",
+    "new_drive_role_label": "Standaardrol voor nieuwe leden",
+    "new_drive_role_editor": "Bewerker",
+    "new_drive_role_viewer": "Lezer"
 }

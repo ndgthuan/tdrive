@@ -125,6 +125,8 @@ const DEFAULT_METHODS: Record<string, MockPlan> = {
     // Shared-drive roles. The default answer is owner, so existing journeys see
     // every control they always did; a spec swaps in a viewer plan to test gating.
     MyRole: resolves(driveRoleAnswer('owner')),
+    // Auto-backup state read by src/api/auto_backup.ts on the dashboard; an empty state is the off default.
+    GetState: resolves({}),
     RefreshMyRole: resolves(driveRoleAnswer('owner')),
     ListMembers: resolves({ result: { ok: true }, members: [{ user_id: 7, display_name: 'Test User', username: 'test', role: 'owner', joined_at: 0, is_self: true }], total: 1, next_offset: 1, has_more: false }),
     CreateInvite: resolves({ result: { ok: true }, link: 'https://t.me/+mockInviteLink', default_role: 'editor' }),

@@ -162,32 +162,64 @@
         color: var(--text-main);
         font-size: inherit;
     }
-    :global(.country-code-card) { width: min(440px, 100%); }
+    /* The sheet is sized to the space the keyboard leaves, not the full screen,
+       so the field and Cancel stay on screen while typing. dvh follows the
+       visual viewport on WebKit; the safe-area term keeps the Cancel row clear
+       of the home indicator. */
+    :global(.country-code-card) {
+        width: min(440px, 100%);
+        max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 24px);
+        box-sizing: border-box;
+    }
+    :global(.country-code-card) .country-code-results {
+        max-height: min(360px, calc(100dvh - 300px));
+    }
     .country-code-search {
         display: flex;
+        box-sizing: border-box;
         align-items: center;
         gap: var(--space-2);
+        width: 100%;
         min-height: 48px;
+        margin-top: var(--space-3);
         padding: 0 var(--space-3);
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
         background: var(--bg-dark);
         color: var(--text-muted);
     }
-    .country-code-search:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .country-code-search input {
-        flex: 1;
+    /* One field, one frame: the label draws the border and focus ring, and the
+       input inside it is bare. The global auth input rules (border, focus ring,
+       bottom margin, full width) would otherwise paint a second box inside the
+       first, so these declarations win over them on purpose. */
+    .country-code-search:focus-within { border-color: var(--accent); box-shadow: var(--focus-ring); }
+    .country-code-search input,
+    .country-code-search input:focus,
+    .country-code-search input:focus-visible {
+        flex: 1 1 auto;
         min-width: 0;
-        width: 100%;
-        margin: 0;
-        padding: var(--space-3) 0;
-        border: 0;
-        background: transparent;
+        width: auto !important;
+        min-height: 0;
+        margin: 0 !important;
+        padding: var(--space-3) 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
         color: var(--text-main);
         font: inherit;
         font-size: max(16px, var(--type-base));
-        outline: none;
-        box-shadow: none;
+        outline: none !important;
+        box-shadow: none !important;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    /* WebKit draws its own clear control on type=search, which the label's
+       search icon and the Cancel button already cover. */
+    .country-code-search input::-webkit-search-cancel-button,
+    .country-code-search input::-webkit-search-decoration {
+        -webkit-appearance: none;
+        appearance: none;
+        display: none;
     }
     .country-code-results {
         max-height: min(360px, 45dvh);

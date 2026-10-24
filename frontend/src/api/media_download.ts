@@ -4,6 +4,8 @@ import { Events } from '@wailsio/runtime';
 import {
     Cancel as rawCancel,
     CreateDestinationFolder as rawCreateDestinationFolder,
+    ReportMediaDownloadLine as rawReportLine,
+    ResolveMediaDownloadHost as rawResolveHost,
     InstallTool as rawInstallTool,
     ListDestinationFolders as rawListDestinationFolders,
     ListJobs as rawListJobs,
@@ -27,6 +29,15 @@ export type { DestinationFolder, DestinationListing } from '../../bindings/TDriv
 
 export const MEDIA_DL_PROGRESS_EVENT = 'media_dl:progress';
 export const MEDIA_DL_SETUP_EVENT = 'media_dl:setup';
+/** Carries one request from Go to the web view, which relays it to the phone's engine. */
+export const MEDIA_DL_HOST_EVENT = 'media_dl:host';
+
+/** One call the phone's native engine must answer. A cancel has no reply. */
+export interface media_host_request {
+    request_id: string;
+    op: 'status' | 'install' | 'update' | 'run' | 'cancel';
+    args?: string[];
+}
 
 /** One job update. Mirrors mediadl.Event; percent is -1 when unknown. */
 export interface media_progress_event {
@@ -99,6 +110,21 @@ export function update_ytdlp(): Promise<string> {
 /** Uses a tool the user already has. An empty path clears the choice. */
 export function set_tool_path(tool: 'yt-dlp' | 'ffmpeg', path: string): Promise<void> {
     return invokeBackend(rawSetToolPath, tool, path);
+}
+
+/** Answers one native-engine request. failure, when set, is the message the user reads. */
+export function reply_media_host(request_id: string, result: string, failure: string): Promise<void> {
+    return invokeBackend(rawResolveHost, request_id, result, failure);
+}
+
+/** Passes one line of native output to the request that is still running. */
+export function report_media_host_line(request_id: string, line: string): Promise<void> {
+    return invokeBackend(rawReportLine, request_id, line);
+}
+
+/** Listens for native-engine requests. The returned function stops listening. */
+export function subscribe_media_host(callback: (request: media_host_request) => void): RuntimeUnsubscribe {
+    return subscribe<media_host_request>(MEDIA_DL_HOST_EVENT, callback);
 }
 
 function subscribe<T>(event_name: string, callback: (payload: T) => void): RuntimeUnsubscribe {

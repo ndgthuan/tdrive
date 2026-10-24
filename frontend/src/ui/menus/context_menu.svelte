@@ -14,14 +14,10 @@
     import FolderPlusIcon from 'phosphor-svelte/lib/FolderPlusIcon';
     import RefreshCwIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
     import XIcon from 'phosphor-svelte/lib/XIcon';
-    import FileTextIcon from 'phosphor-svelte/lib/FileTextIcon';
-    import DatabaseIcon from 'phosphor-svelte/lib/DatabaseIcon';
-    import CalendarIcon from 'phosphor-svelte/lib/CalendarBlankIcon';
     import UsersIcon from 'phosphor-svelte/lib/UsersIcon';
     import {
         contextMenuState,
         hideContextMenu,
-        type ContextMenuDetailIcon,
         type ContextMenuIcon,
         type ContextMenuItem,
     } from './context_menu_store';
@@ -50,13 +46,6 @@
         users: UsersIcon,
     };
 
-    const DETAIL_ICONS: Record<ContextMenuDetailIcon, typeof FileIcon> = {
-        type: FileTextIcon,
-        size: DatabaseIcon,
-        added: CalendarIcon,
-        location: FolderIcon,
-    };
-
     /** The header glyph: the same type icon the row showed, not a generic page. */
     const headerIcon = $derived.by(() => {
         const header = $contextMenuState.header;
@@ -65,22 +54,16 @@
         return fileTypeIcon(fileTypeFamily(header.ext ?? ''));
     });
 
-    // Only a sheet with a header promotes actions to tiles. A menu opened on
-    // empty space has no subject, so it stays a plain list.
-    const tiles = $derived(
-        $contextMenuState.header
-            ? $contextMenuState.items.filter((item) => item.type !== 'divider' && item.primary)
-            : [],
-    );
-    const listItems = $derived.by(() => {
-        if (!tiles.length) return $contextMenuState.items;
-        const rest = $contextMenuState.items.filter((item) => item.type === 'divider' || !item.primary);
-        // Pulling items out can strand a separator at either end, where it
-        // would draw a rule against the sheet's own edge.
-        while (rest.length && rest[0].type === 'divider') rest.shift();
-        while (rest.length && rest[rest.length - 1].type === 'divider') rest.pop();
-        return rest;
-    });
+    // The phone sheet is a plain list under its header, as the board draws it:
+    // Open, Download, Rename, Move and Move to Trash, then Cancel. The icon tiles
+    // and the details table belong to the desktop popover's habits and are not
+    // drawn here, so every action reads as one row with its own label.
+    const listItems = $derived($contextMenuState.items);
+    /** The phone calls the delete action what it does: it moves to the Trash. */
+    function rowLabel(item: { label: string; icon?: string }): string {
+        if (item.icon === 'delete') return $t_store('mobile.move_to_trash');
+        return item.label.replace(/…$/, '');
+    }
 
     const VIEWPORT_MARGIN = 8;
 
@@ -330,45 +313,6 @@
                 {/if}
             </div>
 
-            {#if tiles.length}
-                <div class="action-sheet-tiles">
-                    {#each tiles as item, index (`${item.type === 'divider' ? 'd' : item.label}-${index}`)}
-                        {#if item.type !== 'divider'}
-                            <button
-                                type="button"
-                                class="action-sheet-tile"
-                                disabled={item.disabled}
-                                onclick={() => invoke(item)}
-                            >
-                                {#if item.icon}
-                                    {@const TileIcon = ICONS[item.icon]}
-                                    <TileIcon size={22} aria-hidden="true" />
-                                {/if}
-                                <span class="action-sheet-tile-label">{item.label.replace(/…$/, '')}</span>
-                            </button>
-                        {/if}
-                    {/each}
-                </div>
-            {/if}
-
-            {#if $contextMenuState.header?.details?.length}
-                <dl class="action-sheet-details">
-                    {#each $contextMenuState.header.details as detail (detail.label)}
-                        <div class="action-sheet-detail">
-                            <dt>
-                                {#if detail.icon}
-                                    {@const DetailIcon = DETAIL_ICONS[detail.icon]}
-                                    <DetailIcon size={16} aria-hidden="true" />
-                                {/if}
-                                <span>{detail.label}</span>
-                            </dt>
-                            <dd>
-                                <span>{detail.value}</span>
-                            </dd>
-                        </div>
-                    {/each}
-                </dl>
-            {/if}
 
             <div class="action-sheet-items">
                 {#each listItems as item, index (item.type === 'divider' ? `divider-${index}` : `${item.label}-${index}`)}
@@ -386,10 +330,13 @@
                                 {@const RowIcon = ICONS[item.icon]}
                                 <RowIcon size={20} aria-hidden="true" />
                             {/if}
-                            <span>{item.label}</span>
+                            <span>{rowLabel(item)}</span>
                         </button>
                     {/if}
                 {/each}
+                <button type="button" class="action-sheet-row action-sheet-cancel" onclick={() => { void dismissAndRestoreFocus(); }}>
+                    <span>{$t_store('common.cancel')}</span>
+                </button>
             </div>
 
             </div>

@@ -126,6 +126,8 @@ type Manager struct {
 	runner Runner
 	dest   Destination
 	emit   func(Event)
+	// mobile, when set, runs yt-dlp inside the host app instead of as a file.
+	mobile MobileEngine
 
 	mu   sync.Mutex
 	jobs map[string]*job
@@ -143,15 +145,68 @@ func NewManager(tools *Tools, runner Runner, dest Destination, emit func(Event))
 	return &Manager{tools: tools, runner: runner, dest: dest, emit: emit, jobs: make(map[string]*job)}
 }
 
+// NewMobileManager builds a manager whose yt-dlp runs inside the host app. Tools
+// are still stored under tools.paths for the job temp directories; no executable
+// is located. It clears the temp root like NewManager.
+func NewMobileManager(tools *Tools, engine MobileEngine, dest Destination, emit func(Event)) *Manager {
+	m := NewManager(tools, mobile_runner{engine: engine}, dest, emit)
+	m.mobile = engine
+	return m
+}
+
+// engine_binary returns the executable Run starts. On a phone there is no file
+// to locate: the in-app engine must be installed, and the logical name is passed
+// through, which the mobile runner ignores.
+func (m *Manager) engine_binary(ctx context.Context) (string, error) {
+	if m.mobile == nil {
+		bin, err := m.tools.Locate(TOOL_YTDLP)
+		if err != nil {
+			return "", errors.New("yt-dlp is not installed")
+		}
+		return bin, nil
+	}
+	status, err := m.mobile.Status(ctx)
+	if err != nil {
+		return "", err
+	}
+	if err := ensure_mobile_engine_ready(status); err != nil {
+		return "", err
+	}
+	return TOOL_YTDLP, nil
+}
+
+// start_tools resolves what one job needs: the yt-dlp executable, and how ffmpeg
+// is available. On desktop ffmpeg is a path; on a phone the engine carries it.
+func (m *Manager) start_tools(ctx context.Context) (ytdlp string, ffmpeg_path string, ffmpeg_embedded bool, err error) {
+	if m.mobile != nil {
+		status, status_err := m.mobile.Status(ctx)
+		if status_err != nil {
+			return "", "", false, status_err
+		}
+		if ready_err := ensure_mobile_engine_ready(status); ready_err != nil {
+			return "", "", false, ready_err
+		}
+		return TOOL_YTDLP, "", status.FFmpeg, nil
+	}
+	ytdlp, err = m.tools.Locate(TOOL_YTDLP)
+	if err != nil {
+		return "", "", false, errors.New("yt-dlp is not installed")
+	}
+	if path, locate_err := m.tools.Locate(TOOL_FFMPEG); locate_err == nil {
+		ffmpeg_path = path
+	}
+	return ytdlp, ffmpeg_path, false, nil
+}
+
 // Probe reads the metadata and quality list of one link without downloading.
 func (m *Manager) Probe(ctx context.Context, raw_url string) (ProbeResult, error) {
 	args, err := probe_args(raw_url)
 	if err != nil {
 		return ProbeResult{}, err
 	}
-	bin, err := m.tools.Locate(TOOL_YTDLP)
+	bin, err := m.engine_binary(ctx)
 	if err != nil {
-		return ProbeResult{}, errors.New("yt-dlp is not installed")
+		return ProbeResult{}, err
 	}
 	ctx, cancel := context.WithTimeout(ctx, PROBE_TIMEOUT)
 	defer cancel()
@@ -183,13 +238,9 @@ func (m *Manager) Start(base context.Context, channel_id int64, request StartReq
 	if err := m.dest.CheckTarget(base, channel_id, request.TargetFolderID); err != nil {
 		return "", err
 	}
-	ytdlp, err := m.tools.Locate(TOOL_YTDLP)
+	ytdlp, ffmpeg_path, ffmpeg_embedded, err := m.start_tools(base)
 	if err != nil {
-		return "", errors.New("yt-dlp is not installed")
-	}
-	ffmpeg := ""
-	if path, err := m.tools.Locate(TOOL_FFMPEG); err == nil {
-		ffmpeg = path
+		return "", err
 	}
 	id, err := new_job_id()
 	if err != nil {
@@ -197,10 +248,11 @@ func (m *Manager) Start(base context.Context, channel_id int64, request StartReq
 	}
 	dir := filepath.Join(m.tools.paths.Tmp, id)
 	args, err := build_download_args(download_request{
-		URL:        request.URL,
-		Choice:     request.PresetOrFormatID,
-		FFmpegPath: ffmpeg,
-		OutDir:     dir,
+		URL:            request.URL,
+		Choice:         request.PresetOrFormatID,
+		FFmpegPath:     ffmpeg_path,
+		FFmpegEmbedded: ffmpeg_embedded,
+		OutDir:         dir,
 	})
 	if err != nil {
 		return "", err

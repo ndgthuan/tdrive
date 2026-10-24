@@ -3,6 +3,7 @@
 
 import * as AIService from "./aiservice.js";
 import * as App from "./app.js";
+import * as AutoBackupService from "./autobackupservice.js";
 import * as DeviceService from "./deviceservice.js";
 import * as DriveMembersService from "./drivemembersservice.js";
 import * as DriveService from "./driveservice.js";
@@ -13,6 +14,7 @@ import * as UpdateService from "./updateservice.js";
 export {
     AIService,
     App,
+    AutoBackupService,
     DeviceService,
     DriveMembersService,
     DriveService,
@@ -24,6 +26,8 @@ export {
 
 export type {
     AppVersionInfo,
+    AutoBackupProgress,
+    AutoBackupState,
     BiometricStatus,
     ChannelInfo,
     DestinationFolder,

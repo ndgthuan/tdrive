@@ -252,6 +252,18 @@ func (a *App) resolvePhotoBackupUploadParent(ctx context.Context, request photob
 	}
 	photoBackupDestinationMu.Lock()
 	defer photoBackupDestinationMu.Unlock()
+	// Whole-library uploads go to the phone's folder in My Drive while automatic
+	// backup is on. The folder lookup runs under the same lock as the rest of
+	// the destination resolution.
+	if request.Source.Kind == photobackup.DeviceLibrarySourceKind && a.autoBackup != nil {
+		folderID, autoErr := a.autoBackup.destinationFolderID(ctx, appAutoBackupFolderStore{appPhotoBackupFolderStore{service: service}}, request.ChannelID)
+		if autoErr == nil {
+			return folderID, nil
+		}
+		if !errors.Is(autoErr, errAutoBackupOff) {
+			return "", autoErr
+		}
+	}
 	deviceName, err := photoBackupDeviceName()
 	if err != nil {
 		return "", err

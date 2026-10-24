@@ -3,6 +3,7 @@
     import DownloadIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
     import Trash2Icon from 'phosphor-svelte/lib/TrashIcon';
     import { t_store } from '../../i18n/i18n';
+    import { isMobilePlatform } from '../../api';
     import { selectionBarState } from './selection_bar_store';
     import { active_drive_can_edit } from '../members/members_store';
 
@@ -17,6 +18,8 @@
     let { onDownload, onMove, onDelete, onClear }: SelectionBarProps = $props();
 
     const label = $derived($t_store('selection.count', { count: $selectionBarState.count }));
+    // On the phone the bar names the delete action for where it goes, as the board does.
+    const phoneBar = isMobilePlatform();
 </script>
 
 <!-- Desktop: a floating bar of text actions, Download, Move, Delete and Done.
@@ -44,7 +47,7 @@
         <span class="selection-btn-icon" aria-hidden="true">
             <Trash2Icon size={22} />
         </span>
-        <span class="selection-btn-label">{$t_store('selection.delete')}</span>
+        <span class="selection-btn-label">{phoneBar ? $t_store('mobile.trash_short') : $t_store('selection.delete')}</span>
     </button>
     {/if}
     <span class="selection-spacer" aria-hidden="true"></span>

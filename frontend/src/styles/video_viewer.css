@@ -1461,3 +1461,35 @@ html.mobile .video-error {
     background: var(--viewer-surface-1);
     box-shadow: none;
 }
+
+/* The '...' menu in the video top bar: Download and playback settings. */
+.video-more-wrap { position: relative; display: inline-flex; }
+.video-more-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 6;
+    min-width: 200px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px;
+    background: var(--color-surface-2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.video-more-item {
+    border: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: none;
+    color: var(--color-text);
+    font: inherit;
+    font-size: 15px;
+    text-align: left;
+}
+.video-more-item:hover,
+.video-more-item:focus-visible { background: var(--color-surface-3); }

@@ -7,6 +7,7 @@
     import EventRow from '../notifications/event_row.svelte';
     import MobileTransferRow from './mobile_transfer_row.svelte';
     import MobileResumableUploadRow from './mobile_resumable_upload_row.svelte';
+    import DownloadLinkJobs from './download_link_jobs.svelte';
     import ResumableDownloadRow from '../notifications/resumable_download_row.svelte';
     import { pauseUpload, resumableUploads } from '../../modules/resumable_uploads';
     import { pauseDownload, resumableDownloads } from '../../modules/resumable_downloads';
@@ -105,6 +106,7 @@
 </script>
 
 <div class="mobile-scroll transfers-tab">
+    <DownloadLinkJobs />
     {#if !hasActive && visibleRecent.length === 0 && $failedUploadReports.length === 0}
         <div class="mobile-empty">
             <span class="mobile-empty-glyph">

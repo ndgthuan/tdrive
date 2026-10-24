@@ -32,7 +32,6 @@
     "video_fit": "Video fit: {mode}. Click to cycle",
     "open_playlist": "Open video playlist",
     "enter_fullscreen": "Enter fullscreen",
-
     "playlist_label": "Video playlist",
     "playlist_list_label": "Videos in this playlist",
     "close_playlist": "Close playlist",
@@ -43,7 +42,6 @@
     "playlist_default_title": "Videos",
     "untitled_video": "Untitled video",
     "format_default": "VIDEO",
-
     "picture": "Picture",
     "picture_note": "Choose how the video fits the frame.",
     "picture_mode_label": "Picture mode",
@@ -68,5 +66,6 @@
     "background_color": "Background color",
     "transparency": "Transparency",
     "save": "Save",
-    "reset": "Reset"
+    "reset": "Reset",
+    "more_actions": "More actions"
 }

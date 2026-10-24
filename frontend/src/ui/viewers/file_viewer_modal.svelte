@@ -454,9 +454,16 @@
             <button class="file-viewer-close" type="button" onclick={onClose} aria-label={$t_store('viewer.close_file')} title={$t_store('viewer.close')}>
                 <XIcon size={24} aria-hidden="true" />
             </button>
-            <h3 id="file-viewer-title" class="file-viewer-title" title={$fileViewerState.title}>
-                {$fileViewerState.title || $t_store('viewer.open_file')}
-            </h3>
+            <div class="file-viewer-title-stack">
+                <h3 id="file-viewer-title" class="file-viewer-title" title={$fileViewerState.title}>
+                    {$fileViewerState.title || $t_store('viewer.open_file')}
+                </h3>
+                {#if viewerLabel() || $fileViewerState.meta}
+                    <p class="file-viewer-phone-meta">
+                        {viewerLabel()}{#if viewerLabel() && $fileViewerState.meta} · {/if}{$fileViewerState.meta}
+                    </p>
+                {/if}
+            </div>
             {#if canDownload}<button class="file-viewer-action is-icon-only" type="button" onclick={onDownload} aria-label={$t_store('viewer.download')} title={$t_store('viewer.download')}>
                 <DownloadIcon size={24} aria-hidden="true" />
             </button>{/if}

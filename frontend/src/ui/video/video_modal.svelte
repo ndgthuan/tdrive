@@ -1,16 +1,20 @@
 <script lang="ts">
     import ListVideoIcon from 'phosphor-svelte/lib/PlaylistIcon';
+    import DownloadIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
+    import EllipsisIcon from 'phosphor-svelte/lib/DotsThreeIcon';
     import VideoPlaylistPanel from "./video_playlist_panel.svelte";
     import VideoSettingsPanel from "./video_settings_panel.svelte";
     import type { PlaybackPreferences } from "../../modules/video/playback_preferences";
     import { videoPlaybackPreferences } from "./video_preferences_store";
     import { t_store } from "../../i18n/i18n";
+    import { videoDownloadable } from "./video_download_store";
 
     interface Props {
         onPreferencesChange?: (value: PlaybackPreferences) => void;
         onHidePlaylist?: (restoreFocus?: boolean) => void;
         onSelectPlaylistItem?: (index: number) => void;
         onUpdateVideoAutoNext?: (enabled: boolean) => void;
+        onDownload?: () => void;
     }
 
     let {
@@ -18,8 +22,46 @@
         onHidePlaylist = () => undefined,
         onSelectPlaylistItem = () => undefined,
         onUpdateVideoAutoNext = () => undefined,
+        onDownload = () => undefined,
     }: Props = $props();
     let preferences = $derived($videoPlaybackPreferences);
+
+    // The '...' menu. Its Download entry is decided when the menu opens, so a
+    // protected file never shows it.
+    let moreOpen = $state(false);
+    let moreWrap: HTMLElement | undefined = $state();
+
+    function toggleMore(): void {
+        moreOpen = !moreOpen;
+    }
+
+    function closeMore(): void {
+        moreOpen = false;
+    }
+
+    function runDownload(): void {
+        closeMore();
+        onDownload();
+    }
+
+    function runMore(): void {
+        closeMore();
+        // The playback settings sheet is the rest of this menu; the player owns
+        // that panel, so its existing trigger opens it.
+        document.getElementById('video-picture-button')?.click();
+    }
+
+    function onWindowPointerDown(event: PointerEvent): void {
+        if (moreOpen && moreWrap && !moreWrap.contains(event.target as Node)) closeMore();
+    }
+
+    function onMenuKeydown(event: KeyboardEvent): void {
+        if (event.key === 'Escape' && moreOpen) {
+            event.stopPropagation();
+            closeMore();
+            document.getElementById('video-more-button')?.focus();
+        }
+    }
 
     function updatePreferences(value: PlaybackPreferences): void {
         videoPlaybackPreferences.set(value);
@@ -37,12 +79,42 @@
     import XIcon from 'phosphor-svelte/lib/XIcon';
 </script>
 
+<svelte:window onpointerdown={onWindowPointerDown} />
 <div id="video-shell" class="video-shell" role="dialog" aria-modal="true" aria-labelledby="video-filename" tabindex="-1">
     <div class="video-topbar">
         <div class="video-title-group">
             <div id="video-filename" class="video-filename"></div>
             <div id="video-meta" class="video-meta"></div>
             <span id="video-protected" class="video-protected" title={$t_store('video.protected_hint')} hidden>{$t_store('video.protected')}</span>
+        </div>
+        <div class="video-more-wrap" bind:this={moreWrap} onkeydown={onMenuKeydown} role="presentation">
+            <button
+                id="video-more-button"
+                class="video-icon-btn video-more-btn"
+                type="button"
+                aria-label={$t_store('video.more_actions')}
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                aria-controls="video-more-menu"
+                title={$t_store('video.more_actions')}
+                onclick={toggleMore}
+            >
+                <EllipsisIcon size={22} aria-hidden="true" />
+            </button>
+            {#if moreOpen}
+                <div id="video-more-menu" class="video-more-menu" role="menu" aria-label={$t_store('video.more_actions')}>
+                    {#if $videoDownloadable}
+                        <button id="video-menu-download" class="video-more-item" type="button" role="menuitem" onclick={runDownload}>
+                            <DownloadIcon size={18} aria-hidden="true" />
+                            <span>{$t_store('messages.video_download')}</span>
+                        </button>
+                    {/if}
+                    <button id="video-menu-more" class="video-more-item" type="button" role="menuitem" onclick={runMore}>
+                        <SettingsIcon size={18} aria-hidden="true" />
+                        <span>{$t_store('video.playback_settings')}</span>
+                    </button>
+                </div>
+            {/if}
         </div>
         <button id="video-close" class="video-icon-btn video-close-btn" type="button" aria-label={$t_store('video.close_video')} title={$t_store('video.close')}>
             <XIcon size={22} aria-hidden="true" />

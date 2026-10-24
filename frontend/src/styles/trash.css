@@ -118,3 +118,21 @@ html:not(.mobile) .main-content.trash-mode .action-icon.row-purge:hover {
     background: var(--overlay-danger-1);
     color: var(--color-danger);
 }
+
+/* On a phone the restore action is a labelled pill, as the board draws it:
+   the name keeps the row's width and the action says what it does. */
+html.mobile .row-actions.is-inline .action-icon.row-restore,
+html.mobile .action-icon.row-restore {
+    width: auto;
+    min-width: 0;
+    height: 34px;
+    flex: none;
+    padding: 0 12px;
+    gap: 6px;
+    border-radius: 17px;
+    background: var(--overlay-accent-1);
+    color: var(--color-accent);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}

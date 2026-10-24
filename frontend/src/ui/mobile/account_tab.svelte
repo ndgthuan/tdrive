@@ -9,6 +9,8 @@
     import LockKeyholeIcon from 'phosphor-svelte/lib/LockKeyIcon';
     import LogOutIcon from 'phosphor-svelte/lib/SignOutIcon';
     import PaletteIcon from 'phosphor-svelte/lib/PaletteIcon';
+    import LanguageIcon from 'phosphor-svelte/lib/TranslateIcon';
+    import InfoIcon from 'phosphor-svelte/lib/InfoIcon';
     import CloudUploadIcon from 'phosphor-svelte/lib/CloudArrowUpIcon';
     import Trash2Icon from 'phosphor-svelte/lib/TrashIcon';
     import Avatar from '../chrome/avatar.svelte';
@@ -17,7 +19,12 @@
     import { encryptionEntryVisible, profileLoaded, profileUser } from '../chrome/profile_store';
     import { sidebarState } from '../sidebar/sidebar_store';
     import AppearancePanel from '../theme/appearance_panel.svelte';
-    import PhotoBackupPanel from '../gallery/photo_backup_panel.svelte';
+    import LanguagePane from '../settings/language_pane.svelte';
+    import AboutPanel from './about_panel.svelte';
+    import { driveListFailed } from '../sidebar/sidebar_store';
+    import { retryLoadChannels } from '../../modules/channels';
+    import AutoBackupPane from '../backup/auto_backup_pane.svelte';
+    import DownloadFromLinkRow from './download_from_link_row.svelte';
     import { getThemeDefinition } from '../theme/theme_model';
     import { themeState } from '../theme/theme_controller';
     import { handleDriveClick } from '../../modules/sidebar';
@@ -185,8 +192,12 @@
         <section class="account-detail" aria-label={$t_store(ACCOUNT_DETAIL_TITLE_KEYS[$accountDetail])}>
             {#if $accountDetail === 'appearance'}
                 <AppearancePanel autofocus />
+            {:else if $accountDetail === 'language'}
+                <LanguagePane />
+            {:else if $accountDetail === 'about'}
+                <AboutPanel />
             {:else}
-                <PhotoBackupPanel page />
+                <AutoBackupPane page />
             {/if}
         </section>
     {:else}
@@ -230,12 +241,19 @@
                 <span class="account-row-value">{backupSummary}</span>
                 <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
             </button>
+            <DownloadFromLinkRow />
         </div>
     </section>
 
     <section class="account-group" aria-label={$t_store('mobile.account_drives')}>
         <h2 class="mobile-section-label">{$t_store('mobile.account_drives')}</h2>
         <div class="account-card">
+            {#if $driveListFailed}
+                <button type="button" class="drive-retry account-retry" onclick={retryLoadChannels}>
+                    <span>{$t_store('mobile.shared_load_failed')}</span>
+                    <span class="drive-retry-action">{$t_store('mobile.retry')}</span>
+                </button>
+            {/if}
             {#each drives as channel (channel.id)}
                 <button type="button" class="account-row" onclick={() => openDrive(channel)}>
                     <FolderIcon class="account-row-icon" size={20} aria-hidden="true" />
@@ -287,11 +305,19 @@
         </div>
     </section>
 
-    <section class="account-group" aria-label={$t_store('mobile.account_about_aria')}>
-        <h2 class="mobile-section-label">{$t_store('mobile.account_about')}</h2>
-        <div class="account-card account-about">
-            <div class="account-about-name">TDrive</div>
-            <div class="account-about-tagline">{$t_store('mobile.account_tagline')}</div>
+    <section class="account-group" aria-label={$t_store('mobile.account_preferences')}>
+        <h2 class="mobile-section-label">{$t_store('mobile.account_preferences')}</h2>
+        <div class="account-card">
+            <button type="button" class="account-row" onclick={() => openDetail('language')}>
+                <LanguageIcon class="account-row-icon" size={20} aria-hidden="true" />
+                <span class="account-row-label">{$t_store('mobile.account_language')}</span>
+                <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
+            </button>
+            <button type="button" class="account-row" onclick={() => openDetail('about')}>
+                <InfoIcon class="account-row-icon" size={20} aria-hidden="true" />
+                <span class="account-row-label">{$t_store('mobile.account_about')}</span>
+                <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
+            </button>
         </div>
     </section>
 

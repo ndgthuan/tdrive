@@ -1,4 +1,10 @@
 <script lang="ts">
+    /** The ".png" part of a name, kept when the name is changed. Empty when the name has none. */
+    function extensionOf(value: string): string {
+        const dot = value.lastIndexOf('.');
+        return dot > 0 && dot < value.length - 1 ? value.slice(dot) : '';
+    }
+
     import { tick } from 'svelte';
     import ModalShell from './modal_shell.svelte';
     import {
@@ -88,6 +94,9 @@
             onkeydown={onInputKeydown}
         />
     </div>
+    {#if !isFolder && extensionOf(name)}
+        <p class="modal-hint">{$t_store('mobile.rename_keep_extension', { ext: extensionOf(name) })}</p>
+    {/if}
     {#if $renameModalState.error}
         <div id="rename-error" class="modal-error" role="alert">{$renameModalState.error}</div>
     {/if}

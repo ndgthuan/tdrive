@@ -1,3 +1,4 @@
+import { isMobilePlatform } from '../../api';
 // Delete modal for TDrive frontend.
 //
 // Delete does not destroy anything: the backend moves the file or folder into
@@ -130,6 +131,13 @@ export function openDeleteModal(target: FileCommandTarget): void {
         itemName = target.name.trim();
         subtitle = t('messages.delete_file_subtitle');
         confirmLabel = t('messages.delete_move_to_trash');
+    }
+    // The phone's confirm names the item inside the sentence, the way the board
+    // draws it, instead of on a separate line under the question.
+    if (isMobilePlatform() && target.type !== 'bulk') {
+        title = t('mobile.trash_confirm_title');
+        subtitle = t('mobile.trash_confirm_body', { name: itemName });
+        itemName = '';
     }
 
     openDeleteModalView({ title, itemName, subtitle, confirmLabel });

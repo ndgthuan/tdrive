@@ -57,7 +57,7 @@ describe('ContextMenu action sheet (mobile)', () => {
             { label: 'Open', action: vi.fn() },
             { label: 'Download', action: vi.fn() },
             { type: 'divider' },
-            { label: 'Delete', danger: true, action: vi.fn() },
+            { label: 'Delete', icon: 'delete', danger: true, action: vi.fn() },
         ], { header: { title: 'Brand Guidelines.pdf', meta: '4.2 MB · PDF · Design Assets', kind: 'file' } });
         await settle();
 
@@ -67,12 +67,13 @@ describe('ContextMenu action sheet (mobile)', () => {
         expect(document.querySelector('.action-sheet-meta')?.textContent).toBe('4.2 MB · PDF · Design Assets');
 
         const items = rows();
-        expect(items.map((b) => b.textContent?.trim())).toEqual(['Open', 'Download', 'Delete']);
+        // The phone sheet follows the approved iPhone board: a plain list of
+        // actions, the delete action named for what it does (Move to Trash), and
+        // a Cancel row at the bottom.
+        expect(items.map((b) => b.textContent?.trim())).toEqual(['Open', 'Download', 'Move to Trash', 'Cancel']);
         expect(items[2].classList.contains('danger')).toBe(true);
         expect(document.querySelectorAll('.action-sheet-sep')).toHaveLength(1);
-        // No Cancel row: the handle, a swipe and the scrim already dismiss it,
-        // and a fourth way costs a full row at the bottom of the sheet.
-        expect(document.querySelector('.action-sheet-cancel')).toBeNull();
+        expect(document.querySelector('.action-sheet-cancel')).not.toBeNull();
         // Not the desktop popover.
         expect(document.querySelector('.context-menu-panel')).toBeNull();
     });

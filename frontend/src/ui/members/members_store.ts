@@ -327,3 +327,19 @@ export function activate_member_roles(): () => void {
         off_event?.();
     };
 }
+
+// --- Member counts for the drive switcher -----------------------------------
+
+/** The member total per shared drive, read once per open of the switcher. Absent until answered. */
+export const drive_member_counts = writable<Record<number, number>>({});
+
+/** Loads how many members a shared drive has. A failed read leaves the count absent, not wrong. */
+export async function load_member_count(driveId: number): Promise<void> {
+    if (!driveId) return;
+    try {
+        const page = await list_drive_members(driveId, '', 0, 1);
+        drive_member_counts.update((counts) => ({ ...counts, [driveId]: page.total }));
+    } catch {
+        // Leave the count out; the row still shows the drive and its role.
+    }
+}
