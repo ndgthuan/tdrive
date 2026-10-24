@@ -165,7 +165,7 @@ func (s *Service) PlanOrganize(ctx context.Context, req PlanRequest) (Plan, erro
 	if err != nil {
 		return Plan{}, err
 	}
-	if err := drive.CanOrganize(req.Scope.ChannelID); err != nil {
+	if err := organize_guard(ctx, drive, req.Scope.ChannelID); err != nil {
 		return Plan{}, err
 	}
 	manager, err := s.models()

@@ -60,6 +60,7 @@ import (
 	channelservice "TDrive/backend/services/channel"
 	encservice "TDrive/backend/services/encryption"
 	fileservice "TDrive/backend/services/file"
+	driveroles "TDrive/backend/drive_roles"
 	folderservice "TDrive/backend/services/folder"
 	lifecycleservice "TDrive/backend/services/lifecycle"
 	personaldriveservice "TDrive/backend/services/personaldrive"
@@ -134,6 +135,9 @@ type Engine struct {
 	enc        *encservice.Service
 	files      *fileservice.Service
 	folders    *folderservice.Service
+	// roles decides what the caller may do in each shared drive. It is nil when
+	// the Telegram client cannot make raw API calls (test fakes).
+	roles *driveroles.Service
 	media      *media.Service
 	sources    *channelsource.Service
 	reads      *readservice.Service
@@ -217,6 +221,7 @@ func New(ctx context.Context, cfg Config) (*Engine, error) {
 
 	e.auth = authsvc.NewService(e.events)
 	e.enc = e.newEncryptionService()
+	e.roles = e.newDriveRolesService()
 	e.folders = e.newFolderService()
 	e.files = e.newFileService()
 	e.reads = e.newReadService()
@@ -622,6 +627,73 @@ func (e *Engine) FolderService() *folderservice.Service {
 	return e.folders
 }
 
+// DriveRoles returns the shared-drive role service, or nil when the Telegram
+// client cannot make raw API calls.
+func (e *Engine) DriveRoles() *driveroles.Service {
+	return e.roles
+}
+
+// roleGuard hands the role service to the file and folder services as their
+// guard. It returns an untyped nil when there is no role service, so the
+// services see "no guard" rather than a nil pointer inside an interface.
+func (e *Engine) roleGuard() driveroles.Guard {
+	if e.roles == nil {
+		return nil
+	}
+	return e.roles
+}
+
+// newDriveRolesService wires role decisions to the projection and to Telegram.
+// Peers and the calling account come from the engine, so access hashes and
+// the self id stay in the one place that already resolves them.
+func (e *Engine) newDriveRolesService() *driveroles.Service {
+	runner, ok := e.tg.(tgclient.APIRunner)
+	if !ok {
+		return nil
+	}
+	kind := func(channelID int64) (driveroles.DriveKind, error) {
+		if backend.DB == nil {
+			return 0, fmt.Errorf("drive roles: database not ready")
+		}
+		channel, err := projection.GetChannel(backend.DB, channelID)
+		if err != nil {
+			return 0, err
+		}
+		switch channel.Kind {
+		case projection.KindPersonal:
+			return driveroles.DriveKindPersonal, nil
+		case projection.KindShared:
+			return driveroles.DriveKindShared, nil
+		default:
+			return driveroles.DriveKindReadOnly, nil
+		}
+	}
+	svc := driveroles.NewGotdService(kind, e.ResolvePeer, e.ActorID, runner)
+	svc.OnRoleChanged = e.emitDriveRoleChanged
+	return svc
+}
+
+// DriveRoleChangedEventName is emitted when a refresh observes that the
+// caller's role in a shared drive changed, for example after a manager promoted
+// or restricted them. Drives are refreshed when opened, not polled.
+const DriveRoleChangedEventName = "drive:role_changed"
+
+// DriveRoleChangedEvent names the drive and the caller's new role in it.
+type DriveRoleChangedEvent struct {
+	DriveID string `json:"drive_id"`
+	Role    string `json:"role"`
+}
+
+func (e *Engine) emitDriveRoleChanged(channel_id int64, role driveroles.Role) {
+	if e == nil || e.events == nil {
+		return
+	}
+	e.events.Emit(DriveRoleChangedEventName, DriveRoleChangedEvent{
+		DriveID: strconv.FormatInt(channel_id, 10),
+		Role:    string(role),
+	})
+}
+
 func (e *Engine) ReadService() *readservice.Service {
 	if e.reads == nil {
 		e.reads = e.newReadService()
@@ -752,7 +824,8 @@ func (e *Engine) newEncryptionService() *encservice.Service {
 
 func (e *Engine) newFolderService() *folderservice.Service {
 	return &folderservice.Service{
-		DB: backend.DB,
+		DB:    backend.DB,
+		Roles: e.roleGuard(),
 		EmitOp: func(channelID int64, op projection.Op) error {
 			_, err := e.EmitAndProject(channelID, op)
 			return err
@@ -791,6 +864,7 @@ func (e *Engine) newFileService() *fileservice.Service {
 	}
 	return &fileservice.Service{
 		DB:    backend.DB,
+		Roles: e.roleGuard(),
 		TG:    e.tg,
 		Peers: peerResolverFn(e.ResolvePeer),
 		EmitOp: func(channelID int64, op projection.Op) (int64, error) {

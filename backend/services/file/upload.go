@@ -74,6 +74,9 @@ type uploadedResult struct {
 }
 
 func (s *Service) upload(ctx context.Context, channelID int64, filePaths []string, parentIDs []string, encrypt bool, options uploadOptions) ([]Metadata, error) {
+	if err := s.requireUploadRight(ctx, channelID); err != nil {
+		return nil, err
+	}
 	slog.Debug("file: upload batch starting", "channel_id", channelID, "files", len(filePaths), "encrypt", encrypt)
 	if len(filePaths) != len(parentIDs) {
 		return nil, fmt.Errorf("filepaths and parentIDs length mismatch")

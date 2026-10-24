@@ -1,4 +1,5 @@
 import { t } from '../../i18n/i18n';
+import { allow_edit_in } from '../../ui/members/drive_guard';
 // Move modal for TDrive frontend
 
 import { get } from 'svelte/store';
@@ -115,6 +116,7 @@ export function navigateMoveBack(): void {
 
 
 export function openMoveModal(target: FileCommandTarget): void {
+    if (!allow_edit_in(target.type === 'bulk' ? undefined : target.channelId)) return;
     pendingTarget = target;
     resetMoveBrowse(target.parentId ?? '');
     moveModal.open({ title: moveTitle(target) });

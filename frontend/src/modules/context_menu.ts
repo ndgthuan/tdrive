@@ -21,6 +21,7 @@ import {
     type ContextMenuItem,
 } from '../ui/menus/context_menu_store';
 import { fileListRowForElement } from '../ui/file_list/row_lookup';
+import { access_now } from '../ui/members/drive_guard';
 import type { FileCommandItem, FileListFileRow } from '../ui/file_list/types';
 
 // folderGroup appends the folder-scoped upload actions that make sense in the
@@ -44,22 +45,33 @@ export function buildFolderContextMenuItems(
     // The menu already belongs to this folder, so items name the action, not the
     // folder. `tile` only promotes the everyday actions on the phone sheet.
     const tile = !folderGroup;
+    // A viewer of a shared drive gets Open and Download only. An editor keeps
+    // uploads and renames but not folder deletion, which belongs to managers.
+    const access = access_now(Number(sourceChannelId));
+    const canEdit = !access.shared || !access.known || access.canUpload;
+    const canDeleteHere = !access.shared || !access.known || access.canDeleteOthers;
     const items: ContextMenuItem[] = [
         { label: t('leftovers.open'), icon: 'open', primary: tile, shortcut: 'Enter', action: () => navigateToFolder(folderID, folderName) },
         { label: t('leftovers.download'), icon: 'download', primary: tile, action: () => enqueueFolderDownload(folderID, folderName, 0, sourceChannelId) },
     ];
-    if (folderGroup) {
+    if (folderGroup && canEdit) {
         items.push(
             { label: t('leftovers.upload_files_here'), icon: 'upload', action: () => uploadWithParentID(folderID) },
             { label: t('leftovers.upload_folder_here'), icon: 'folder-up', action: () => importFolderWithParentID(folderID) },
         );
     }
-    items.push(
-        { label: t('leftovers.rename'), icon: 'rename', primary: tile, shortcut: 'F2', action: () => openRenameModal({ type: "folder", id: folderID, name: folderName, parentId: state.currentFolderId }) },
-        { label: t('leftovers.move_to'), icon: 'move', primary: tile, action: () => openMoveModal({ type: "folder", id: folderID, name: folderName, parentId: state.currentFolderId }) },
-        { type: "divider" },
-        { label: t('leftovers.delete'), icon: 'delete', danger: true, shortcut: DELETE_SHORTCUT, action: () => openDeleteModal({ type: "folder", id: folderID, name: folderName, channelId: Number(sourceChannelId) }) },
-    );
+    if (canEdit) {
+        items.push(
+            { label: t('leftovers.rename'), icon: 'rename', primary: tile, shortcut: 'F2', action: () => openRenameModal({ type: "folder", id: folderID, name: folderName, parentId: state.currentFolderId }) },
+            { label: t('leftovers.move_to'), icon: 'move', primary: tile, action: () => openMoveModal({ type: "folder", id: folderID, name: folderName, parentId: state.currentFolderId }) },
+        );
+    }
+    if (canDeleteHere) {
+        items.push(
+            { type: "divider" },
+            { label: t('leftovers.delete'), icon: 'delete', danger: true, shortcut: DELETE_SHORTCUT, action: () => openDeleteModal({ type: "folder", id: folderID, name: folderName, channelId: Number(sourceChannelId) }) },
+        );
+    }
     return items;
 }
 
@@ -89,8 +101,10 @@ export function buildFileContextMenuItems(row: FileListFileRow, { folderGroup = 
     const fileTarget: FileCommandItem = fileSource === 'tg'
         ? { type: 'file', id: fileID, name: fileName, size: fileSize, parentId: state.currentFolderId, source: 'tg' }
         : { type: 'file', id: fileID, name: fileName, size: fileSize, parentId: state.currentFolderId, source: 'fs' };
+    const access = access_now(Number(sourceChannelId));
+    const canEdit = !access.shared || !access.known || access.canUpload;
     if (canRename) items.push({ label: t('leftovers.rename'), icon: 'rename', primary: tile, shortcut: 'F2', action: () => openRenameModal(fileTarget) });
-    items.push({ label: t('leftovers.move_to'), icon: 'move', primary: tile, action: () => openMoveModal(fileTarget) });
+    if (canEdit) items.push({ label: t('leftovers.move_to'), icon: 'move', primary: tile, action: () => openMoveModal(fileTarget) });
 
     // Upload/new-folder/refresh belong to the folder background, not to the
     // item's own menu; Delete sits apart behind a quiet separator.
@@ -101,12 +115,18 @@ export function buildFileContextMenuItems(row: FileListFileRow, { folderGroup = 
 }
 
 function backgroundContextMenuItems(): ContextMenuItem[] {
-    return [
-        { label: t('leftovers.new_folder'), icon: 'folder-new', action: openNewFolderModal },
-        { label: t('leftovers.upload_files'), icon: 'upload', action: () => { void uploadWithParentID(state.currentFolderId); } },
-        { label: t('leftovers.upload_folder'), icon: 'folder-up', action: () => { void importFolderWithParentID(state.currentFolderId); } },
-        { label: t('leftovers.refresh'), icon: 'refresh', action: () => { void appActions().triggerRefresh(); } },
-    ];
+    const access = access_now(state.activeChannel?.id);
+    const canEdit = !access.shared || !access.known || access.canUpload;
+    const items: ContextMenuItem[] = [];
+    if (canEdit) {
+        items.push(
+            { label: t('leftovers.new_folder'), icon: 'folder-new', action: openNewFolderModal },
+            { label: t('leftovers.upload_files'), icon: 'upload', action: () => { void uploadWithParentID(state.currentFolderId); } },
+            { label: t('leftovers.upload_folder'), icon: 'folder-up', action: () => { void importFolderWithParentID(state.currentFolderId); } },
+        );
+    }
+    items.push({ label: t('leftovers.refresh'), icon: 'refresh', action: () => { void appActions().triggerRefresh(); } });
+    return items;
 }
 
 /**
@@ -164,11 +184,19 @@ export function activateContextMenu(): () => void {
 
         if (state.selectedItems.size > 1) {
             const count = state.selectedItems.size;
+            const bulkAccess = access_now(state.activeChannel?.id);
+            const bulkCanEdit = !bulkAccess.shared || !bulkAccess.known || bulkAccess.canUpload;
+            const bulkItems: ContextMenuItem[] = [];
+            if (bulkCanEdit) {
+                bulkItems.push(
+                    { label: t('leftovers.move_items', { count }), icon: 'move', action: () => openMoveModal({ type: "bulk", items: getSelectionPayload(), parentId: state.currentFolderId }) },
+                    { type: "divider" },
+                    { label: t('leftovers.delete_items', { count }), icon: 'delete', danger: true, shortcut: DELETE_SHORTCUT, action: () => openDeleteModal({ type: "bulk", items: getSelectionPayload(), parentId: state.currentFolderId }) },
+                    { type: "divider" },
+                );
+            }
             showContextMenu(e.clientX, e.clientY, [
-                { label: t('leftovers.move_items', { count }), icon: 'move', action: () => openMoveModal({ type: "bulk", items: getSelectionPayload(), parentId: state.currentFolderId }) },
-                { type: "divider" },
-                { label: t('leftovers.delete_items', { count }), icon: 'delete', danger: true, shortcut: DELETE_SHORTCUT, action: () => openDeleteModal({ type: "bulk", items: getSelectionPayload(), parentId: state.currentFolderId }) },
-                { type: "divider" },
+                ...bulkItems,
                 { label: t('leftovers.clear_selection'), icon: 'clear', action: () => clearSelection() },
                 { label: t('leftovers.refresh'), icon: 'refresh', action: () => { void appActions().triggerRefresh(); } },
             ]);

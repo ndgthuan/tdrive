@@ -75,6 +75,59 @@ export interface DownloadResult {
 }
 
 /**
+ * DriveDefaultRoleResult is the role newcomers get: editor or viewer.
+ */
+export interface DriveDefaultRoleResult {
+    "result": OperationResult;
+    "role": string;
+}
+
+/**
+ * DriveInviteResult is a new invite link and the role newcomers start with.
+ */
+export interface DriveInviteResult {
+    "result": OperationResult;
+    "link": string;
+    "default_role": string;
+}
+
+/**
+ * DriveMemberView is one member row. Role is owner, manager, editor or viewer.
+ */
+export interface DriveMemberView {
+    "user_id": number;
+    "display_name": string;
+    "username": string;
+    "role": string;
+    "joined_at": number;
+    "is_self": boolean;
+}
+
+/**
+ * DriveMembersResult is one page of members, sorted by role, then name.
+ */
+export interface DriveMembersResult {
+    "result": OperationResult;
+    "members": DriveMemberView[] | null;
+    "total": number;
+    "next_offset": number;
+    "has_more": boolean;
+}
+
+/**
+ * DriveRoleResult is the caller's role in one drive and what that role may do.
+ * A personal drive is always owner; a channel source is always viewer.
+ */
+export interface DriveRoleResult {
+    "result": OperationResult;
+    "role": string;
+    "can_upload": boolean;
+    "can_delete_others": boolean;
+    "can_manage_members": boolean;
+    "can_invite": boolean;
+}
+
+/**
  * EncryptionStatus is the snapshot the frontend uses for per-upload prompts
  * and for unlocking an encrypted personal-drive mount. Mounted writes always
  * follow the drive policy; they never expose a per-file encryption choice.

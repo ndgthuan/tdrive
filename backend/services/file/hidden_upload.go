@@ -65,6 +65,9 @@ type HiddenBody struct {
 // file row. The caller retains ownership of source and must not mutate it while
 // this method is running.
 func (s *Service) UploadHidden(ctx context.Context, channelID int64, request HiddenUploadRequest, source io.ReadSeeker) (HiddenBody, error) {
+	if err := s.requireUploadRight(ctx, channelID); err != nil {
+		return HiddenBody{}, err
+	}
 	peer, err := s.prepareHiddenUpload(ctx, channelID, request, source)
 	if err != nil {
 		return HiddenBody{}, err
@@ -197,6 +200,9 @@ func (s *Service) RecoverHiddenUpload(
 	request HiddenUploadRequest,
 	source io.ReadSeeker,
 ) (HiddenBody, error) {
+	if err := s.requireUploadRight(ctx, channelID); err != nil {
+		return HiddenBody{}, err
+	}
 	peer, err := s.prepareHiddenUpload(ctx, channelID, request, source)
 	if err != nil {
 		return HiddenBody{}, err

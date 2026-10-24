@@ -1,4 +1,5 @@
 import { t } from '../../i18n/i18n';
+import { allow_edit_in } from '../../ui/members/drive_guard';
 // New folder modal for TDrive frontend
 
 import { invalidateFolderIndex, state } from '../../state';
@@ -64,6 +65,7 @@ export async function submitFolder(name: string): Promise<void> {
  * a row at the top of the list; the phone still asks in the modal.
  */
 export function openNewFolderModal() {
+    if (!allow_edit_in(undefined)) return;
     if (!isMobilePlatform()) {
         open_inline_folder_row();
         return;

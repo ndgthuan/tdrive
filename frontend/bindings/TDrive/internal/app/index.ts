@@ -4,6 +4,7 @@
 import * as AIService from "./aiservice.js";
 import * as App from "./app.js";
 import * as DeviceService from "./deviceservice.js";
+import * as DriveMembersService from "./drivemembersservice.js";
 import * as DriveService from "./driveservice.js";
 import * as EncryptionService from "./encryptionservice.js";
 import * as MediaDownloadService from "./mediadownloadservice.js";
@@ -13,6 +14,7 @@ export {
     AIService,
     App,
     DeviceService,
+    DriveMembersService,
     DriveService,
     EncryptionService,
     MediaDownloadService,
@@ -27,6 +29,11 @@ export type {
     DestinationFolder,
     DestinationListing,
     DownloadResult,
+    DriveDefaultRoleResult,
+    DriveInviteResult,
+    DriveMemberView,
+    DriveMembersResult,
+    DriveRoleResult,
     EncryptionStatus,
     GalleryItem,
     GalleryPage,

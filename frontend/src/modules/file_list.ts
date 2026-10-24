@@ -14,6 +14,8 @@ import { openRenameModal } from './modals/rename';
 import { openDeleteModal } from './modals/delete';
 import { openNewFolderModal } from './modals/folder';
 import { notify } from './notifications';
+import { drive_access_for } from '../ui/members/members_store';
+import { allow_edit_in } from '../ui/members/drive_guard';
 import { t } from '../i18n/i18n';
 import { navigateBack, navigateToFolder } from './navigation';
 import { beginRowDrag, endRowDrag, canDropOnFolder, setDropHighlight, performDropMove } from './drag_drop';
@@ -152,6 +154,13 @@ function startDrag(row: HTMLElement, fallback: FileCommandItem, parentId: string
 export function canOwnerActOnFile(file: Pick<FileRowInput, 'uploaderID' | 'uploaderId'> | null | undefined): boolean {
     if (!file) return false;
     if (state.activeChannel?.kind !== 'shared') return true;
+    // Telegram's role decides first: a manager or owner may change anyone's
+    // file, and a viewer may change none. Until the role is known, the uploader
+    // rule below stands, and the backend still refuses what it should refuse.
+    // The open drive is already known to be shared here, so the role lookup does not need the sidebar.
+    const access = drive_access_for(Number(state.activeChannel?.id ?? 0), true);
+    if (access.known && access.canDeleteOthers) return true;
+    if (access.known && !access.canUpload) return false;
     const uploader = Number(file.uploaderID ?? file.uploaderId ?? 0);
     const me = Number(state.myUserID || 0);
     return Boolean(uploader && me && uploader === me);
@@ -855,17 +864,21 @@ function publishLoadedFileData(list: HTMLElement, request: FileRefreshRequest, d
     if (rows.length === 0) {
         // An empty folder is the one place a reader is certain to want the
         // upload picker, so it is offered here instead of only in the toolbar.
+        // A viewer of a shared drive has nothing to offer, so the state only says so.
+        const canEditHere = allow_edit_in(undefined, { notifyUser: false });
         if (isMobilePlatform()) {
             renderFileState(
                 list,
                 'empty',
                 t('files.empty_no_files'),
                 '',
-                { label: t('files.upload_files'), onClick: () => chooseFilesForCurrentFolder() },
-                { label: t('files.upload_folder'), onClick: () => chooseFolderForCurrentFolder() },
-                { label: t('files.create_folder'), onClick: start_inline_folder_create },
+                ...(canEditHere ? [
+                    { label: t('files.upload_files'), onClick: () => chooseFilesForCurrentFolder() },
+                    { label: t('files.upload_folder'), onClick: () => chooseFolderForCurrentFolder() },
+                    { label: t('files.create_folder'), onClick: start_inline_folder_create },
+                ] : []),
             );
-        } else {
+        } else if (canEditHere) {
             renderFileState(
                 list,
                 'empty',
@@ -874,6 +887,8 @@ function publishLoadedFileData(list: HTMLElement, request: FileRefreshRequest, d
                 { label: t('files.upload_files'), onClick: () => chooseFilesForCurrentFolder() },
                 { label: t('files.new_folder'), onClick: start_inline_folder_create },
             );
+        } else {
+            renderFileState(list, 'empty', t('files.empty_title'), '');
         }
         afterFileListPaint(list, afterPublish);
         return;

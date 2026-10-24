@@ -17,6 +17,7 @@
     import FileTextIcon from 'phosphor-svelte/lib/FileTextIcon';
     import DatabaseIcon from 'phosphor-svelte/lib/DatabaseIcon';
     import CalendarIcon from 'phosphor-svelte/lib/CalendarBlankIcon';
+    import UsersIcon from 'phosphor-svelte/lib/UsersIcon';
     import {
         contextMenuState,
         hideContextMenu,
@@ -46,6 +47,7 @@
         refresh: RefreshCwIcon,
         external: ExternalLinkIcon,
         clear: XIcon,
+        users: UsersIcon,
     };
 
     const DETAIL_ICONS: Record<ContextMenuDetailIcon, typeof FileIcon> = {

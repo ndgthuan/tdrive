@@ -42,6 +42,9 @@ func (s *Service) UploadBackupWithRenditions(ctx context.Context, channelID int6
 }
 
 func (s *Service) uploadBackup(ctx context.Context, channelID int64, path, parentID string, encrypt bool, worker *BackupRenditionWorker, progress ...func(BackupUploadProgress)) (meta Metadata, err error) {
+	if err := s.requireUploadRight(ctx, channelID); err != nil {
+		return Metadata{}, err
+	}
 	var attempted atomic.Bool
 	ctx = context.WithValue(ctx, backupSendAttemptKey{}, &attempted)
 	defer func() {

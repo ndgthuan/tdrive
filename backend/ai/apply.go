@@ -92,7 +92,7 @@ func (s *Service) ApplyPlan(ctx context.Context, plan_id string, excluded []int6
 		return ApplyResult{}, err
 	}
 	channel_id := plan.Scope.ChannelID
-	if err := drive.CanOrganize(channel_id); err != nil {
+	if err := organize_guard(ctx, drive, channel_id); err != nil {
 		return ApplyResult{}, err
 	}
 	skip := make(map[int64]bool, len(excluded))
@@ -193,7 +193,7 @@ func (s *Service) UndoApply(ctx context.Context, token string) (UndoResult, erro
 	if err != nil {
 		return UndoResult{}, err
 	}
-	if err := drive.CanOrganize(record.channel_id); err != nil {
+	if err := organize_guard(ctx, drive, record.channel_id); err != nil {
 		return UndoResult{}, err
 	}
 	result := UndoResult{Skipped: []UndoIssue{}, Failed: []UndoIssue{}}

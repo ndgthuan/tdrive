@@ -104,7 +104,7 @@ func (s *Service) tool_restore_items(ctx context.Context, env agent_env, raw str
 		return tool_error(err)
 	}
 	channel := env.scope.ChannelID
-	if err := env.drive.CanOrganize(channel); err != nil {
+	if err := organize_guard(ctx, env.drive, channel); err != nil {
 		return tool_error(err)
 	}
 	listing, err := env.drive.ListTrash(ctx, channel)
@@ -192,7 +192,7 @@ func (s *Service) tool_empty_trash(ctx context.Context, env agent_env, raw strin
 		}
 		wanted = ids
 	}
-	if err := env.drive.CanOrganize(channel); err != nil {
+	if err := organize_guard(ctx, env.drive, channel); err != nil {
 		return tool_error(err)
 	}
 	listing, err := env.drive.ListTrash(ctx, channel)

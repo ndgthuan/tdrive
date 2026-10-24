@@ -8,6 +8,7 @@
     import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
     import CheckIcon from 'phosphor-svelte/lib/CheckIcon';
     import { breadcrumbPath } from '../chrome/breadcrumb_store';
+    import { access_from_snapshot, drive_roles } from '../members/members_store';
     import { drive_root_name, sidebar_drives } from '../chrome/drive_root_name';
     import { sidebarState } from '../sidebar/sidebar_store';
     import { send_text } from './ai_chat';
@@ -27,6 +28,11 @@
     // Drives the user can change: the personal drive and every shared drive the sidebar lists.
     const drives = $derived(sidebar_drives($sidebarState));
     const chosen_drive_name = $derived(drive_root_name($scope_drive.drive, $t_store));
+    // A shared scope the caller can only read gets the same View only pill as the drive header.
+    const scope_view_only = $derived(
+        Boolean($scope_drive.drive && $scope_drive.drive.kind === 'shared')
+        && access_from_snapshot($scope_drive.drive_id, true, $drive_roles[$scope_drive.drive_id]).viewOnly,
+    );
     // The folder chip only means something inside the open drive.
     const folder_in_scope = $derived(Boolean(folder) && $scope_drive.folder && $scope_drive.drive_id === open_drive_id());
     const folder_is_open = $derived(Boolean(folder) && $scope_drive.drive_id === open_drive_id());
@@ -109,6 +115,9 @@
                 <FolderIcon size={12} aria-hidden="true" />
                 <span class="ai-chip-name">{chosen_drive_name}</span>
             </button>
+            {#if scope_view_only}
+                <span class="ai-scope-view-only" title={$t_store('members.view_only_tooltip')}>{$t_store('members.view_only')}</span>
+            {/if}
 
             {#if scope_open}
                 <div class="ai-scope-menu" role="menu" aria-label={$t_store('ai.scope_menu_label')}>
@@ -208,6 +217,16 @@
 </form>
 
 <style>
+    .ai-scope-view-only {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-pill);
+        color: var(--text-muted);
+        font-size: 0.7rem;
+        white-space: nowrap;
+    }
     .ai-composer {
         flex: none;
         margin: 0 var(--space-3) var(--space-3);

@@ -15,6 +15,9 @@
     import { t_store } from '../../i18n/i18n';
     import { drive_root_name, sidebar_drives } from '../chrome/drive_root_name';
     import { sidebarState } from '../sidebar/sidebar_store';
+    import type { DriveRoleSnapshot } from '../../api/drive_members';
+    import type { DriveChannel } from '../../types';
+    import { access_from_snapshot, drive_roles } from '../members/members_store';
     import {
         destination_place,
         save_destination,
@@ -46,6 +49,15 @@
     let browse_epoch = 0;
 
     const drives = $derived(sidebar_drives($sidebarState));
+
+    // A viewer of a shared drive can see it in the list but cannot save into it.
+    function save_allowed(drive: DriveChannel | null, roles: Record<number, DriveRoleSnapshot>): boolean {
+        if (!drive) return true;
+        const access = access_from_snapshot(drive.id, drive.kind === 'shared', roles[drive.id]);
+        return access.canUpload || !access.shared || !access.known;
+    }
+
+    const browse_blocked = $derived(!save_allowed(drives.find((entry) => entry.id === browse_drive) ?? null, $drive_roles));
 
     function drive_name(drive_id: number): string {
         const drive = drives.find((entry) => entry.id === drive_id) ?? null;
@@ -194,9 +206,12 @@
         >
             <div class="dest-drives" role="group" aria-label={$t_store('downloader.destination_drives')}>
                 {#each drives as drive (drive.id)}
+                    {@const blocked = !save_allowed(drive, $drive_roles)}
                     <button
                         type="button"
                         class="dest-drive"
+                        disabled={blocked}
+                        title={blocked ? $t_store('members.view_only_tooltip') : undefined}
                         class:is-active={drive.id === browse_drive}
                         aria-pressed={drive.id === browse_drive}
                         onclick={() => browse(drive.id, [])}
@@ -290,7 +305,13 @@
                     <FolderPlusIcon size={14} aria-hidden="true" />
                     {$t_store('downloader.destination_new_folder')}
                 </button>
-                <button class="primary-btn" type="button" disabled={loading} onclick={select_here}>
+                <button
+                    class="primary-btn"
+                    type="button"
+                    disabled={loading || browse_blocked}
+                    title={browse_blocked ? $t_store('members.view_only_tooltip') : undefined}
+                    onclick={select_here}
+                >
                     {$t_store('downloader.destination_select')}
                 </button>
             </div>

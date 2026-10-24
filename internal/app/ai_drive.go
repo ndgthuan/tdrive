@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"TDrive/backend/ai"
+	"TDrive/backend/drive_roles"
 	"TDrive/backend/projection"
 	fileservice "TDrive/backend/services/file"
 	folderservice "TDrive/backend/services/folder"
@@ -20,6 +21,18 @@ type aiDrive struct {
 	files   *fileservice.Service
 	reads   *readservice.Service
 	folders *folderservice.Service
+	// roles answers the caller's role in each drive. Telegram is the source.
+	roles *drive_roles.Service
+}
+
+// DriveRole returns the caller's role in the drive from the role service. The
+// personal drive is always owner and a channel source is always viewer there.
+func (d *aiDrive) DriveRole(ctx context.Context, channel_id int64) (ai.DriveRole, error) {
+	caps, err := d.roles.MyRole(ctx, channel_id)
+	if err != nil {
+		return ai.DriveRole{}, err
+	}
+	return ai.DriveRole{Role: string(caps.Role), CanUpload: caps.CanUpload, CanDeleteOthers: caps.CanDeleteOthers}, nil
 }
 
 // CanOrganize allows only channels the device keeps as TDrive drives. Channel

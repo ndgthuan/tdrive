@@ -275,6 +275,7 @@ func (s *Service) tool_list_files(ctx context.Context, env agent_env, raw string
 	}
 	return tool_output{content: json_content(map[string]any{
 		"drive":     drive_label(env),
+		"role":      role_label(ctx, env.drive, env.scope.ChannelID),
 		"folder_id": parent_label(folder),
 		"items":     items,
 		"truncated": truncated,
@@ -404,7 +405,7 @@ func (s *Service) tool_create_folder(ctx context.Context, env agent_env, raw str
 	if name == "" {
 		return tool_error(errors.New("name is required"))
 	}
-	if err := env.drive.CanOrganize(env.scope.ChannelID); err != nil {
+	if err := organize_guard(ctx, env.drive, env.scope.ChannelID); err != nil {
 		return tool_error(err)
 	}
 	parent := env.scope.FolderID
@@ -453,7 +454,7 @@ func (s *Service) tool_rename_item(ctx context.Context, env agent_env, raw strin
 		return tool_error(errors.New("new_name is required"))
 	}
 	channel := env.scope.ChannelID
-	if err := env.drive.CanOrganize(channel); err != nil {
+	if err := organize_guard(ctx, env.drive, channel); err != nil {
 		return tool_error(err)
 	}
 	item, err := env.drive.Lookup(ctx, channel, id)
@@ -510,7 +511,7 @@ func (s *Service) tool_move_items(ctx context.Context, env agent_env, raw string
 		return tool_error(err)
 	}
 	channel := env.scope.ChannelID
-	if err := env.drive.CanOrganize(channel); err != nil {
+	if err := organize_guard(ctx, env.drive, channel); err != nil {
 		return tool_error(err)
 	}
 	dest_name := "the root of " + drive_label(env)
@@ -619,7 +620,7 @@ func (s *Service) tool_delete_items(ctx context.Context, env agent_env, raw stri
 		return tool_error(err)
 	}
 	channel := env.scope.ChannelID
-	if err := env.drive.CanOrganize(channel); err != nil {
+	if err := organize_guard(ctx, env.drive, channel); err != nil {
 		return tool_error(err)
 	}
 	var failures []string

@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"TDrive/backend"
+	"TDrive/backend/drive_roles"
 	"TDrive/backend/mountcontroller"
 	"TDrive/backend/mountpolicy"
 	encservice "TDrive/backend/services/encryption"
@@ -156,6 +157,8 @@ func operationErrorCode(err error) OperationErrorCode {
 	switch {
 	case err == nil:
 		return ""
+	case drive_roles.CodeOf(err) != "":
+		return OperationErrorCode(drive_roles.CodeOf(err))
 	case errors.Is(err, errBackendUnavailable):
 		return OperationCodeBackendUnavailable
 	case errors.Is(err, encservice.ErrPasswordRequired), errors.Is(err, mountcontroller.ErrEncryptionPasswordRequired):

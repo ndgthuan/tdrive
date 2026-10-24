@@ -22,6 +22,7 @@ import { fileListColumnMode } from '../../ui/file_list/column_mode_store';
 import { clearSidebarVirtualView, setSidebarVirtualView } from '../../ui/sidebar/sidebar_store';
 import { get } from 'svelte/store';
 import { t } from '../../i18n/i18n';
+import { allow_edit_in } from '../../ui/members/drive_guard';
 
 /** "f:2615" -> 2615. Anything else is a folder id and has no message. */
 function fileMsgId(objectId: string): number {
@@ -36,6 +37,8 @@ function fileMsgId(objectId: string): number {
  * target. Delete permanently only ever asks -- it never acts on the button.
  */
 function trashActions(entry: TrashEntry): FileListAction[] {
+    // A viewer of a shared drive sees the trash but cannot restore from it or purge.
+    if (!allow_edit_in(undefined, { notifyUser: false })) return [];
     return [
         {
             kind: 'restore',

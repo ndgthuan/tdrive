@@ -11,6 +11,7 @@ import { deleteFile, deleteFolder, type OperationResult } from '../../api';
 import { restoreFromTrash } from '../../api/trash';
 import { invalidateFolderIndex, state } from '../../state';
 import { clearSelection } from '../selection';
+import { allow_edit_in } from '../../ui/members/drive_guard';
 import { ensureNotInsideDeletedFolder } from '../navigation';
 import { dismissNotification, notify } from '../notifications';
 import { humanizeBackendError } from '../errors';
@@ -80,6 +81,7 @@ function deleteInChannel(channelId: number, operation: () => Promise<OperationRe
 
 export function openDeleteModal(target: FileCommandTarget): void {
     const activeId = activeChannelId();
+    if (!allow_edit_in(target.type === 'bulk' ? undefined : target.channelId, { notifyUser: true })) return;
     const channels = target.type === 'bulk'
         ? target.items.map((item) => item.channelId ?? activeId)
         : [target.channelId ?? activeId];

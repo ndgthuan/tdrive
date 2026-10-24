@@ -96,6 +96,8 @@ type App struct {
 	assistant  *AIService
 	// mediaDownload is the link downloader service (yt-dlp to Telegram).
 	mediaDownload *MediaDownloadService
+	// members is the shared-drive roles and membership service.
+	members *DriveMembersService
 
 	photoBackupMu          sync.Mutex
 	photoBackupDiscoveryMu sync.Mutex

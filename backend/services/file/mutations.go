@@ -54,6 +54,9 @@ func (s *Service) MetaContext(ctx context.Context, channelID int64, msgID int, n
 		cleanName = "Untitled"
 	}
 
+	if err := s.requireUploadRight(ctx, channelID); err != nil {
+		return err
+	}
 	op := projection.Op{
 		Type:           projection.OpMeta,
 		Obj:            fmt.Sprintf("%s%d", projection.FileIDPrefix, msgID),
@@ -290,6 +293,9 @@ func (s *Service) TrashObject(ctx context.Context, channelID int64, objectID str
 	if err := servicecontext.Check(ctx, "file: trash object"); err != nil {
 		return err
 	}
+	if err := s.requireObjectWrite(ctx, channelID, objectID, "trash"); err != nil {
+		return err
+	}
 	entry, found, err := projection.DirentByID(s.DB, channelID, objectID)
 	if err != nil {
 		return err
@@ -307,6 +313,9 @@ func (s *Service) TrashObject(ctx context.Context, channelID int64, objectID str
 // root, which is the only destination guaranteed to exist.
 func (s *Service) RestoreObject(ctx context.Context, channelID int64, objectID string) error {
 	if err := servicecontext.Check(ctx, "file: restore object"); err != nil {
+		return err
+	}
+	if err := s.requireObjectWrite(ctx, channelID, objectID, "restore"); err != nil {
 		return err
 	}
 	if err := s.ready(); err != nil {
@@ -379,6 +388,9 @@ func (s *Service) ListTrash(channelID int64) ([]TrashListing, error) {
 // the object) is captured atomically second, and only messages that plan already
 // listed are ever deleted from Telegram. No hard-delete record is sent.
 func (s *Service) PurgeObject(ctx context.Context, channelID int64, objectID string) error {
+	if err := s.requireObjectWrite(ctx, channelID, objectID, "purge"); err != nil {
+		return err
+	}
 	return s.purgeObject(ctx, channelID, objectID, func(opID string) (int64, error) {
 		return projection.RegisterTrashPurgeIntent(ctx, s.DB, channelID, opID, objectID)
 	})
@@ -389,6 +401,9 @@ func (s *Service) PurgeObject(ctx context.Context, channelID int64, objectID str
 // cannot be purged -- a flood wait, a lost peer -- must not block the rest, and
 // the entry stays in the trash for the next sweep.
 func (s *Service) PurgeExpiredTrash(ctx context.Context, channelID int64, now int64) error {
+	if err := s.requireUploadRight(ctx, channelID); err != nil {
+		return err
+	}
 	if err := s.ready(); err != nil {
 		return err
 	}
@@ -520,6 +535,9 @@ func (s *Service) emitWritable(ctx context.Context, channelID int64, op projecti
 // still in flight (this client, another instance, or another user on a shared
 // drive).
 func (s *Service) SweepOrphanParts(ctx context.Context, channelID int64) error {
+	if err := s.requireUploadRight(ctx, channelID); err != nil {
+		return err
+	}
 	if err := s.ready(); err != nil {
 		return err
 	}
@@ -556,31 +574,6 @@ func (s *Service) SweepOrphanParts(ctx context.Context, channelID int64) error {
 		if err := projection.ClearPartCleanup(s.DB, channelID, pending); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func (s *Service) requireOwnerForShared(ctx context.Context, channelID int64, msgID int, action string) error {
-	ch, err := projection.GetChannel(s.DB, channelID)
-	if err != nil {
-		return err
-	}
-	if ch.Kind != projection.KindShared {
-		return nil
-	}
-	if s.ActorID == nil {
-		return fmt.Errorf("actor resolver not ready")
-	}
-	actorID, err := s.ActorID(ctx)
-	if err != nil {
-		return err
-	}
-	uploader, err := projection.FileUploader(s.DB, channelID, int64(msgID))
-	if err != nil {
-		return err
-	}
-	if uploader == 0 || uploader != actorID {
-		return fmt.Errorf("Only the uploader can %s this file in a shared drive", action)
 	}
 	return nil
 }

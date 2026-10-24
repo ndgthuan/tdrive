@@ -59,6 +59,9 @@ func (f *fake_secrets) Delete(id string) error {
 type fake_drive struct {
 	mu          sync.Mutex
 	read_only   bool
+	// role is the caller's role for DriveRole; empty means owner.
+	role        string
+	role_calls  int
 	folders     []FolderNode
 	files       []FileNode
 	thumbs      map[int64][]byte
@@ -279,4 +282,25 @@ func (f *fake_vision_server) request_count() int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.requests
+}
+
+// DriveRole reports the fake's role. Empty means owner, the role the drives in
+// most tests belong to. A non-nil role_err makes the lookup fail.
+func (d *fake_drive) DriveRole(ctx context.Context, channel_id int64) (DriveRole, error) {
+	d.mu.Lock()
+	d.role_calls++
+	role := d.role
+	d.mu.Unlock()
+	if role == "" {
+		role = "owner"
+	}
+	switch role {
+	case "owner", "manager":
+		return DriveRole{Role: role, CanUpload: true, CanDeleteOthers: true}, nil
+	case "editor":
+		return DriveRole{Role: role, CanUpload: true}, nil
+	case "viewer":
+		return DriveRole{Role: role}, nil
+	}
+	return DriveRole{}, errors.New("role unavailable")
 }

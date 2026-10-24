@@ -170,7 +170,7 @@ func (s *Service) UndoAction(ctx context.Context, token string) (UndoActionResul
 	if err != nil {
 		return UndoActionResult{OK: false, Message: err.Error()}, nil
 	}
-	if err := drive.CanOrganize(record.channel_id); err != nil {
+	if err := organize_guard(ctx, drive, record.channel_id); err != nil {
 		return UndoActionResult{OK: false, Message: err.Error()}, nil
 	}
 	message, err := record.run(ctx, drive)
@@ -439,7 +439,7 @@ func check_item_ids(raw []flex_string) ([]string, error) {
 }
 
 // agent_system_prompt is the system prompt for agent mode.
-func agent_system_prompt(scope Scope, drive_name string, vision bool) string {
+func agent_system_prompt(scope Scope, drive_name string, role string, vision bool) string {
 	drive := fmt.Sprintf("drive %d", scope.ChannelID)
 	if drive_name != "" {
 		drive = fmt.Sprintf("the drive named %q", drive_name)
@@ -455,6 +455,7 @@ func agent_system_prompt(scope Scope, drive_name string, vision bool) string {
 		"The trash: call list_trash to see what is in it. restore_items takes trashed items back to where they were; it runs at once. When the user asks to empty, clear or purge the trash (all of it, or some items), call empty_trash: omit item_ids to empty all of it, or pass item_ids for just those items. Call list_trash first when that helps you name what will go. Emptying is permanent and cannot be undone. The user must approve it, and it does not run until they do. Never refuse these requests and never say you cannot empty the trash.",
 		"After empty_trash or restore_items, confirm in one short sentence what the tool reports: how many items were permanently deleted or restored, and the drive name. If the user denied it, say nothing was deleted.",
 		"The user is working in " + location + ". Name the drive exactly as given: " + drive + ". Only the personal drive is called My Drive.",
+		"Your role in " + drive + " is " + role + ". A viewer can only look: do not attempt changes there, and say they only have view access. An editor can add files and folders and change only the files they uploaded; managers and the owner can change anything. A refused change means the tool reported the role limit: say so plainly.",
 		"Resolve names to ids first: use list_files for one folder and search_files across the whole drive. Never guess an id.",
 		"If a name matches more than one item, ask the user a brief question which one they mean instead of guessing.",
 		"Use rename_item, move_items (destination_folder_id is a folder id or \"root\"), create_folder, delete_items, restore_items and empty_trash for changes. Report what you did in one or two short sentences, with the drive name.",
@@ -472,4 +473,36 @@ func agent_system_prompt(scope Scope, drive_name string, vision bool) string {
 		)
 	}
 	return strings.Join(lines, "\n")
+}
+
+// ErrViewOnlyDrive is the tool error a viewer gets for any change in a shared
+// drive. The text is the one the assistant shows the user.
+var ErrViewOnlyDrive = errors.New("You only have view access to this drive")
+
+// organize_guard is the gate every assistant change passes before it runs: the
+// drive must be one the device keeps as a drive (channel sources are read-only),
+// and the caller's role there must allow changes. Editors are limited to their
+// own files by the file service, which refuses the others with its own error.
+func organize_guard(ctx context.Context, drive Drive, channel_id int64) error {
+	if err := drive.CanOrganize(channel_id); err != nil {
+		return err
+	}
+	role, err := drive.DriveRole(ctx, channel_id)
+	if err != nil {
+		return err
+	}
+	if !role.CanUpload {
+		return ErrViewOnlyDrive
+	}
+	return nil
+}
+
+// role_label is the role of a drive as the assistant names it: owner, manager,
+// editor or viewer. It is "unknown" when the role cannot be read right now.
+func role_label(ctx context.Context, drive Drive, channel_id int64) string {
+	role, err := drive.DriveRole(ctx, channel_id)
+	if err != nil || role.Role == "" {
+		return "unknown"
+	}
+	return role.Role
 }
