@@ -14,6 +14,14 @@ on:
         description: Version to stamp into the Android signing check
         type: string
         default: v3.0.0
+      ios_only:
+        description: Build only the unsigned iOS IPA as a workflow artifact, without a release
+        type: boolean
+        default: false
+      ios_version:
+        description: Version to stamp into the iOS IPA when ios_only is set
+        type: string
+        default: v3.0.0
 
 permissions:
   contents: read
@@ -28,6 +36,7 @@ env:
 jobs:
   validate-release-ref:
     name: Validate release ref
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.ios_only) }}
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -40,7 +49,7 @@ jobs:
   build:
     name: Build (${{ matrix.platform }})
     needs: validate-release-ref
-    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.verify_android_signing }}
+    if: ${{ github.event_name != 'workflow_dispatch' || (!inputs.verify_android_signing && !inputs.ios_only) }}
     # Pinning to ubuntu-22.04 ensures webkit2gtk-4.1 is available (see the
     # gtk3 build tag note on GOFLAGS above).
     runs-on: ${{ matrix.os }}
@@ -262,12 +271,21 @@ jobs:
   ios-unsigned:
     name: Unsigned iOS IPA
     needs: validate-release-ref
-    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.verify_android_signing }}
+    # validate-release-ref is skipped on ios_only dispatches, which must still
+    # run here, but a failed validation must still skip this job.
+    if: >-
+      ${{ always() && !cancelled() &&
+      (needs.validate-release-ref.result == 'success' || needs.validate-release-ref.result == 'skipped') &&
+      (github.event_name != 'workflow_dispatch' || inputs.ios_only || !inputs.verify_android_signing) }}
     runs-on: macos-15
     timeout-minutes: 45
     continue-on-error: true
     env:
       GOFLAGS: ""
+      # A tag push builds the tag. An ios_only dispatch builds ios_version
+      # instead of the branch it was started on.
+      IOS_RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ios_only && inputs.ios_version || github.ref_name }}
+      IOS_STAMP_VERSION: ${{ (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.ios_only)) && 'true' || 'false' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -276,7 +294,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="$(printf '%s' "$GITHUB_REF_NAME" | sed 's/[^[:alnum:]._-]/-/g')"
+          version="$(printf '%s' "$IOS_RELEASE_REF" | sed 's/[^[:alnum:]._-]/-/g')"
           test -n "$version"
           echo "TDRIVE_ARTIFACT_VERSION=$version" >> "$GITHUB_ENV"
 
@@ -293,23 +311,28 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      # Keep the packaged iOS bundle version in step with the tag. Values are
-      # rewritten in place with sed so the XML layout that
-      # build/ios/Taskfile.yml reads with awk stays unchanged.
+      # Keep the packaged iOS bundle version in step with the tag, or with
+      # ios_version on an ios_only dispatch. plutil rather than sed: BSD sed
+      # (macOS) rejects the `}` that followed the old substitution. plutil
+      # -replace inserts a missing key and rewrites an existing one, so
+      # re-running the step is harmless.
       - name: Stamp iOS bundle version
-        if: startsWith(github.ref, 'refs/tags/')
+        if: env.IOS_STAMP_VERSION == 'true'
         shell: bash
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
+          version="${IOS_RELEASE_REF#v}"
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Stable tag required for the iOS bundle version: $GITHUB_REF_NAME" >&2
+            echo "Stable version required for the iOS bundle version: $IOS_RELEASE_REF" >&2
             exit 1
           fi
           plist="build/ios/Info.plist"
-          sed -i.bak -E "/<key>CFBundleShortVersionString<\/key>/{n;s|<string>[^<]*</string>|<string>${version}</string>|}" "$plist"
-          sed -i.bak -E "/<key>CFBundleVersion<\/key>/{n;s|<string>[^<]*</string>|<string>${version}</string>|}" "$plist"
-          rm -f "$plist.bak"
+          plutil -replace CFBundleShortVersionString -string "$version" "$plist"
+          plutil -replace CFBundleVersion -string "$version" "$plist"
+          test "$(plutil -extract CFBundleShortVersionString raw -o - "$plist")" = "$version"
+          test "$(plutil -extract CFBundleVersion raw -o - "$plist")" = "$version"
+          # The Taskfile reads CFBundleShortVersionString with awk, which needs
+          # the value on the line right after its key.
           grep -Fq "<string>${version}</string>" "$plist"
 
       - name: Install frontend dependencies
@@ -339,7 +362,11 @@ jobs:
           ipa="build/bin/TDrive.ipa"
           test -s "$ipa"
           entries="$(unzip -Z1 "$ipa")"
-          grep -Fxq 'Payload/TDrive.app/TDrive' <<<"$entries"
+          # Payload/ must be the only top-level entry.
+          if [ -n "$(grep -v '^Payload/' <<<"$entries" || true)" ]; then
+            echo "The IPA has entries outside Payload/" >&2
+            exit 1
+          fi
           grep -Fxq 'Payload/TDrive.app/Info.plist' <<<"$entries"
           if grep -Fxq 'Payload/TDrive.app/embedded.mobileprovision' <<<"$entries"; then
             echo "The unsigned IPA unexpectedly embeds a provisioning profile" >&2
@@ -349,9 +376,21 @@ jobs:
           rm -rf "$tmp"
           mkdir -p "$tmp"
           unzip -q "$ipa" 'Payload/TDrive.app/Info.plist' -d "$tmp"
-          short="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$tmp/Payload/TDrive.app/Info.plist")"
-          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$short" != "${GITHUB_REF_NAME#v}" ]; then
-            echo "IPA version $short does not match $GITHUB_REF_NAME" >&2
+          plist="$tmp/Payload/TDrive.app/Info.plist"
+          # The executable is named after the lowercased product name
+          # (build/ios/Taskfile.yml, compile:ios:link and create:app:bundle),
+          # so read it from the bundle rather than assuming TDrive.
+          executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$plist")"
+          grep -Fxq "Payload/TDrive.app/$executable" <<<"$entries"
+          # Must be an executable regular file: zipinfo prints the unix mode first.
+          mode="$(unzip -Z "$ipa" "Payload/TDrive.app/$executable" | awk 'NR == 1 { print $1 }')"
+          case "$mode" in
+            -??x*) ;;
+            *) echo "The bundle executable is not marked executable: $mode" >&2; exit 1 ;;
+          esac
+          short="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")"
+          if [ "$IOS_STAMP_VERSION" = "true" ] && [ "$short" != "${IOS_RELEASE_REF#v}" ]; then
+            echo "IPA version $short does not match $IOS_RELEASE_REF" >&2
             exit 1
           fi
           mkdir -p dist
@@ -369,6 +408,7 @@ jobs:
     needs: validate-release-ref
     if: >-
       github.event_name == 'workflow_dispatch' && inputs.verify_android_signing &&
+      !inputs.ios_only &&
       (github.ref == 'refs/heads/mobile-wails' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-22.04
     timeout-minutes: 45
@@ -505,7 +545,7 @@ jobs:
     # ios-unsigned is continue-on-error, so a failed iOS job still lets this
     # job run; it then ships without the IPA.
     needs: [build, ios-unsigned]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') && !(github.event_name == 'workflow_dispatch' && inputs.ios_only)
     environment: release-signing
     permissions:
       contents: write
