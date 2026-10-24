@@ -230,13 +230,13 @@
 }
 
 #settings-modal .settings-input:focus {
-    border-color: var(--color-accent);
-    box-shadow: var(--focus-ring);
+    border-color: rgb(127 156 196 / 0.5);
+    box-shadow: 0 0 0 3px rgb(127 156 196 / 0.12);
     outline: none;
 }
 
 .settings-input::placeholder { color: var(--color-text-subtle); }
-.settings-input:focus { outline: none; border-color: var(--color-accent); box-shadow: var(--focus-ring); }
+.settings-input:focus { outline: none; border-color: rgb(127 156 196 / 0.5); box-shadow: 0 0 0 3px rgb(127 156 196 / 0.12); }
 .settings-input:disabled { opacity: 0.6; }
 
 .settings-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }

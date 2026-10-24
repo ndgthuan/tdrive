@@ -216,6 +216,9 @@
         border: 1px solid var(--color-border-soft);
         border-radius: var(--radius-md);
         background: var(--color-canvas);
+        transition:
+            border-color var(--motion-fast) var(--ease-standard),
+            box-shadow var(--motion-fast) var(--ease-standard);
     }
 
     .ai-context {
@@ -350,18 +353,28 @@
         font-weight: var(--weight-medium);
     }
 
+    /* The composer is the focus target: its border takes the muted accent and
+       a soft ring, and the textarea inside draws nothing of its own. The same
+       treatment is used by every text field in the panel and the settings. */
     .ai-composer:focus-within {
-        border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border-soft));
+        border-color: rgb(127 156 196 / 0.5);
+        box-shadow: 0 0 0 3px rgb(127 156 196 / 0.12);
     }
 
     .ai-chip:focus-visible,
     .ai-chip-x:focus-visible,
     .ai-icon-btn:focus-visible,
     .ai-send:focus-visible,
-    .ai-select:focus-visible,
     .ai-scope-item:focus-visible {
         outline: none;
         box-shadow: 0 0 0 2px var(--color-accent);
+    }
+
+    /* Inside the composer the container's ring is the only focus mark. */
+    .ai-select:focus,
+    .ai-select:focus-visible {
+        outline: none;
+        box-shadow: none;
     }
 
     .ai-input {
@@ -377,6 +390,13 @@
         line-height: var(--leading-normal);
         resize: none;
         outline: none;
+        box-shadow: none;
+    }
+
+    .ai-input:focus,
+    .ai-input:focus-visible {
+        outline: none;
+        box-shadow: none;
     }
 
     .ai-input::placeholder {

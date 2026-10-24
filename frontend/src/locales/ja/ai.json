@@ -58,6 +58,8 @@
     "approval_confirm_rename": "名前を変更",
     "approval_confirm_create": "作成",
     "approval_confirm_default": "許可",
+    "approval_confirm_empty_trash": "ゴミ箱を空にする",
+    "approval_permanent": "この操作は元に戻せません。項目は完全に削除されます。",
     "approval_approved": "承認しました",
     "approval_denied": "キャンセルしました",
     "approval_expired": "この依頼は期限切れです。",

@@ -1,6 +1,15 @@
 /* position: relative makes the content pane the containing block of the floating
    selection bar, which is what keeps the bar off the sidebar and the header. */
-.main-content { position: relative; flex: 1; min-width: 0; min-height: 0; padding: 0; display: flex; flex-direction: column; background: var(--bg-dark); }
+/* The pane is a size container: the file table's column layout keys off the
+   pane's own width (see the NARROW MAIN PANE block), not the window's, because
+   the AI panel takes a share of the window that changes with it being open.
+   overflow: hidden keeps any table that is still too wide inside the pane
+   instead of painting over the AI panel beside it. */
+.main-content {
+    position: relative; flex: 1; min-width: 0; min-height: 0; padding: 0; display: flex; flex-direction: column; background: var(--bg-dark);
+    container: main-pane / inline-size;
+    overflow: hidden;
+}
 
 .main-content > header {
     min-height: 64px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);
@@ -1022,6 +1031,51 @@ html:not(.mobile) .file-row {
     border-bottom: 1px solid var(--color-border-soft);
 }
 html:not(.mobile) .file-row:last-child { border-bottom: 0; }
+
+/* ====================== NARROW MAIN PANE ======================
+   The four library columns are fixed-width, so they need the pane to be wide
+   enough for them. Below that the columns tighten, and under 480px the Size
+   column goes; Name keeps the room and truncates with an ellipsis. Each step
+   only redefines --library-columns and spacing on the header and rows, so the
+   header labels stay over their figures at every width. */
+@container main-pane (max-width: 779px) {
+    html:not(.mobile) .file-table-header,
+    html:not(.mobile) .file-row {
+        --library-columns: minmax(0, 1fr) 128px 96px 104px;
+    }
+}
+@container main-pane (max-width: 599px) {
+    html:not(.mobile) .file-table-header,
+    html:not(.mobile) .file-row {
+        --library-columns: minmax(0, 1fr) 96px 76px 96px;
+        column-gap: var(--space-2);
+        padding-left: var(--space-2);
+        padding-right: var(--space-2);
+    }
+    html:not(.mobile) .file-table-header {
+        margin: 0 var(--space-4);
+        padding-left: var(--space-2);
+        padding-right: var(--space-2);
+    }
+    html:not(.mobile) .file-list-box {
+        margin: 0 var(--space-4) var(--space-4);
+    }
+    html:not(.mobile) .file-row .row-actions .action-icon,
+    html:not(.mobile) .file-row .row-actions .action-slot {
+        width: 28px;
+        height: 28px;
+    }
+}
+@container main-pane (max-width: 479px) {
+    html:not(.mobile) .file-table-header,
+    html:not(.mobile) .file-row {
+        --library-columns: minmax(0, 1fr) 96px 96px;
+    }
+    html:not(.mobile) .file-table-header > .col-size,
+    html:not(.mobile) .file-row > .row-meta:nth-child(3) {
+        display: none;
+    }
+}
 html:not(.mobile) .file-row:hover { background: var(--color-surface-3); }
 /* The selected row keeps its accent-soft fill under the pointer too, so the
    selection never reads as a plain hover. */

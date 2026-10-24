@@ -58,6 +58,8 @@
     "approval_confirm_rename": "重命名",
     "approval_confirm_create": "创建",
     "approval_confirm_default": "允许",
+    "approval_confirm_empty_trash": "清空回收站",
+    "approval_permanent": "此操作无法撤销，项目将被永久删除。",
     "approval_approved": "已批准",
     "approval_denied": "已取消",
     "approval_expired": "此请求已过期。",

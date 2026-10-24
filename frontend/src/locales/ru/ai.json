@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Переименовать",
     "approval_confirm_create": "Создать",
     "approval_confirm_default": "Разрешить",
+    "approval_confirm_empty_trash": "Очистить корзину",
+    "approval_permanent": "Это нельзя отменить. Элементы будут удалены навсегда.",
     "approval_approved": "Подтверждено",
     "approval_denied": "Отменено",
     "approval_expired": "Срок этого запроса истёк.",

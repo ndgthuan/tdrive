@@ -41,6 +41,25 @@ type Drive interface {
 	TrashItem(ctx context.Context, channel_id int64, item_id string) error
 	// RestoreItem takes one trashed file or folder back out of the trash.
 	RestoreItem(ctx context.Context, channel_id int64, item_id string) error
+	// ListTrash returns everything in the drive's trash, most recently deleted
+	// first. It is a read; nothing is destroyed.
+	ListTrash(ctx context.Context, channel_id int64) ([]TrashedItem, error)
+	// PurgeItem destroys one trashed file or folder for good. It is the same
+	// operation the Trash view runs for "delete permanently". An item that is no
+	// longer in the trash (for example, already gone with a purged parent folder)
+	// is not an error.
+	PurgeItem(ctx context.Context, channel_id int64, item_id string) error
+}
+
+// TrashedItem is one entry in the trash as Drive.ListTrash reports it.
+type TrashedItem struct {
+	ID         string
+	Name       string
+	IsFolder   bool
+	Size       int64
+	ParentPath string
+	// DeletedAt is the deletion time in unix seconds.
+	DeletedAt int64
 }
 
 // Item is one live file or folder as Drive.Lookup reports it.

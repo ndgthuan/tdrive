@@ -87,9 +87,16 @@
         font-size: var(--type-base);
     }
 
+    .ai-search-input,
+    .ai-search-input:focus,
     .ai-search-input:focus-visible {
         outline: none;
-        border-color: var(--color-accent);
+    }
+
+    .ai-search-input:focus,
+    .ai-search-input:focus-visible {
+        border-color: rgb(127 156 196 / 0.5);
+        box-shadow: 0 0 0 3px rgb(127 156 196 / 0.12);
     }
 
     .ai-session-list {

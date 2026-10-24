@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Перейменувати",
     "approval_confirm_create": "Створити",
     "approval_confirm_default": "Дозволити",
+    "approval_confirm_empty_trash": "Очистити кошик",
+    "approval_permanent": "Це не можна скасувати. Елементи буде видалено назавжди.",
     "approval_approved": "Підтверджено",
     "approval_denied": "Скасовано",
     "approval_expired": "Термін дії цього запиту минув.",

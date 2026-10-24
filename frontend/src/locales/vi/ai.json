@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Đổi tên",
     "approval_confirm_create": "Tạo",
     "approval_confirm_default": "Cho phép",
+    "approval_confirm_empty_trash": "Dọn sạch thùng rác",
+    "approval_permanent": "Không thể hoàn tác. Các mục sẽ bị xóa vĩnh viễn.",
     "approval_approved": "Đã cho phép",
     "approval_denied": "Đã hủy",
     "approval_expired": "Yêu cầu này đã hết hạn.",

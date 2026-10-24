@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Zmień nazwę",
     "approval_confirm_create": "Utwórz",
     "approval_confirm_default": "Zezwól",
+    "approval_confirm_empty_trash": "Opróżnij kosz",
+    "approval_permanent": "Nie można tego cofnąć. Elementy zostaną trwale usunięte.",
     "approval_approved": "Zatwierdzono",
     "approval_denied": "Anulowano",
     "approval_expired": "Ta prośba wygasła.",

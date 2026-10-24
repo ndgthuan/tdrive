@@ -188,6 +188,27 @@ func agent_tool_specs() []ToolSpec {
 			}, []string{"item_ids"}),
 		},
 		{
+			Name:        "list_trash",
+			Description: "List what is in the trash of the current drive: id, name, kind, size, the folder it came from and when it was deleted. Read-only.",
+			Parameters: object_schema(map[string]any{
+				"limit": map[string]any{"type": "integer", "description": "Max items, up to 200."},
+			}, nil),
+		},
+		{
+			Name:        "restore_items",
+			Description: "Restore files and/or folders from the trash to where they were (or the drive root if that folder is gone). Runs at once without approval; the user can undo it, which moves them back to the trash.",
+			Parameters: object_schema(map[string]any{
+				"item_ids": id_list("Ids of trashed files (decimal) or folders (d:...), as list_trash reports them."),
+			}, []string{"item_ids"}),
+		},
+		{
+			Name:        "empty_trash",
+			Description: "PERMANENTLY delete items from the trash. Omit item_ids to empty the whole trash; give item_ids to delete only those. Always needs the user's approval. It cannot be undone.",
+			Parameters: object_schema(map[string]any{
+				"item_ids": id_list("Optional ids of trashed items to delete permanently. Omit to empty the whole trash."),
+			}, nil),
+		},
+		{
 			Name:        "view_media",
 			Description: "Look at up to 12 pictures or videos (videos show their poster frame). Returns each item's name and the images. Needs a vision-enabled model.",
 			Parameters: object_schema(map[string]any{

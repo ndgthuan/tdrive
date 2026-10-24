@@ -1,5 +1,7 @@
 /* === DASHBOARD LAYOUT === */
-.dashboard-container { display: flex; height: 100vh; }
+/* Positioned so the AI panel can dock over the pane as an overlay when the
+   window is too narrow to fit it beside the drive without squeezing the list. */
+.dashboard-container { position: relative; display: flex; height: 100vh; }
 .dashboard-container[hidden] { display: none; }
 
 /* A Telegram channel takes the drive's place below the header, the way Photos

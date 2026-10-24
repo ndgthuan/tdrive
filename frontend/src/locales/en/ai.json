@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Rename",
     "approval_confirm_create": "Create",
     "approval_confirm_default": "Allow",
+    "approval_confirm_empty_trash": "Empty trash",
+    "approval_permanent": "This cannot be undone. The items are deleted for good.",
     "approval_approved": "Approved",
     "approval_denied": "Cancelled",
     "approval_expired": "This request expired.",

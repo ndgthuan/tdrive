@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Renommer",
     "approval_confirm_create": "Créer",
     "approval_confirm_default": "Autoriser",
+    "approval_confirm_empty_trash": "Vider la corbeille",
+    "approval_permanent": "Action irréversible. Les éléments seront supprimés définitivement.",
     "approval_approved": "Approuvé",
     "approval_denied": "Refusé",
     "approval_expired": "Cette demande a expiré.",
