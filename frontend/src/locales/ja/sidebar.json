@@ -1,0 +1,11 @@
+{
+  "untitled": "無題",
+  "pending_request": "承認待ち",
+  "waiting_error": "承認を待っています - {error}",
+  "waiting_admin": "管理者の承認を待っています",
+  "my_drive": "マイドライブ",
+  "loading": "読み込み中...",
+  "no_shared": "共有ドライブはまだありません",
+  "actions_for": "{title} の操作",
+  "pending_tag": "承認待ち"
+}

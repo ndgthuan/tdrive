@@ -1,0 +1,15 @@
+{
+  "ok": "ठीक है",
+  "cancel": "रद्द करें",
+  "save": "सहेजें",
+  "delete": "हटाएं",
+  "close": "बंद करें",
+  "retry": "फिर से कोशिश करें",
+  "done": "हो गया",
+  "back": "वापस",
+  "loading": "लोड हो रहा है…",
+  "search_placeholder": "खोजें",
+  "error_generic": "कुछ गड़बड़ हो गई।",
+  "items_one": "{count} आइटम",
+  "items_other": "{count} आइटम"
+}

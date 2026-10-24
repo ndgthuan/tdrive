@@ -1,0 +1,8 @@
+{
+    "title": "Taal",
+    "option_system": "Systeem ({language})",
+    "note": "Wijzigingen worden meteen toegepast, opnieuw starten is niet nodig.",
+    "date_format_label": "Datumnotatie",
+    "interface_label": "Taal van de interface",
+    "date_format_note": "Voorbeeld van hoe datums en tijden in deze taal worden weergegeven."
+}

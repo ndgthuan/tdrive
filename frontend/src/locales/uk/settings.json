@@ -1,0 +1,22 @@
+{
+    "title": "Налаштування",
+    "close": "Закрити",
+    "nav_label": "Розділи налаштувань",
+    "nav_general": "Загальні",
+    "nav_appearance": "Оформлення",
+    "nav_language": "Мова",
+    "nav_ai": "Моделі ШІ",
+    "nav_updates": "Оновлення",
+    "nav_account": "Обліковий запис",
+    "menu_settings": "Налаштування",
+    "menu_backup": "Резервне копіювання фото й відео",
+    "menu_logout": "Вийти",
+    "general_title": "Загальні",
+    "general_subtitle": "Відомості про TDrive на цьому пристрої.",
+    "app_version": "Версія",
+    "platform": "Платформа",
+    "account_title": "Обліковий запис",
+    "account_subtitle": "Обліковий запис Telegram, з яким виконано вхід на цьому пристрої.",
+    "account_loading": "Завантаження облікового запису…",
+    "account_default_name": "Обліковий запис Telegram"
+}

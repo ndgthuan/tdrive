@@ -1,0 +1,11 @@
+{
+  "count_other": "{count} dipilih",
+  "download": "Unduh",
+  "move": "Pindahkan",
+  "delete": "Hapus",
+  "done": "Selesai",
+  "too_many_title": "Terlalu banyak unduhan",
+  "too_many_body": "Pilih hingga {count} item sekaligus.",
+  "unavailable_title": "Unduhan tidak tersedia",
+  "unavailable_body": "Segarkan drive dan pilih kembali item-itemnya."
+}

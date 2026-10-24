@@ -1,0 +1,14 @@
+{
+  "ok": "OK",
+  "cancel": "キャンセル",
+  "save": "保存",
+  "delete": "削除",
+  "close": "閉じる",
+  "retry": "再試行",
+  "done": "完了",
+  "back": "戻る",
+  "loading": "読み込み中…",
+  "search_placeholder": "検索",
+  "error_generic": "問題が発生しました。",
+  "items_other": "{count} 件"
+}

@@ -1,0 +1,11 @@
+{
+    "untitled": "Ohne Titel",
+    "pending_request": "Ausstehende Anfrage",
+    "waiting_error": "Warten auf Genehmigung – {error}",
+    "waiting_admin": "Warten auf Genehmigung durch einen Administrator",
+    "my_drive": "Mein Laufwerk",
+    "loading": "Wird geladen...",
+    "no_shared": "Noch keine gemeinsamen Laufwerke",
+    "actions_for": "Aktionen für {title}",
+    "pending_tag": "ausstehend"
+}

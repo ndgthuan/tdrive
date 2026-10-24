@@ -1,0 +1,8 @@
+{
+  "title": "Bahasa",
+  "option_system": "Sistem ({language})",
+  "note": "Perubahan langsung diterapkan, tanpa perlu memulai ulang.",
+  "date_format_label": "Format tanggal",
+  "interface_label": "Bahasa antarmuka",
+  "date_format_note": "Contoh cara tanggal dan waktu ditampilkan dalam bahasa ini."
+}

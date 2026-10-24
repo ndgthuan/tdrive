@@ -440,8 +440,8 @@
 .folder-chip {
     width: var(--control-md); height: var(--control-md); margin-right: var(--space-3);
     flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
-    background: var(--overlay-accent-1);
-    border-radius: var(--radius-sm); color: var(--accent);
+    background: none; border: 0;
+    border-radius: var(--radius-sm); color: var(--folder-glyph);
 }
 /* One rule for both chips. A folder and a file type share a column, so any
    difference in size or stroke between them reads as one of the two being
@@ -728,11 +728,11 @@ html.mobile .file-type-icon {
    brightness. A full-strength mark on a lighter tile reads as the structural
    row; a muted mark on a darker tile reads as a leaf. */
 html.mobile .folder-chip {
-    background: var(--color-surface-1);
-    border-color: transparent;
-    color: var(--color-text);
+    background: none;
+    border: 0;
+    color: var(--folder-glyph);
 }
-html.mobile .folder-chip svg,
+html.mobile .folder-chip svg { width: 22px; height: 22px; }
 html.mobile .file-type-icon svg { width: 22px; height: 22px; stroke-width: 1.75; }
 
 /* Selection mode: every row grows a check so a tap reads as a toggle. The
@@ -1097,20 +1097,19 @@ html:not(.mobile) .hold-ring {
 html:not(.mobile) .hold-ring-track { fill: none; stroke: var(--color-border-soft); stroke-width: 2; }
 html:not(.mobile) .hold-ring-bar { fill: none; stroke: var(--color-accent); stroke-width: 2; stroke-linecap: round; }
 
-/* Folder tile: the same 32px square as a file thumbnail, in the accent's tint
-   with a hairline in the accent, and a 16px folder glyph. */
+/* Folders keep the 32px slot file thumbnails use, so names stay aligned, but
+   draw no tile: a bare 22px filled folder glyph in the calm folder colour. */
 html:not(.mobile) .folder-chip {
     width: var(--control-md);
     height: var(--control-md);
     margin-right: var(--space-3);
     box-sizing: border-box;
     padding: 0;
-    border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
-    border-radius: var(--radius-sm);
-    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-    color: var(--color-accent);
+    border: 0;
+    background: none;
+    color: var(--folder-glyph);
 }
-html:not(.mobile) .folder-chip svg { width: 16px; height: 16px; flex: 0 0 auto; }
+html:not(.mobile) .folder-chip svg { width: 20px; height: 20px; flex: 0 0 auto; }
 
 /* The inline new folder row: a normal row whose name is a 28px field, with the
    hint under it. It is taller than a row, and the rows below move down for it. */

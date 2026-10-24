@@ -1,0 +1,22 @@
+{
+    "title": "설정",
+    "close": "닫기",
+    "nav_label": "설정 섹션",
+    "nav_general": "일반",
+    "nav_appearance": "모양",
+    "nav_language": "언어",
+    "nav_ai": "AI 모델",
+    "nav_updates": "업데이트",
+    "nav_account": "계정",
+    "menu_settings": "설정",
+    "menu_backup": "사진 및 동영상 백업",
+    "menu_logout": "로그아웃",
+    "general_title": "일반",
+    "general_subtitle": "이 기기의 TDrive 정보입니다.",
+    "app_version": "버전",
+    "platform": "플랫폼",
+    "account_title": "계정",
+    "account_subtitle": "이 기기에 로그인된 Telegram 계정입니다.",
+    "account_loading": "계정 로드 중…",
+    "account_default_name": "Telegram 계정"
+}

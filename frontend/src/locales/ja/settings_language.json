@@ -1,0 +1,8 @@
+{
+  "title": "言語",
+  "option_system": "システム（{language}）",
+  "note": "変更はすぐに反映されます。再起動は不要です。",
+  "date_format_label": "日付の形式",
+  "interface_label": "表示言語",
+  "date_format_note": "この言語での日付と時刻の表示例です。"
+}

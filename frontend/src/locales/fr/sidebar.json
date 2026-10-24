@@ -1,0 +1,11 @@
+{
+  "untitled": "Sans titre",
+  "pending_request": "Demande en attente",
+  "waiting_error": "En attente d’approbation - {error}",
+  "waiting_admin": "En attente de l’approbation d’un administrateur",
+  "my_drive": "Mon Drive",
+  "loading": "Chargement...",
+  "no_shared": "Aucun lecteur partagé pour l’instant",
+  "actions_for": "Actions pour {title}",
+  "pending_tag": "en attente"
+}

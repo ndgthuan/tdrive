@@ -1,0 +1,11 @@
+{
+    "untitled": "제목 없음",
+    "pending_request": "요청 대기 중",
+    "waiting_error": "승인 대기 중 - {error}",
+    "waiting_admin": "관리자 승인 대기 중",
+    "my_drive": "내 드라이브",
+    "loading": "로드 중...",
+    "no_shared": "아직 공유 드라이브가 없습니다",
+    "actions_for": "{title} 작업",
+    "pending_tag": "대기 중"
+}

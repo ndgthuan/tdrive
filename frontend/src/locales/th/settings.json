@@ -1,0 +1,22 @@
+{
+    "title": "การตั้งค่า",
+    "close": "ปิด",
+    "nav_label": "ส่วนของการตั้งค่า",
+    "nav_general": "ทั่วไป",
+    "nav_appearance": "รูปลักษณ์",
+    "nav_language": "ภาษา",
+    "nav_ai": "โมเดล AI",
+    "nav_updates": "การอัปเดต",
+    "nav_account": "บัญชี",
+    "menu_settings": "การตั้งค่า",
+    "menu_backup": "การสำรองรูปภาพและวิดีโอ",
+    "menu_logout": "ออกจากระบบ",
+    "general_title": "ทั่วไป",
+    "general_subtitle": "เกี่ยวกับ TDrive บนอุปกรณ์นี้",
+    "app_version": "เวอร์ชัน",
+    "platform": "แพลตฟอร์ม",
+    "account_title": "บัญชี",
+    "account_subtitle": "บัญชี Telegram ที่ลงชื่อเข้าใช้บนอุปกรณ์นี้",
+    "account_loading": "กำลังโหลดบัญชี…",
+    "account_default_name": "บัญชี Telegram"
+}

@@ -1,0 +1,15 @@
+{
+  "ok": "确定",
+  "cancel": "取消",
+  "save": "保存",
+  "delete": "删除",
+  "close": "关闭",
+  "retry": "重试",
+  "done": "完成",
+  "back": "返回",
+  "loading": "加载中…",
+  "search_placeholder": "搜索",
+  "error_generic": "出了点问题。",
+  "items_one": "{count} 项",
+  "items_other": "{count} 项"
+}

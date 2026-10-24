@@ -1,0 +1,22 @@
+{
+  "title": "设置",
+  "close": "关闭",
+  "nav_label": "设置分区",
+  "nav_general": "常规",
+  "nav_appearance": "外观",
+  "nav_language": "语言",
+  "nav_ai": "AI 模型",
+  "nav_updates": "更新",
+  "nav_account": "账号",
+  "menu_settings": "设置",
+  "menu_backup": "照片和视频备份",
+  "menu_logout": "退出登录",
+  "general_title": "常规",
+  "general_subtitle": "此设备上 TDrive 的相关信息。",
+  "app_version": "版本",
+  "platform": "平台",
+  "account_title": "账号",
+  "account_subtitle": "此设备登录所使用的 Telegram 账号。",
+  "account_loading": "正在加载账号…",
+  "account_default_name": "Telegram 账号"
+}

@@ -1,0 +1,15 @@
+{
+    "ok": "OK",
+    "cancel": "Annuleren",
+    "save": "Opslaan",
+    "delete": "Verwijderen",
+    "close": "Sluiten",
+    "retry": "Opnieuw proberen",
+    "done": "Klaar",
+    "back": "Terug",
+    "loading": "Laden…",
+    "search_placeholder": "Zoeken",
+    "error_generic": "Er is iets misgegaan.",
+    "items_one": "{count} item",
+    "items_other": "{count} items"
+}

@@ -1,0 +1,22 @@
+{
+  "title": "設定",
+  "close": "關閉",
+  "nav_label": "設定區段",
+  "nav_general": "一般",
+  "nav_appearance": "外觀",
+  "nav_language": "語言",
+  "nav_ai": "AI 模型",
+  "nav_updates": "更新",
+  "nav_account": "帳號",
+  "menu_settings": "設定",
+  "menu_backup": "照片與影片備份",
+  "menu_logout": "登出",
+  "general_title": "一般",
+  "general_subtitle": "關於此裝置上的 TDrive。",
+  "app_version": "版本",
+  "platform": "平台",
+  "account_title": "帳號",
+  "account_subtitle": "此裝置登入所使用的 Telegram 帳號。",
+  "account_loading": "正在載入帳號…",
+  "account_default_name": "Telegram 帳號"
+}

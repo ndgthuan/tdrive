@@ -1,0 +1,13 @@
+{
+  "title": "Güncellemeler",
+  "subtitle": "TDrive'ı en son sürümde tutun.",
+  "current_version": "Mevcut sürüm",
+  "check_button": "Güncellemeleri denetle",
+  "auto_update_label": "Güncellemeleri otomatik indir",
+  "download": "İndir",
+  "restart": "Güncellemek için yeniden başlat",
+  "restart_confirm": "Yine de yeniden başlat",
+  "downloading": "{version} indiriliyor…",
+  "ready_detail": "{version} sürümünün kurulumunu tamamlamak için TDrive'ı yeniden başlatın.",
+  "available_detail": "Daha yeni bir sürüm indirilmeye hazır."
+}

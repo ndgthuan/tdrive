@@ -1,0 +1,13 @@
+{
+  "title": "अपडेट",
+  "subtitle": "TDrive को नवीनतम संस्करण पर रखें।",
+  "current_version": "वर्तमान संस्करण",
+  "check_button": "अपडेट जांचें",
+  "auto_update_label": "अपडेट अपने आप डाउनलोड करें",
+  "download": "डाउनलोड",
+  "restart": "अपडेट के लिए रीस्टार्ट करें",
+  "restart_confirm": "फिर भी रीस्टार्ट करें",
+  "downloading": "{version} डाउनलोड हो रहा है…",
+  "ready_detail": "{version} इंस्टॉल पूरा करने के लिए TDrive रीस्टार्ट करें।",
+  "available_detail": "एक नया संस्करण डाउनलोड के लिए तैयार है।"
+}

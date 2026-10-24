@@ -116,15 +116,15 @@
     white-space: nowrap;
 }
 .move-item-icon {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent);
+    color: var(--folder-glyph);
     flex-shrink: 0;
 }
-.move-item-icon svg { width: 16px; height: 16px; }
+.move-item-icon svg { width: 20px; height: 20px; }
 .move-item-name {
     flex: 1;
     min-width: 0;

@@ -1,0 +1,15 @@
+{
+  "ok": "Tamam",
+  "cancel": "İptal",
+  "save": "Kaydet",
+  "delete": "Sil",
+  "close": "Kapat",
+  "retry": "Yeniden dene",
+  "done": "Bitti",
+  "back": "Geri",
+  "loading": "Yükleniyor…",
+  "search_placeholder": "Ara",
+  "error_generic": "Bir sorun oluştu.",
+  "items_one": "{count} öğe",
+  "items_other": "{count} öğe"
+}

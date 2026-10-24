@@ -1,19 +1,12 @@
 <script lang="ts">
     import { t_store } from '../../i18n/i18n';
-    import { openLogoutModal } from '../../modules/modals/logout';
     import Avatar from '../chrome/avatar.svelte';
     import { profileLoaded, profileUser } from '../chrome/profile_store';
-    import { close_settings } from './settings_store';
 
     const displayName = $derived(
         !$profileLoaded ? $t_store('settings.account_loading') : $profileUser?.displayName || $t_store('settings.account_default_name'),
     );
     const handle = $derived(($profileUser?.username || '').trim());
-
-    function logout(): void {
-        close_settings();
-        openLogoutModal();
-    }
 </script>
 
 <section class="settings-pane" aria-labelledby="settings-account-title">
@@ -27,13 +20,6 @@
         <div class="account-meta">
             <div class="account-name">{displayName}</div>
             {#if handle}<div class="account-handle">@{handle}</div>{/if}
-        </div>
-    </div>
-
-    <div class="settings-section">
-        <p class="settings-note">{$t_store('settings.account_logout_note')}</p>
-        <div>
-            <button type="button" class="settings-btn danger" onclick={logout}>{$t_store('settings.account_logout')}</button>
         </div>
     </div>
 </section>

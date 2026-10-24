@@ -1,8 +1,6 @@
 {
     "title": "Language",
     "option_system": "System ({language})",
-    "option_vi": "Tiếng Việt",
-    "option_en": "English",
     "note": "Changes apply immediately, no restart needed.",
     "date_format_label": "Date format",
     "interface_label": "Interface language",

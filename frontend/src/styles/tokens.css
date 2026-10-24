@@ -108,6 +108,9 @@
     --accent-hover: var(--color-accent-hover);
     --text-main: var(--color-text-soft);
     --text-muted: var(--color-text-muted);
+    /* Folder glyph colour: a calm blue leaning on the accent, so folders read as
+       containers without the accent's full weight on every row. */
+    --folder-glyph: color-mix(in srgb, var(--color-accent) 80%, var(--color-text-muted));
     --border: var(--color-border-soft);
     --danger: var(--color-danger);
     --success: var(--color-success);

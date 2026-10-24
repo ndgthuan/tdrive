@@ -1,0 +1,17 @@
+{
+    "ok": "OK",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "close": "Закрыть",
+    "retry": "Повторить",
+    "done": "Готово",
+    "back": "Назад",
+    "loading": "Загрузка…",
+    "search_placeholder": "Поиск",
+    "error_generic": "Что-то пошло не так.",
+    "items_one": "{count} элемент",
+    "items_few": "{count} элемента",
+    "items_many": "{count} элементов",
+    "items_other": "{count} элемента"
+}

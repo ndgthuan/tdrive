@@ -1,0 +1,12 @@
+{
+  "count_one": "{count} seçili",
+  "count_other": "{count} seçili",
+  "download": "İndir",
+  "move": "Taşı",
+  "delete": "Sil",
+  "done": "Bitti",
+  "too_many_title": "Çok fazla indirme",
+  "too_many_body": "Aynı anda en fazla {count} öğe seçin.",
+  "unavailable_title": "İndirme kullanılamıyor",
+  "unavailable_body": "Sürücüyü yenileyin ve öğeleri yeniden seçin."
+}

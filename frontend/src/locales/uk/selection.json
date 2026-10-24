@@ -1,0 +1,14 @@
+{
+    "count_one": "Вибрано: {count}",
+    "count_few": "Вибрано: {count}",
+    "count_many": "Вибрано: {count}",
+    "count_other": "Вибрано: {count}",
+    "download": "Звантажити",
+    "move": "Перемістити",
+    "delete": "Видалити",
+    "done": "Готово",
+    "too_many_title": "Забагато для звантаження",
+    "too_many_body": "Можна вибрати не більше {count} елементів за раз.",
+    "unavailable_title": "Звантаження недоступне",
+    "unavailable_body": "Оновіть диск і виберіть елементи знову."
+}

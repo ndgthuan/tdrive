@@ -1,0 +1,12 @@
+{
+  "count_one": "已选择 {count} 项",
+  "count_other": "已选择 {count} 项",
+  "download": "下载",
+  "move": "移动",
+  "delete": "删除",
+  "done": "完成",
+  "too_many_title": "下载项目过多",
+  "too_many_body": "一次最多选择 {count} 项。",
+  "unavailable_title": "无法下载",
+  "unavailable_body": "请刷新云盘并重新选择这些项目。"
+}
