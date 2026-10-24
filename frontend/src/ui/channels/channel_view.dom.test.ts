@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// Previews are not under test here; keep them off the network.
+vi.mock('../../api/channel_sources', () => ({ load_channel_media_thumbnail: vi.fn(async () => '') }));
 import { flushSync, mount, tick, unmount } from 'svelte';
 import ChannelView from './channel_view.svelte';
 import type { ChannelTopicFetcher } from './channel_topics';

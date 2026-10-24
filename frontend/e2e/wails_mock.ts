@@ -100,6 +100,7 @@ const DEFAULT_METHODS: Record<string, MockPlan> = {
     ListChannelSourceCandidates: resolves([]),
     ResolvePublicChannelSource: rejects('Public channel link is required'),
     ChannelSourcePhoto: resolves(''),
+    ChannelSourceMediaThumbnail: resolves(''),
     ListMedia: resolves([]),
     ListMediaFolders: resolves([]),
     GetMediaTimeline: resolves({ channel_id: 1, generation: 'test', total_count: 0, page_size: 128, buckets: [], anchors: [] }),

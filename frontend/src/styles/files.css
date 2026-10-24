@@ -319,60 +319,64 @@
     background: var(--overlay-danger-1);
 }
 
+:root { --row-visual-size: var(--control-md); }
+
 /*
- * Type chip.
+ * Row visual slot.
  *
- * It borrows the folder chip's box exactly, so the leading column reads as one
- * column instead of two competing systems. Folders keep the accent, which is
- * what marks a row as somewhere you can go; files stay neutral and let the
- * glyph shape carry the type.
+ * One box leads every row: a folder glyph, a file-type tile and a photo or
+ * video thumbnail all occupy the same square at the same left edge with the
+ * same radius, so a thumbnail never reads larger than the tile beside it.
+ * Phone rows widen the slot through --row-visual-size and change nothing else.
  *
- * Deliberately no per-type hues. The rest of this app is one accent over grey,
- * and a palette of seven unrelated colours here reads as a different product
- * pasted into the list.
+ * A thumbnail paints inside the tile's box and adds no size of its own. The
+ * glyph stays underneath as the fallback for locked, missing or failed
+ * derivatives, so the tile's tint still shows whenever no picture does.
  */
+.folder-chip,
 .file-type-icon {
-    /* A 32px square tile, borderless, that doubles as the photo thumbnail. Square
-       rather than a letterbox so a portrait crop stays recognisable, which is the
-       one thing a thumbnail must not fail at. */
-    width: var(--control-md);
-    height: var(--control-md);
-    margin-right: var(--space-3);
+    box-sizing: border-box;
+    position: relative;
+    width: var(--row-visual-size);
+    height: var(--row-visual-size);
+    min-width: var(--row-visual-size);
+    min-height: var(--row-visual-size);
+    max-width: var(--row-visual-size);
+    max-height: var(--row-visual-size);
+    margin: 0 var(--space-3) 0 0;
+    padding: 0;
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-sm);
-    background: var(--overlay-white-1);
-    /* The glyph is the only thing telling one file from another, so it sits at
-       label weight. At muted it reads as a smudge and the type is lost. */
-    color: var(--text-main);
-}
-
-/* The thumbnail paints inside the type chip's box and adds nothing of its own:
-   no width, no height, no aspect-ratio. That is the invariant -- the chip is
-   the same square whether the derivative arrives, fails, or never comes -- and
-   it is what keeps a photo loading mid-scroll from moving row height or the
-   virtual offsets under the reader. The icon remains underneath as the honest
-   fallback for locked, missing or failed derivatives. */
-.row-thumbnail {
-    position: relative;
     overflow: hidden;
     isolation: isolate;
+    border: 0;
+    border-radius: var(--radius-sm);
 }
-.row-thumbnail-image {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 100ms var(--ease-standard);
+
+/*
+ * File-type tile. The fill is the raised surface with no border, so the glyph is
+ * the only thing on the tile. Its colour is the family's hue mixed down toward
+ * the muted text colour, which keeps every tint low-saturation on both themes.
+ * Documents and unknown types take the neutral text tones; nothing here is neon.
+ */
+.file-type-icon {
+    --tile-hue: var(--color-text-soft);
+    background: var(--color-surface-2);
+    color: color-mix(in srgb, var(--tile-hue) 55%, var(--color-text-muted));
 }
-.row-thumbnail-loaded .row-thumbnail-image { opacity: 1; }
-.row-thumbnail::after {
+.file-type-icon[data-family="video"] { --tile-hue: var(--color-accent); }
+.file-type-icon[data-family="image"] { --tile-hue: var(--color-success); }
+.file-type-icon[data-family="audio"] { --tile-hue: #a893e0; }
+.file-type-icon[data-family="sheet"] { --tile-hue: var(--color-success); }
+.file-type-icon[data-family="archive"] { --tile-hue: var(--color-warning); }
+.file-type-icon[data-family="code"],
+.file-type-icon[data-family="other"] { --tile-hue: var(--color-text-muted); }
+
+/* The same hairline inside the box for a tile and a thumbnail, so neither
+   grows past the slot to show an edge the other lacks. */
+.file-type-icon::after {
     position: absolute;
     inset: 0;
     z-index: 2;
@@ -381,9 +385,49 @@
     content: "";
     pointer-events: none;
 }
+
+/* The picture fills the slot exactly: no width, height, border or padding of its
+   own, and cover so a portrait or panoramic crop lands inside the same square. */
+.row-thumbnail-image {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    object-fit: cover;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 100ms var(--ease-standard);
+}
+.row-thumbnail-loaded .row-thumbnail-image { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
     .row-thumbnail-image { transition: none; }
 }
+
+/* A video with a poster reads as playable, at the corner the eye ends on. It
+   only appears once the poster has loaded, so a tile never shows a badge on
+   top of its own glyph. */
+.file-type-icon .row-thumbnail-play {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+    color: var(--viewer-text);
+    pointer-events: none;
+}
+.file-type-icon .row-thumbnail-play svg { width: 8px; height: 8px; }
 
 
 .row-name {
@@ -435,24 +479,15 @@
     }
 }
 
-/* Tracks .file-type-icon exactly. The two chips share the leading column, so
-   any difference in box reads as one of them being misaligned. */
+/* A folder and a file type share the slot, so they share the glyph size too. A
+   different size would read as one of the two being wrong, not as two kinds of
+   thing. The folder is a bare glyph in the calm folder colour, with no tile. */
 .folder-chip {
-    width: var(--control-md); height: var(--control-md); margin-right: var(--space-3);
-    flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
-    background: none; border: 0;
-    border-radius: var(--radius-sm); color: var(--folder-glyph);
+    background: none;
+    color: var(--folder-glyph);
 }
-/* One rule for both chips. A folder and a file type share a column, so any
-   difference in size or stroke between them reads as one of the two being
-   wrong rather than as two kinds of thing.
-
-   Half the chip, which is the ratio the phone shell already uses. The glyph
-   sat at 17px when the chip was a 40x20 letterbox and it filled that; in the
-   square it read as a small mark adrift in an empty tile, next to thumbnails
-   that reach the chip's own edges. */
 .folder-chip svg,
-.file-type-icon svg { width: 18px; height: 18px; stroke-width: 1.5; }
+.file-type-icon svg { width: 18px; height: 18px; flex: 0 0 auto; }
 
 /* A quiet, borderless 28px icon button. No tile or outline of its own: it shows
    a soft background only on hover, so a row never reads as a strip of boxes. */
@@ -701,10 +736,13 @@ html.mobile .uploader-initials {
     letter-spacing: 0.02em;
 }
 
+/* Phones take a larger slot for the touch target; the tile, the thumbnail and the
+   folder share it, so only the size token changes here. */
+html.mobile {
+    --row-visual-size: 44px;
+}
 html.mobile .file-type-icon,
 html.mobile .folder-chip {
-    width: 44px;
-    height: 44px;
     margin: 0;
     border-radius: var(--radius-lg);
 }
@@ -715,7 +753,6 @@ html.mobile .folder-chip {
 html.mobile .file-type-icon {
     background: var(--color-surface-2);
     border-color: transparent;
-    color: var(--color-text-muted);
 }
 /* Folders still need to read as containers before any text does, but they no
    longer spend the accent to do it.
@@ -732,8 +769,8 @@ html.mobile .folder-chip {
     border: 0;
     color: var(--folder-glyph);
 }
-html.mobile .folder-chip svg { width: 22px; height: 22px; }
-html.mobile .file-type-icon svg { width: 22px; height: 22px; stroke-width: 1.75; }
+html.mobile .folder-chip svg,
+html.mobile .file-type-icon svg { width: 22px; height: 22px; }
 
 /* Selection mode: every row grows a check so a tap reads as a toggle. The
    column slides open rather than popping in (motion-12). */
@@ -1096,20 +1133,6 @@ html:not(.mobile) .hold-ring {
 }
 html:not(.mobile) .hold-ring-track { fill: none; stroke: var(--color-border-soft); stroke-width: 2; }
 html:not(.mobile) .hold-ring-bar { fill: none; stroke: var(--color-accent); stroke-width: 2; stroke-linecap: round; }
-
-/* Folders keep the 32px slot file thumbnails use, so names stay aligned, but
-   draw no tile: a bare 22px filled folder glyph in the calm folder colour. */
-html:not(.mobile) .folder-chip {
-    width: var(--control-md);
-    height: var(--control-md);
-    margin-right: var(--space-3);
-    box-sizing: border-box;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--folder-glyph);
-}
-html:not(.mobile) .folder-chip svg { width: 20px; height: 20px; flex: 0 0 auto; }
 
 /* The inline new folder row: a normal row whose name is a 28px field, with the
    hint under it. It is taller than a row, and the rows below move down for it. */

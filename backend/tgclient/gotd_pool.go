@@ -57,7 +57,13 @@ func (g *Gotd) uploadAPI(ctx context.Context, client *telegram.Client) *tg.Clien
 // data center, repeating it on the primary connection should Telegram answer
 // with a redirect the pool cannot follow.
 func (g *Gotd) downloadVia(ctx context.Context, client *telegram.Client, doc *tg.Document, transfer func(api *tg.Client) error) error {
-	api, pooled := g.fileAPI(ctx, client, doc.DCID)
+	return g.download_via_dc(ctx, client, doc.DCID, transfer)
+}
+
+// download_via_dc is downloadVia for a file whose data center is known without
+// its document, such as a photo.
+func (g *Gotd) download_via_dc(ctx context.Context, client *telegram.Client, dcID int, transfer func(api *tg.Client) error) error {
+	api, pooled := g.fileAPI(ctx, client, dcID)
 	err := transfer(api)
 	if pooled && isFileMigrate(err) {
 		return transfer(client.API())

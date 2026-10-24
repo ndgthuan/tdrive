@@ -802,6 +802,33 @@ func (f *Fake) DownloadFileThumbnail(ctx context.Context, peer InputPeer, msgID 
 	return ErrEmptyDocument
 }
 
+// DownloadMessageThumbnail writes the preview seeded on a message, if it has one.
+func (f *Fake) DownloadMessageThumbnail(ctx context.Context, peer InputPeer, msgID int64, w io.Writer) error {
+	f.mu.Lock()
+	var (
+		msg   HistoryMessage
+		found bool
+	)
+	for _, m := range f.history {
+		if m.MsgID == msgID {
+			msg = m
+			found = true
+			break
+		}
+	}
+	f.mu.Unlock()
+	if !found {
+		return ErrMessageNotFound
+	}
+	for _, thumb := range msg.Thumbs {
+		if len(thumb.Bytes) > 0 {
+			_, err := w.Write(thumb.Bytes)
+			return err
+		}
+	}
+	return nil
+}
+
 func (f *Fake) DeleteMessages(ctx context.Context, peer InputPeer, msgIDs []int64) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()

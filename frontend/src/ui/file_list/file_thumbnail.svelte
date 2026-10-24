@@ -1,4 +1,5 @@
 <script lang="ts">
+    import PlayIcon from 'phosphor-svelte/lib/PlayIcon';
     import { fileTypeFamily, fileTypeIcon } from './file_type';
     import { registerFileThumbnail, unregisterFileThumbnail } from './file_thumbnail_controller';
     import type { FileThumbnailIdentity } from '../file_list/types';
@@ -62,4 +63,9 @@
         decoding="async"
         src={src || undefined}
     />
+    {#if family === 'video' && status === 'loaded'}
+        <span class="row-thumbnail-play" aria-hidden="true">
+            <PlayIcon size={8} aria-hidden="true" />
+        </span>
+    {/if}
 </span>

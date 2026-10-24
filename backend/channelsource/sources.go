@@ -1,6 +1,7 @@
 package channelsource
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -682,6 +683,56 @@ func (s *Service) SourcePhoto(ctx context.Context, kind string, id, expectedAcco
 		return nil, err
 	}
 	return photo, nil
+}
+
+// max_source_thumbnail_bytes bounds a preview. Telegram's grid sizes are a few
+// tens of kilobytes; anything larger is not the preview and is not sent.
+const max_source_thumbnail_bytes = 256 << 10
+
+// SourceThumbnail returns the small JPEG preview of one photo or video post in
+// a connected source. It returns nil when the post is not a photo or video,
+// is withheld, or Telegram offers no preview. Only the preview is fetched.
+func (s *Service) SourceThumbnail(ctx context.Context, kind string, id, msgID, expectedAccountID int64, expectedGeneration string) ([]byte, error) {
+	if !validSource(kind, id) || msgID <= 0 || expectedAccountID <= 0 || expectedGeneration == "" {
+		return nil, ErrUnavailable
+	}
+	stored, _, source, err := s.currentSource(ctx, kind, id)
+	if err != nil {
+		return nil, err
+	}
+	if stored.AccountID != expectedAccountID || stored.Generation != expectedGeneration {
+		return nil, ErrNotConnected
+	}
+	peer := tgclient.InputPeer{Kind: source.Kind, ChannelID: id, AccessHash: source.AccessHash}
+	var message tgclient.HistoryMessage
+	err = s.telegram(ctx, func() error {
+		var callErr error
+		message, callErr = s.tg.GetChannelMessage(ctx, peer, msgID)
+		return callErr
+	})
+	if err != nil {
+		return nil, fmt.Errorf("media source: fetch thumbnail message: %w", err)
+	}
+	item, ok := mediaItem(source, message)
+	if !ok || item.BlockReason != "" || (item.Kind != string(media.StreamKindImage) && item.Kind != string(media.StreamKindVideo)) {
+		return nil, s.checkPhotoScope(ctx, stored.AccountID, kind, id, expectedGeneration)
+	}
+	var buf bytes.Buffer
+	err = s.telegram(ctx, func() error {
+		buf.Reset()
+		return s.tg.DownloadMessageThumbnail(ctx, peer, msgID, &buf)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("media source: download thumbnail: %w", err)
+	}
+	if err := s.checkPhotoScope(ctx, stored.AccountID, kind, id, expectedGeneration); err != nil {
+		return nil, err
+	}
+	thumb := buf.Bytes()
+	if len(thumb) < 2 || len(thumb) > max_source_thumbnail_bytes || thumb[0] != 0xFF || thumb[1] != 0xD8 {
+		return nil, nil
+	}
+	return thumb, nil
 }
 
 func (s *Service) checkPhotoScope(ctx context.Context, accountID int64, kind string, id int64, generation string) error {

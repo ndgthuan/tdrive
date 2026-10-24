@@ -7,6 +7,7 @@ import {
     channelVideoQueue,
     createChannelMediaPager,
     MAX_CHANNEL_ITEMS,
+    media_columns,
     mediaMeta,
     isOpenable,
     mediaActionLabel,
@@ -277,5 +278,14 @@ describe('vietnamese labels', () => {
         await set_locale('vi');
         expect(t('mount.finishing_changes', { count: 3 })).toBe('Đang hoàn tất 3 thay đổi...');
         expect(t('sources.videos_in', { title: 'Phim' })).toBe('Video trong Phim');
+    });
+});
+
+describe('media_columns', () => {
+    it('splits a row into its kind, size and date, leaving unknown parts empty', () => {
+        const now = 1_735_689_600_000;
+        const clip = { msgId: 1, date: 1_735_689_600, name: 'ridge.mp4', size: 3_145_728, duration: 95, mimeType: 'video/mp4', kind: 'video', caption: '', streamable: true, blockReason: '', telegramUrl: '' };
+        expect(media_columns(clip, now)).toEqual({ kind: t('sources.kind_video'), size: expect.stringMatching(/MB/), date: expect.any(String) });
+        expect(media_columns({ ...clip, size: 0 }, now)).toEqual({ kind: t('sources.kind_video'), size: '', date: expect.any(String) });
     });
 });

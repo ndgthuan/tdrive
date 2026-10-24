@@ -86,9 +86,9 @@
                         <span class="ai-folder-count">{$t_store('ai_organize.files_count', { count: folder.files?.length ?? 0 })}</span>
                     </span>
                     <span class="ai-thumbs" aria-hidden="true">
-                        <span class="ai-thumb"><ImageIcon size={12} /></span>
-                        <span class="ai-thumb"><ImageIcon size={12} /></span>
-                        <span class="ai-thumb"><ImageIcon size={12} /></span>
+                        <span class="ai-thumb"><ImageIcon size={16} /></span>
+                        <span class="ai-thumb"><ImageIcon size={16} /></span>
+                        <span class="ai-thumb"><ImageIcon size={16} /></span>
                     </span>
                 </li>
             {/each}
@@ -247,12 +247,13 @@
     }
 
     .ai-thumb {
-        width: 22px;
-        height: 22px;
+        box-sizing: border-box;
+        width: var(--control-md);
+        height: var(--control-md);
         display: grid;
         place-items: center;
-        border-radius: 4px;
-        background: var(--color-surface-3);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface-2);
         color: var(--text-muted);
     }
 
