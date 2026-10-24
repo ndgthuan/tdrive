@@ -60,7 +60,7 @@ afterEach(async () => {
 });
 
 describe('FileViewerModal source (channel) viewing', () => {
-    function open_image(readOnly: boolean): void {
+    function open_image(readOnly: boolean, downloadable = false, protectedContent = false): void {
         openFileViewerView({
             kind: 'image',
             token: 'tok',
@@ -71,6 +71,8 @@ describe('FileViewerModal source (channel) viewing', () => {
             loading: false,
             error: '',
             readOnly,
+            downloadable,
+            protected: protectedContent,
         });
     }
 
@@ -85,6 +87,22 @@ describe('FileViewerModal source (channel) viewing', () => {
         const menu = new Event('contextmenu', { bubbles: true, cancelable: true });
         stage.dispatchEvent(menu);
         expect(menu.defaultPrevented).toBe(true);
+    });
+
+    it('offers a save for a source post only when its source allows it', async () => {
+        open_image(true, true);
+        mountViewer();
+        await waitForElement<HTMLElement>('.file-viewer-stage');
+        await settle();
+        expect(host.querySelector('[aria-label="Download"]')).not.toBeNull();
+    });
+
+    it('never offers a save for protected source content, even when downloadable is set', async () => {
+        open_image(true, true, true);
+        mountViewer();
+        await waitForElement<HTMLElement>('.file-viewer-stage');
+        await settle();
+        expect(host.querySelector('[aria-label="Download"]')).toBeNull();
     });
 
     it('leaves the drive viewer alone: download stays and the image is still draggable', async () => {

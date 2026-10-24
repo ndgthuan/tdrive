@@ -141,6 +141,7 @@
     "notify_login_failed": "Đăng nhập thất bại",
     "source_removed": "Đã xóa {title}",
     "source_remove_undo_body": "Không có gì bị xóa khỏi Telegram.",
+    "source_download_saved": "Đã lưu vào {path}",
     "source_remove_failed": "Không thể xóa {title}",
     "offline_title": "Bạn đang ngoại tuyến",
     "offline_body": "Các tệp đã lưu vẫn khả dụng. Hãy kết nối lại để đồng bộ.",

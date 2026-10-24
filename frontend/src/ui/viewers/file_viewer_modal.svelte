@@ -29,6 +29,9 @@
     }
 
     let { onClose, onDownload }: Props = $props();
+    // A My Drive file is saved unless it is protected. A read-only source post
+    // is saved only when its source offered a download for it.
+    const canDownload = $derived(!$fileViewerState.protected && (!$fileViewerState.readOnly || Boolean($fileViewerState.downloadable)));
 
     // The phone header is a 44px bar: close, the file name, download. The
     // desktop header below is untouched.
@@ -454,7 +457,7 @@
             <h3 id="file-viewer-title" class="file-viewer-title" title={$fileViewerState.title}>
                 {$fileViewerState.title || $t_store('viewer.open_file')}
             </h3>
-            {#if !$fileViewerState.readOnly && !$fileViewerState.protected}<button class="file-viewer-action is-icon-only" type="button" onclick={onDownload} aria-label={$t_store('viewer.download')} title={$t_store('viewer.download')}>
+            {#if canDownload}<button class="file-viewer-action is-icon-only" type="button" onclick={onDownload} aria-label={$t_store('viewer.download')} title={$t_store('viewer.download')}>
                 <DownloadIcon size={24} aria-hidden="true" />
             </button>{/if}
         </div>
@@ -499,7 +502,7 @@
             {#if shouldShowMarkdownToggle()}
                 {@render markdownToggle()}
             {/if}
-            {#if !$fileViewerState.readOnly && !$fileViewerState.protected}<button class="file-viewer-action" type="button" onclick={onDownload} aria-label={$t_store('viewer.download')} title={$t_store('viewer.download')}>
+            {#if canDownload}<button class="file-viewer-action" type="button" onclick={onDownload} aria-label={$t_store('viewer.download')} title={$t_store('viewer.download')}>
                 <DownloadIcon size={24} aria-hidden="true" />
             </button>{/if}
             <button class="file-viewer-close" type="button" onclick={onClose} aria-label={$t_store('viewer.close_file')} title={$t_store('viewer.close')}>

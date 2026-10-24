@@ -319,7 +319,7 @@
     background: var(--overlay-danger-1);
 }
 
-:root { --row-visual-size: var(--control-md); }
+:root { --row-visual-size: 28px; }
 
 /*
  * Row visual slot.
@@ -356,15 +356,24 @@
 }
 
 /*
- * File-type tile. The fill is the raised surface with no border, so the glyph is
- * the only thing on the tile. Its colour is the family's hue mixed down toward
- * the muted text colour, which keeps every tint low-saturation on both themes.
- * Documents and unknown types take the neutral text tones; nothing here is neon.
+ * File-type glyph. A bare Phosphor icon centred in the slot, exactly like a
+ * folder: no border and no fill. Its colour is the family's hue mixed down
+ * toward the muted text colour, which keeps every tint low-saturation on both
+ * themes. Documents and unknown types take the neutral text tones.
  */
 .file-type-icon {
     --tile-hue: var(--color-text-soft);
-    background: var(--color-surface-2);
+    background: none;
     color: color-mix(in srgb, var(--tile-hue) 55%, var(--color-text-muted));
+}
+/* A real thumbnail, or a source preview, keeps its rounded image box. */
+.file-type-icon.row-thumbnail-loaded,
+.file-type-icon.has-preview {
+    background: var(--color-surface-2);
+}
+html:not(.mobile) .file-type-icon.row-thumbnail,
+html:not(.mobile) .file-type-icon.has-preview {
+    border-radius: 4px;
 }
 .file-type-icon[data-family="video"] { --tile-hue: var(--color-accent); }
 .file-type-icon[data-family="image"] { --tile-hue: var(--color-success); }
@@ -374,9 +383,10 @@
 .file-type-icon[data-family="code"],
 .file-type-icon[data-family="other"] { --tile-hue: var(--color-text-muted); }
 
-/* The same hairline inside the box for a tile and a thumbnail, so neither
-   grows past the slot to show an edge the other lacks. */
-.file-type-icon::after {
+/* The same hairline inside a thumbnail's box, so it never grows past the slot.
+   A bare glyph has no box, so it has no hairline. */
+.file-type-icon.row-thumbnail-loaded::after,
+.file-type-icon.has-preview::after {
     position: absolute;
     inset: 0;
     z-index: 2;
@@ -486,8 +496,8 @@
     background: none;
     color: var(--folder-glyph);
 }
-.folder-chip svg,
-.file-type-icon svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.folder-chip svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.file-type-icon svg { width: 20px; height: 20px; flex: 0 0 auto; }
 
 /* A quiet, borderless 28px icon button. No tile or outline of its own: it shows
    a soft background only on hover, so a row never reads as a strip of boxes. */
@@ -750,7 +760,8 @@ html.mobile .folder-chip {
    translucent border sits over a fill with an SVG inside, painting a stale
    copy of the rows above it into the list. Mixing the overlay into the row's
    own surface keeps the same tint without the alpha. */
-html.mobile .file-type-icon {
+html.mobile .file-type-icon.row-thumbnail-loaded,
+html.mobile .file-type-icon.has-preview {
     background: var(--color-surface-2);
     border-color: transparent;
 }

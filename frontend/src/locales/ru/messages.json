@@ -147,6 +147,7 @@
     "notify_login_failed": "Не удалось войти",
     "source_removed": "«{title}» удалён",
     "source_remove_undo_body": "Из Telegram ничего не удалено.",
+    "source_download_saved": "Сохранено в {path}",
     "source_remove_failed": "Не удалось удалить «{title}»",
     "offline_title": "Нет подключения",
     "offline_body": "Сохранённые файлы доступны. Подключитесь к сети для синхронизации.",

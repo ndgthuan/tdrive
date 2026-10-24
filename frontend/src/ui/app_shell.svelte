@@ -18,6 +18,7 @@
         channelPhoto,
         loadChannelSources,
         openChannelPicker,
+        downloadChannelPost,
         openChannelPost,
         openInTelegram,
         recentChannelPages,
@@ -389,6 +390,7 @@
                     onOpenPost={openChannelPost}
                     onOpenTelegram={openInTelegram}
                     onPostActions={showPostActions}
+                    onDownloadPost={downloadChannelPost}
                     recentPages={recentChannelPages}
                 />
             {/key}

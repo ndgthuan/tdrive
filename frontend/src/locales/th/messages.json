@@ -138,6 +138,7 @@
     "notify_login_failed": "ลงชื่อเข้าใช้ไม่สำเร็จ",
     "source_removed": "นำ {title} ออกแล้ว",
     "source_remove_undo_body": "ไม่มีอะไรถูกนำออกจาก Telegram",
+    "source_download_saved": "บันทึกไปที่ {path} แล้ว",
     "source_remove_failed": "ไม่สามารถนำ {title} ออกได้",
     "offline_title": "คุณออฟไลน์อยู่",
     "offline_body": "ไฟล์ที่บันทึกไว้ยังใช้งานได้ เชื่อมต่ออีกครั้งเพื่อซิงก์",

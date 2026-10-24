@@ -144,6 +144,7 @@
   "notify_login_failed": "Error al iniciar sesión",
   "source_removed": "Se quitó {title}",
   "source_remove_undo_body": "No se eliminó nada de Telegram.",
+  "source_download_saved": "Guardado en {path}",
   "source_remove_failed": "No se pudo quitar {title}",
   "offline_title": "Sin conexión",
   "offline_body": "Los archivos guardados están disponibles. Vuelve a conectarte para sincronizar.",

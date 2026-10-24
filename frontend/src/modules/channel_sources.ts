@@ -21,6 +21,7 @@ import {
     openChannelKey,
 } from '../ui/channels/channel_store';
 import {
+    canDownloadChannelPost,
     channelTelegramUrl,
     channelVideoQueue,
     isOpenable,
@@ -39,6 +40,7 @@ import { splitNameAndExt } from '../utils';
 import { exitPhotos } from './gallery';
 import { dismissNotification, notify, notifyAppError } from './notifications';
 import { closeTrash } from './trash/controller';
+import { enqueueSourceDownload } from './transfers';
 
 let loadVersion = 0;
 let activationVersion = 0;
@@ -278,6 +280,12 @@ export function showChannelActions(x: number, y: number, source: ChannelSource):
 }
 
 /** A media item's menu: right-click on desktop, long-press on a phone. */
+/** Queues a source post for download. The same transfer bar and retry apply as My Drive. */
+export function downloadChannelPost(item: ChannelMediaItem, source: ChannelSource): void {
+    if (!canDownloadChannelPost(item, source)) return;
+    enqueueSourceDownload(source, item.msgId, item.name, item.size);
+}
+
 export function showPostActions(
     x: number,
     y: number,
@@ -287,6 +295,7 @@ export function showPostActions(
 ): void {
     const items: ContextMenuItem[] = [
         ...(isOpenable(item) ? [{ label: mediaActionLabel(item), icon: (mediaActionKind(item) === 'play' ? 'play' : 'open') as 'play' | 'open', primary: true, action: () => openChannelPost(item, source, posts) }] : []),
+        ...(canDownloadChannelPost(item, source) ? [{ label: t('sources.download'), icon: 'download' as const, action: () => downloadChannelPost(item, source) }] : []),
         ...(item.telegramUrl ? [{ label: t('leftovers.open_in_telegram'), icon: 'external' as const, action: () => openInTelegram(item.telegramUrl) }] : []),
     ];
     if (items.length === 0) return;
@@ -314,7 +323,7 @@ export async function openChannelPost(
     if (item.kind === 'audio' || item.kind === 'image' || item.kind === 'pdf' || item.kind === 'text') {
         const { activateFileViewerModal, openFileViewer } = await import('./modals/file_viewer');
         activateFileViewerModal();
-        await openFileViewer({ id: item.msgId, name: item.name, size: item.size, kind: item.kind, protected: Boolean(source.protected || item.protected), encrypted: false }, () => open(item));
+        await openFileViewer({ id: item.msgId, name: item.name, size: item.size, kind: item.kind, protected: Boolean(source.protected || item.protected), encrypted: false }, () => open(item), canDownloadChannelPost(item, source) ? () => downloadChannelPost(item, source) : undefined);
         return;
     }
     const { target, playlist } = channelVideoQueue(item, source, posts, open);

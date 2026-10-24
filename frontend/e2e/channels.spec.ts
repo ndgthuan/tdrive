@@ -446,7 +446,8 @@ for (const { platform, protectedContent } of ['desktop', 'ios', 'android'].flatM
         const photo = viewer.getByRole('img', { name: 'forest.svg' });
         await expect(photo).toBeVisible();
         await expect.poll(() => photo.evaluate((element) => (element as HTMLImageElement).naturalWidth)).toBe(2);
-        await expect(viewer.getByRole('button', { name: 'Download', exact: true })).toHaveCount(0);
+        // A protected post cannot be saved; an unprotected post can be saved from its viewer.
+        await expect(viewer.getByRole('button', { name: 'Download', exact: true })).toHaveCount(protectedContent ? 0 : 1);
         await expect(viewer.getByRole('status')).toHaveCount(0);
         if (protectedContent) {
             await expect(viewer.getByText('Protected', { exact: true })).toBeVisible();

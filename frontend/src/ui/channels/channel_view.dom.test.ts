@@ -28,7 +28,7 @@ async function settle(): Promise<void> {
 }
 
 function render(source: ChannelSource, fetchMedia: ChannelMediaFetcher, recentPages?: ChannelPageMemory, fetchTopics?: ChannelTopicFetcher) {
-    const props = { source, fetchMedia, onOpenPost: vi.fn(), onOpenTelegram: vi.fn(), onPostActions: vi.fn(), recentPages, fetchTopics };
+    const props = { source, fetchMedia, onOpenPost: vi.fn(), onOpenTelegram: vi.fn(), onPostActions: vi.fn(), onDownloadPost: vi.fn(), recentPages, fetchTopics };
     host = document.createElement('div');
     document.body.append(host);
     app = mount(ChannelView, { target: host, props });
@@ -232,13 +232,35 @@ describe('ChannelView', () => {
         expect(rowNamed(/^Play Dawn/)).toBeDefined();
     });
 
-    it('marks a source view only and opens its public page, with no download control', async () => {
+    it('opens a source public page and shows no View only badge', async () => {
         const props = render(SOURCE, answering(VIDEO));
         await settle();
-        expect(host?.querySelector('.channel-bar-viewonly')?.textContent).toContain('View only');
+        expect(host?.querySelector('.channel-bar-viewonly')).toBeNull();
+        expect(host?.textContent).not.toContain('View only');
         const telegram = Array.from(host?.querySelectorAll<HTMLButtonElement>('.channel-bar button') ?? []).find((button) => button.textContent?.trim() === 'Open in Telegram');
         telegram?.click();
         expect(props.onOpenTelegram).toHaveBeenCalledWith('https://t.me/fieldrec');
-        expect(host?.textContent?.toLowerCase()).not.toContain('download');
+    });
+
+    it('keeps a source read-only: its only write action is save, with no rename, delete, move or upload', async () => {
+        render(SOURCE, answering(VIDEO));
+        await settle();
+        const labels = Array.from(host?.querySelectorAll<HTMLElement>('button') ?? []).map((button) => button.getAttribute('aria-label') ?? button.title ?? button.textContent ?? '');
+        expect(labels.join('|')).not.toMatch(/rename|delete|move|upload/i);
+    });
+
+    it('offers a save on an allowed post and none on a paid one', async () => {
+        const props = render(SOURCE, answering(VIDEO, PAID));
+        await settle();
+        const saves = host?.querySelectorAll<HTMLButtonElement>('.channel-row-download') ?? [];
+        expect(saves).toHaveLength(1);
+        saves[0].click();
+        expect(props.onDownloadPost).toHaveBeenCalledWith(VIDEO, SOURCE);
+    });
+
+    it('offers no save at all from a protected source', async () => {
+        render({ ...SOURCE, protected: true }, answering(VIDEO));
+        await settle();
+        expect(host?.querySelector('.channel-row-download')).toBeNull();
     });
 });

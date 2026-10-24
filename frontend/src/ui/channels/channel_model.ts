@@ -310,6 +310,17 @@ export function isOpenable(item: ChannelMediaItem): boolean {
     return item.streamable && !item.blockReason && ['video', 'audio', 'image', 'pdf', 'text'].includes(item.kind);
 }
 
+/** Restrictions that stop TDrive saving a post: protected content and paid, restricted or self-destructing media. */
+const DOWNLOAD_BLOCKED_REASONS = new Set(['restricted', 'paid', 'expires']);
+
+/** Whether a source post may be saved to disk. Unsupported formats still download. */
+export function canDownloadChannelPost(item: ChannelMediaItem, source: ChannelSource): boolean {
+    return item.msgId > 0
+        && !source.protected
+        && !item.protected
+        && !DOWNLOAD_BLOCKED_REASONS.has(item.blockReason);
+}
+
 /** Stable identifier for the action; compare this, never the translated label. */
 export function mediaActionKind(item: ChannelMediaItem): 'play' | 'open' {
     return item.kind === 'video' || item.kind === 'audio' ? 'play' : 'open';

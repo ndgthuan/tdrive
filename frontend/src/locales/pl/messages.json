@@ -147,6 +147,7 @@
   "notify_login_failed": "Logowanie nie powiodło się",
   "source_removed": "Usunięto: {title}",
   "source_remove_undo_body": "Nic nie zostało usunięte z Telegrama.",
+  "source_download_saved": "Zapisano w {path}",
   "source_remove_failed": "Nie udało się usunąć: {title}",
   "offline_title": "Brak połączenia",
   "offline_body": "Zapisane pliki są dostępne. Połącz się ponownie, aby synchronizować.",

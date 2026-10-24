@@ -144,6 +144,7 @@
   "notify_login_failed": "Accesso non riuscito",
   "source_removed": "{title} rimosso",
   "source_remove_undo_body": "Nulla è stato rimosso da Telegram.",
+  "source_download_saved": "Salvato in {path}",
   "source_remove_failed": "Impossibile rimuovere {title}",
   "offline_title": "Sei offline",
   "offline_body": "I file salvati sono disponibili. Riconnettiti per sincronizzare.",

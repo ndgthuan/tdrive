@@ -11,6 +11,9 @@ import {
     ResolvePublicChannelSource as rawResolvePublic,
 } from '../../bindings/TDrive/internal/app/driveservice';
 import { OpenChannelMedia as rawOpenChannelMedia } from '../../bindings/TDrive/internal/app/mediaservice';
+import { DownloadChannelSourceMedia as rawDownloadSourceMedia } from '../../bindings/TDrive/internal/app/app';
+import type { DownloadResult } from '../types';
+import { normalizeDownloadResult } from './files';
 import type { MediaItem, MediaPage, SourceInfo } from '../../bindings/TDrive/backend/channelsource/models';
 import { invokeBackend } from './gateway';
 import { normalizeMediaOpenResult, type MediaOpenResult } from './media';
@@ -123,6 +126,23 @@ export const listChannelMedia: ChannelMediaFetcher = async (request) => page(
 
 export async function openChannelMedia(sourceValue: ChannelSource, msgId: number): Promise<MediaOpenResult> {
     return normalizeMediaOpenResult(await invokeBackend(rawOpenChannelMedia, sourceValue.peerKind, sourceValue.peerId, msgId, Number(sourceValue.accountId), sourceValue.generation));
+}
+
+/** Saves one post of a connected source to a path the user chooses. */
+export async function downloadChannelSourceMedia(
+    sourceValue: { peerKind: string; peerId: number; accountId: string; generation: string },
+    msgId: number,
+    requestId: string,
+): Promise<DownloadResult> {
+    return normalizeDownloadResult(await invokeBackend(
+        rawDownloadSourceMedia,
+        sourceValue.peerKind,
+        sourceValue.peerId,
+        msgId,
+        Number(sourceValue.accountId),
+        sourceValue.generation,
+        requestId,
+    ));
 }
 
 export const listChannelSourceTopics: ChannelTopicFetcher = async (request) => {

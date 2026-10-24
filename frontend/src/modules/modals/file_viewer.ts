@@ -32,6 +32,9 @@ let lifecycleObserver: MutationObserver | null = null;
 let activeToken = '';
 let activeTarget: FileViewerTarget | null = null;
 let activeReadOnly = false;
+// A read-only source post may still be saved; the viewer keeps the handler the
+// source supplied rather than an id that only a My Drive file has.
+let activeSourceDownload: (() => void) | null = null;
 let releaseScreenProtection: (() => void) | null = null;
 
 function syncScreenProtection(protectedContent: boolean): void {
@@ -80,7 +83,7 @@ export function teardownFileViewerModal(): void {
 
 
 
-export async function openFileViewer(target: FileViewerTarget, sourceOpener?: () => Promise<MediaOpenResult>): Promise<void> {
+export async function openFileViewer(target: FileViewerTarget, sourceOpener?: () => Promise<MediaOpenResult>, sourceDownload?: () => void): Promise<void> {
     const kind = sourceOpener && target.kind ? target.kind : fileOpenKind(target.name);
     if (!(sourceOpener && target.kind) && !canOpenFileViewer(target.name)) {
         notify({ level: 'warning', title: t('messages.viewer_kind_unavailable', { kind: fileKindLabel(target.name) }) });
@@ -98,6 +101,7 @@ export async function openFileViewer(target: FileViewerTarget, sourceOpener?: ()
     };
     activeTarget = nextTarget;
     activeReadOnly = Boolean(sourceOpener);
+    activeSourceDownload = sourceOpener ? sourceDownload ?? null : null;
     closeFileViewerView();
     await releaseActiveSession();
     if (seq !== openSeq) return;
@@ -113,6 +117,7 @@ export async function openFileViewer(target: FileViewerTarget, sourceOpener?: ()
         loading: true,
         error: '',
         readOnly: Boolean(sourceOpener),
+        downloadable: Boolean(activeSourceDownload) && !nextTarget.protected,
         protected: nextTarget.protected,
     });
 
@@ -157,6 +162,7 @@ export async function openFileViewer(target: FileViewerTarget, sourceOpener?: ()
             loading: false,
             error: '',
             readOnly: Boolean(sourceOpener),
+            downloadable: Boolean(activeSourceDownload) && !activeTarget.protected,
             protected: activeTarget.protected,
         });
     } catch (error) {
@@ -185,11 +191,16 @@ export function closeFileViewer(): void {
     void releaseActiveSession();
     activeTarget = null;
     activeReadOnly = false;
+    activeSourceDownload = null;
     closeFileViewerView();
     syncScreenProtection(false);
 }
 
 export function downloadActiveFile(): void {
-    if (!activeTarget || activeReadOnly || activeTarget.protected) return;
+    if (!activeTarget || activeTarget.protected) return;
+    if (activeReadOnly) {
+        activeSourceDownload?.();
+        return;
+    }
     enqueueDownload(activeTarget.id, activeTarget.name, activeTarget.size);
 }

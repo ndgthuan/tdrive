@@ -138,6 +138,7 @@
     "notify_login_failed": "로그인 실패",
     "source_removed": "{title} 제거됨",
     "source_remove_undo_body": "Telegram에서 아무것도 제거되지 않았습니다.",
+    "source_download_saved": "{path}에 저장됨",
     "source_remove_failed": "{title}을(를) 제거할 수 없습니다",
     "offline_title": "오프라인 상태입니다",
     "offline_body": "저장된 파일은 사용할 수 있습니다. 동기화하려면 다시 연결하세요.",

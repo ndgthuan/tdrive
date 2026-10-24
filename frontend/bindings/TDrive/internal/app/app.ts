@@ -122,6 +122,16 @@ export function DiscardResumableDownload(channelID: number, jobID: string): $Can
 }
 
 /**
+ * DownloadChannelSourceMedia saves one post of a connected source to a path the
+ * user picks. It takes the same single download slot as My Drive downloads, so
+ * CancelDownload stops it too, and it reports progress under the request id the
+ * frontend queued it with.
+ */
+export function DownloadChannelSourceMedia(peerKind: string, peerID: number, msgID: number, expectedAccountID: number, expectedGeneration: string, requestID: string): $CancellablePromise<$models.DownloadResult> {
+    return $Call.ByID(2234827378, peerKind, peerID, msgID, expectedAccountID, expectedGeneration, requestID);
+}
+
+/**
  * DownloadFile downloads from the explicitly selected drive. The channel is an
  * argument rather than a late ActiveChannelID lookup because a queued frontend
  * transfer may begin after the user has switched drives.

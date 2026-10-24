@@ -138,6 +138,7 @@
   "notify_login_failed": "Gagal masuk",
   "source_removed": "{title} dihapus",
   "source_remove_undo_body": "Tidak ada yang dihapus dari Telegram.",
+  "source_download_saved": "Disimpan ke {path}",
   "source_remove_failed": "Tidak dapat menghapus {title}",
   "offline_title": "Anda sedang offline",
   "offline_body": "File yang disimpan tetap tersedia. Hubungkan kembali untuk menyinkronkan.",

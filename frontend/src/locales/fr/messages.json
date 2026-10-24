@@ -144,6 +144,7 @@
   "notify_login_failed": "Échec de la connexion",
   "source_removed": "{title} retiré",
   "source_remove_undo_body": "Rien n’a été supprimé de Telegram.",
+  "source_download_saved": "Enregistré dans {path}",
   "source_remove_failed": "Impossible de retirer {title}",
   "offline_title": "Vous êtes hors connexion",
   "offline_body": "Les fichiers enregistrés sont disponibles. Reconnectez-vous pour synchroniser.",
