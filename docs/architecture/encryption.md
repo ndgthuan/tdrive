@@ -80,7 +80,7 @@ the frontend bindings or runtime events.
 
 | Platform | Protected storage and authentication |
 | --- | --- |
-| Android 6+ | AES-256-GCM wrapping with a non-exportable Android Keystore key requiring strong biometric authentication for each wrapping/unwrapping operation through `BiometricPrompt.CryptoObject`. Native enrollment ciphertext lives in `noBackupFilesDir`; it is excluded from backup and device transfer. |
+| Android 7+ | AES-256-GCM wrapping with a non-exportable Android Keystore key requiring strong biometric authentication for each wrapping/unwrapping operation through `BiometricPrompt.CryptoObject`. Native enrollment ciphertext lives in `noBackupFilesDir`; it is excluded from backup and device transfer. |
 | macOS and iOS | Device-only, non-synchronizing data protection Keychain items restricted with `biometryCurrentSet`. Touch ID/Face ID authorizes item access; changes to enrolled biometrics invalidate access. macOS requires provisioned Keychain signing entitlements; ad-hoc builds report unavailable. |
 | Windows | A dedicated Windows Hello RSA-2048 credential signs a domain-separated, random enrollment challenge after a fresh native user gesture. The private, deterministic RSA/SHA256/PKCS1v1.5 signature is verified, used as HKDF input for AES-256-GCM wrapping, then cleared. Only challenge, salt, nonce and ciphertext are persisted locally. Windows Hello can offer its OS PIN; hardware backing follows OS policy. |
 | Other platforms or unavailable native support | Password unlock remains available; native enrollment fails closed. |
