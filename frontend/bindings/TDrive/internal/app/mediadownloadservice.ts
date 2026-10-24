@@ -16,6 +16,10 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 // @ts-ignore: Unused imports
 import * as mediadl$0 from "../../backend/mediadl/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * Cancel stops a running download and removes its temp files.
  */
@@ -24,11 +28,28 @@ export function Cancel(job_id: string): $CancellablePromise<void> {
 }
 
 /**
+ * CreateDestinationFolder creates a folder under parent_id in drive_id through
+ * the folder service the file list's New folder action also uses.
+ */
+export function CreateDestinationFolder(drive_id: number, parent_id: string, name: string): $CancellablePromise<$models.DestinationFolder> {
+    return $Call.ByID(3067713782, drive_id, parent_id, name);
+}
+
+/**
  * InstallTool downloads yt-dlp or ffmpeg from its release page into the
  * app-managed bin folder after verifying the published SHA-256.
  */
 export function InstallTool(tool: string): $CancellablePromise<void> {
     return $Call.ByID(845901583, tool);
+}
+
+/**
+ * ListDestinationFolders lists the subfolders of parent_id in drive_id, an empty
+ * parent_id meaning the drive's root. The drive need not be the active one, so
+ * the picker can browse every drive the user has joined.
+ */
+export function ListDestinationFolders(drive_id: number, parent_id: string): $CancellablePromise<$models.DestinationListing> {
+    return $Call.ByID(2586074863, drive_id, parent_id);
 }
 
 /**
@@ -54,9 +75,10 @@ export function SetToolPath(tool: string, path: string): $CancellablePromise<voi
 }
 
 /**
- * Start begins a download into the drive's Downloads folder, or into
- * target_folder_id when given. The drive is captured here, so a later drive
- * switch cannot redirect the job. drive_id, when set, must match that drive.
+ * Start begins a download into the drive and folder the request names. DriveID 0
+ * is the active drive, and an empty TargetFolderID is that drive's root. The
+ * destination is checked before the job exists, so a refused start leaves nothing
+ * behind.
  */
 export function Start(request: mediadl$0.StartRequest): $CancellablePromise<string> {
     return $Call.ByID(1549700838, request);

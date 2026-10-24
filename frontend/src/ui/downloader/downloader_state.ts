@@ -15,7 +15,18 @@ export interface download_row {
     error: string;
     file_name: string;
     folder_id: string;
+    /** The drive the job writes to, 0 when unknown. */
+    drive_id: number;
+    /** The chosen folder's name. Empty for a job loaded from an earlier session, which does not keep it. */
+    folder_name: string;
     started_at: number;
+}
+
+/** Where a download was sent, as the dialog chose it. An empty folder_id is the drive root. */
+export interface download_target {
+    drive_id: number;
+    folder_id: string;
+    folder_name: string;
 }
 
 /** Whether the download dialog is shown. The header button and the dialog both read it. */
@@ -45,6 +56,8 @@ function row_from_view(view: JobView): download_row {
         error: view.error ?? '',
         file_name: view.file_name ?? '',
         folder_id: view.folder_id ?? '',
+        drive_id: view.drive_id ?? 0,
+        folder_name: '',
         started_at: view.started_at,
     };
 }
@@ -74,6 +87,8 @@ export function apply_progress_rows(rows: download_row[], event: media_progress_
             error: event.error ?? '',
             file_name: event.file_name ?? '',
             folder_id: event.folder_id ?? '',
+            drive_id: event.drive_id ?? 0,
+            folder_name: '',
             started_at: Date.now(),
         };
         return [created, ...rows];
@@ -90,6 +105,7 @@ export function apply_progress_rows(rows: download_row[], event: media_progress_
         error: event.error ?? current.error,
         file_name: event.file_name || current.file_name,
         folder_id: event.folder_id || current.folder_id,
+        drive_id: event.drive_id || current.drive_id,
     };
     const copy = rows.slice();
     copy[index] = next;
@@ -113,8 +129,14 @@ export function is_stage_regression(current: string, next: string): boolean {
     return next_rank < current_rank;
 }
 
-/** Records the url and quality the dialog sent, once Start has returned the job id. */
-export function attach_request(rows: download_row[], job_id: string, url: string, choice: string): download_row[] {
+/** Records the url, quality and destination the dialog sent, once Start has returned the job id. */
+export function attach_request(
+    rows: download_row[],
+    job_id: string,
+    url: string,
+    choice: string,
+    target: download_target,
+): download_row[] {
     const index = rows.findIndex((row) => row.job_id === job_id);
     if (index < 0) {
         const created: download_row = {
@@ -128,12 +150,20 @@ export function attach_request(rows: download_row[], job_id: string, url: string
             eta: -1,
             error: '',
             file_name: '',
-            folder_id: '',
+            folder_id: target.folder_id,
+            drive_id: target.drive_id,
+            folder_name: target.folder_name,
             started_at: Date.now(),
         };
         return [created, ...rows];
     }
     const copy = rows.slice();
-    copy[index] = { ...copy[index], url, choice };
+    copy[index] = {
+        ...copy[index],
+        url,
+        choice,
+        drive_id: target.drive_id,
+        folder_name: target.folder_name,
+    };
     return copy;
 }

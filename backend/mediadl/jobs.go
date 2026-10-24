@@ -45,6 +45,7 @@ type Event struct {
 	Error    string  `json:"error,omitempty"`
 	FileName string  `json:"file_name,omitempty"`
 	FolderID string  `json:"folder_id,omitempty"`
+	DriveID  int64   `json:"drive_id"`
 }
 
 // JobView is a snapshot of one job for ListJobs.
@@ -60,11 +61,13 @@ type JobView struct {
 	Error     string  `json:"error,omitempty"`
 	FileName  string  `json:"file_name,omitempty"`
 	FolderID  string  `json:"folder_id,omitempty"`
+	DriveID   int64   `json:"drive_id"`
 	StartedAt int64   `json:"started_at"`
 }
 
-// StartRequest is the payload of the Start call. DriveID, when set, must match
-// the drive that is active when the call arrives.
+// StartRequest is the payload of the Start call. DriveID is the drive the
+// download is saved to, and TargetFolderID the folder in that drive. An empty
+// TargetFolderID means the drive's root; DriveID 0 means the active drive.
 type StartRequest struct {
 	URL              string `json:"url"`
 	PresetOrFormatID string `json:"preset_or_format_id"`
@@ -75,10 +78,11 @@ type StartRequest struct {
 // Destination is the upload side. The app supplies the implementation so the
 // download code never talks to Telegram or the folder service directly.
 type Destination interface {
-	// ResolveFolder returns the folder to upload into. An empty folder_id means
-	// the default "Downloads" folder in the drive's root, created when missing.
-	ResolveFolder(ctx context.Context, channel_id int64, folder_id string) (string, error)
-	// UploadFile uploads one local file into folder_id on the drive.
+	// CheckTarget reports whether uploads may go to folder_id in the drive, before
+	// any download starts. An empty folder_id is the drive's root.
+	CheckTarget(ctx context.Context, channel_id int64, folder_id string) error
+	// UploadFile uploads one local file into folder_id on the drive. An empty
+	// folder_id is the drive's root.
 	UploadFile(ctx context.Context, channel_id int64, file_path string, folder_id string) error
 }
 
@@ -174,6 +178,9 @@ func (m *Manager) Start(base context.Context, channel_id int64, request StartReq
 	if channel_id == 0 {
 		return "", errors.New("no drive is selected")
 	}
+	if err := m.dest.CheckTarget(base, channel_id, request.TargetFolderID); err != nil {
+		return "", err
+	}
 	ytdlp, err := m.tools.Locate(TOOL_YTDLP)
 	if err != nil {
 		return "", errors.New("yt-dlp is not installed")
@@ -208,6 +215,7 @@ func (m *Manager) Start(base context.Context, channel_id int64, request StartReq
 			Choice:    request.PresetOrFormatID,
 			Stage:     STAGE_DOWNLOADING,
 			ETA:       -1,
+			DriveID:   channel_id,
 			StartedAt: time.Now().UnixMilli(),
 		},
 		channel_id: channel_id,
@@ -319,13 +327,10 @@ func (m *Manager) run(ctx context.Context, j *job, ytdlp string, args []string) 
 	if !m.transition(j, STAGE_UPLOADING, nil) {
 		return
 	}
-	folder, err := m.dest.ResolveFolder(ctx, j.channel_id, j.folder_id)
-	if err == nil {
-		m.mu.Lock()
-		j.view.FolderID = folder
-		m.mu.Unlock()
-		err = m.dest.UploadFile(ctx, j.channel_id, output, folder)
-	}
+	m.mu.Lock()
+	j.view.FolderID = j.folder_id
+	m.mu.Unlock()
+	err = m.dest.UploadFile(ctx, j.channel_id, output, j.folder_id)
 	if ctx.Err() != nil {
 		m.finish(j, STAGE_CANCELLED, "", "")
 		return
@@ -444,6 +449,7 @@ func event_of(view JobView) Event {
 		Error:    view.Error,
 		FileName: view.FileName,
 		FolderID: view.FolderID,
+		DriveID:  view.DriveID,
 	}
 }
 

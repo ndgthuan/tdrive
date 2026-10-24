@@ -16,6 +16,7 @@ export interface JobView {
     "error"?: string;
     "file_name"?: string;
     "folder_id"?: string;
+    "drive_id": number;
     "started_at": number;
 }
 
@@ -55,8 +56,9 @@ export interface ProbeResult {
 }
 
 /**
- * StartRequest is the payload of the Start call. DriveID, when set, must match
- * the drive that is active when the call arrives.
+ * StartRequest is the payload of the Start call. DriveID is the drive the
+ * download is saved to, and TargetFolderID the folder in that drive. An empty
+ * TargetFolderID means the drive's root; DriveID 0 means the active drive.
  */
 export interface StartRequest {
     "url": string;

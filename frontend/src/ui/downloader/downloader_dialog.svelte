@@ -2,7 +2,6 @@
     import ArrowsClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
     import CheckCircleIcon from 'phosphor-svelte/lib/CheckCircleIcon';
     import ClipboardTextIcon from 'phosphor-svelte/lib/ClipboardTextIcon';
-    import FolderSimpleIcon from 'phosphor-svelte/lib/FolderSimpleIcon';
     import WarningCircleIcon from 'phosphor-svelte/lib/WarningCircleIcon';
     import XCircleIcon from 'phosphor-svelte/lib/XCircleIcon';
     import { onDestroy, onMount } from 'svelte';
@@ -17,6 +16,7 @@
         subscribe_media_progress,
         subscribe_media_setup,
         update_ytdlp,
+        type media_progress_event,
         type media_setup_event,
         type ProbeFormat,
         type ProbeResult,
@@ -27,6 +27,14 @@
     import { navigateToFolder, navigateToIndex } from '../../modules/navigation';
     import ModalShell from '../modals/modal_shell.svelte';
     import ProgressBar from '../progress_bar.svelte';
+    import { sidebarState } from '../sidebar/sidebar_store';
+    import DestinationPicker from './destination_picker.svelte';
+    import {
+        destination_at_root,
+        read_saved_destination,
+        starting_destination,
+        type DownloadDestination,
+    } from './downloader_destination';
     import {
         clamp_percent,
         describe_format,
@@ -62,10 +70,6 @@
         { value: 'audio_m4a', label_key: 'downloader.preset_audio_m4a', audio: true },
     ];
 
-    // The folder every finished download lands in. The backend creates it in the
-    // drive's root when it is missing, under this exact name.
-    const DOWNLOAD_FOLDER_NAME = 'Downloads';
-
     let tool_status = $state<Status | null>(null);
     let status_error = $state('');
     let setup_busy = $state('');
@@ -75,6 +79,8 @@
     let update_message = $state('');
     let custom_path = $state('');
     let path_error = $state('');
+    // Where the next download is saved. The picker edits it; it starts at My Drive's root.
+    let destination = $state<DownloadDestination>(destination_at_root(0));
 
     let url = $state('');
     let url_error = $state('');
@@ -94,6 +100,7 @@
     const formats = $derived(probe?.formats ?? []);
     const chosen_format = $derived(formats.find((format) => format.choice === choice) ?? null);
     const start_disabled = $derived(starting || !yt_dlp_ready || !is_valid_link(url) || !choice);
+    const active_drive_id = $derived($sidebarState.activeChannelId ?? 0);
 
     function message_of(cause: unknown, fallback: string): string {
         if (cause instanceof Error && cause.message) return cause.message;
@@ -128,6 +135,7 @@
         probe = null;
         probe_for = '';
         choice = 'best';
+        destination = starting_destination(read_saved_destination(), $sidebarState);
     }
 
     let was_open = false;
@@ -141,7 +149,7 @@
         was_open = open;
     });
 
-    function on_progress(event: { job_id: string; stage: string; percent: number; speed: number; eta: number; title: string; error?: string; file_name?: string; folder_id?: string }): void {
+    function on_progress(event: media_progress_event): void {
         download_rows.update((rows) => apply_progress_rows(rows, event));
         // A finished file is already in the drive; refresh the list so it shows.
         if (event.stage === 'done') refreshFiles({ background: true });
@@ -213,13 +221,18 @@
         start_error = '';
         starting = true;
         try {
+            const target = {
+                drive_id: destination.drive_id,
+                folder_id: destination.folder_id,
+                folder_name: destination.path[destination.path.length - 1]?.name ?? '',
+            };
             const job_id = await start_download({
                 url: link,
                 preset_or_format_id: choice,
-                target_folder_id: '',
-                drive_id: 0,
+                target_folder_id: target.folder_id,
+                drive_id: target.drive_id,
             });
-            download_rows.update((rows) => attach_request(rows, job_id, link, choice));
+            download_rows.update((rows) => attach_request(rows, job_id, link, choice, target));
         } catch (cause) {
             start_error = message_of(cause, $t_store('downloader.error_generic'));
         } finally {
@@ -236,10 +249,17 @@
         }
     }
 
+    // The file list only shows the active drive. A job saved to another drive, or
+    // to a folder whose name this session did not keep, has nothing to open.
+    function can_show_in_drive(row: download_row): boolean {
+        if (row.stage !== 'done' || row.drive_id !== active_drive_id) return false;
+        return row.folder_id === '' || row.folder_name !== '';
+    }
+
     function show_in_drive(row: download_row): void {
-        if (!row.folder_id) return;
+        if (!can_show_in_drive(row)) return;
         navigateToIndex(0);
-        navigateToFolder(row.folder_id, DOWNLOAD_FOLDER_NAME);
+        if (row.folder_id) navigateToFolder(row.folder_id, row.folder_name);
         close();
     }
 
@@ -470,7 +490,7 @@
 
             <section class="downloader-field">
                 <label class="field-label" for="downloader-quality">{$t_store('downloader.quality_label')}</label>
-                <select id="downloader-quality" bind:value={choice} disabled={starting}>
+                <select id="downloader-quality" class="select-field" bind:value={choice} disabled={starting}>
                     <optgroup label={$t_store('downloader.group_presets')}>
                         {#each PRESET_OPTIONS as preset (preset.value)}
                             <option value={preset.value}>{$t_store(preset.label_key)}</option>
@@ -500,11 +520,7 @@
             </section>
 
             <div class="downloader-submit">
-                <div class="downloader-destination" aria-label={$t_store('downloader.destination_label')}>
-                    <FolderSimpleIcon size={16} aria-hidden="true" />
-                    <span class="downloader-muted">{$t_store('downloader.destination_label')}</span>
-                    <span class="downloader-chip">{DOWNLOAD_FOLDER_NAME}</span>
-                </div>
+                <DestinationPicker bind:destination disabled={starting} />
                 <button class="primary-btn" type="button" disabled={start_disabled} onclick={submit_download}>
                     {starting ? $t_store('downloader.starting') : $t_store('downloader.download')}
                 </button>
@@ -545,7 +561,7 @@
                                     </div>
                                     <div class="downloader-job-actions">
                                         {#if row.stage === 'done'}
-                                            {#if row.folder_id}
+                                            {#if can_show_in_drive(row)}
                                                 <button class="secondary-btn" type="button" onclick={() => show_in_drive(row)}>
                                                     {$t_store('downloader.show_in_drive')}
                                                 </button>
@@ -596,19 +612,6 @@
         display: grid;
         gap: 18px;
         min-width: 0;
-    }
-
-    /* Matches the dialog inputs: same height, canvas fill and border tokens. */
-    .downloader-body select {
-        width: 100%;
-        height: var(--control-md);
-        margin: 0;
-        padding: 0 var(--space-3);
-        background: var(--color-canvas);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-        color: var(--color-text);
-        font-size: var(--type-base);
     }
 
     .downloader-section-title {
@@ -663,7 +666,6 @@
     .downloader-tool-head,
     .downloader-inline,
     .downloader-submit,
-    .downloader-destination,
     .downloader-job-head,
     .downloader-job-actions {
         display: flex;
@@ -731,16 +733,14 @@
         justify-content: space-between;
     }
 
-    .downloader-destination {
-        color: var(--text-muted);
-        font-size: 12px;
-    }
-
-    .downloader-chip {
-        padding: 3px 10px;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        color: var(--text-main);
+    /* The disabled submit reads as off, not broken: the accent muted, no hover. */
+    .downloader-submit .primary-btn:disabled {
+        opacity: 1;
+        background: rgb(127 156 196 / 0.3);
+        color: rgb(255 255 255 / 0.55);
+        border-color: transparent;
+        cursor: not-allowed;
+        transform: none;
     }
 
     .downloader-jobs {
@@ -793,22 +793,32 @@
         gap: 8px;
     }
 
+    /* A quiet ghost button: muted text, no underline, the accent only on hover. */
     .downloader-link-btn {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 0;
+        min-height: 26px;
+        padding: 0 8px;
+        margin-left: -8px;
         border: 0;
+        border-radius: var(--radius-sm);
         background: none;
-        color: var(--color-accent);
+        color: var(--text-muted);
         font: inherit;
+        font-size: 12px;
         cursor: pointer;
-        text-decoration: underline;
+        text-decoration: none;
+        transition: color var(--motion-fast) var(--ease-standard);
+    }
+
+    .downloader-link-btn:hover:not(:disabled) {
+        color: var(--color-accent);
     }
 
     .downloader-link-btn:disabled {
-        opacity: 0.5;
-        cursor: default;
+        opacity: 0.45;
+        cursor: not-allowed;
     }
 
     @media (max-width: 560px) {

@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"errors"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,8 +19,6 @@ import (
 const (
 	MEDIA_DL_PROGRESS_EVENT = "media_dl:progress"
 	MEDIA_DL_SETUP_EVENT    = "media_dl:setup"
-	// MEDIA_DL_DEFAULT_FOLDER is the My Drive folder finished downloads land in.
-	MEDIA_DL_DEFAULT_FOLDER = "Downloads"
 	media_dl_update_timeout = 5 * time.Minute
 )
 
@@ -85,9 +85,10 @@ func (s *MediaDownloadService) Probe(ctx context.Context, url string) (mediadl.P
 	return s.jobs.Probe(ctx, url)
 }
 
-// Start begins a download into the drive's Downloads folder, or into
-// target_folder_id when given. The drive is captured here, so a later drive
-// switch cannot redirect the job. drive_id, when set, must match that drive.
+// Start begins a download into the drive and folder the request names. DriveID 0
+// is the active drive, and an empty TargetFolderID is that drive's root. The
+// destination is checked before the job exists, so a refused start leaves nothing
+// behind.
 func (s *MediaDownloadService) Start(ctx context.Context, request mediadl.StartRequest) (string, error) {
 	if err := s.ready(); err != nil {
 		return "", err
@@ -95,14 +96,79 @@ func (s *MediaDownloadService) Start(ctx context.Context, request mediadl.StartR
 	if err := s.host.WaitForBackendReady(ctx); err != nil {
 		return "", err
 	}
-	channel_id := s.host.activeChannelID()
+	channel_id := request.DriveID
+	if channel_id == 0 {
+		channel_id = s.host.activeChannelID()
+	}
 	if channel_id == 0 {
 		return "", errBackendUnavailable
 	}
-	if request.DriveID != 0 && request.DriveID != channel_id {
-		return "", errors.New("the active drive changed; reopen the download dialog")
-	}
 	return s.jobs.Start(s.host.appContext(), channel_id, request)
+}
+
+// DestinationFolder is one folder offered by the download destination picker.
+type DestinationFolder struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// DestinationListing holds the subfolders of one folder, sorted by name.
+type DestinationListing struct {
+	Folders []DestinationFolder `json:"folders"`
+}
+
+// ListDestinationFolders lists the subfolders of parent_id in drive_id, an empty
+// parent_id meaning the drive's root. The drive need not be the active one, so
+// the picker can browse every drive the user has joined.
+func (s *MediaDownloadService) ListDestinationFolders(ctx context.Context, drive_id int64, parent_id string) (DestinationListing, error) {
+	if err := s.host.WaitForBackendReady(ctx); err != nil {
+		return DestinationListing{}, err
+	}
+	dest := media_destination{host: s.host}
+	reads, err := dest.reads(drive_id)
+	if err != nil {
+		return DestinationListing{}, err
+	}
+	if err := dest.require_folder(reads, drive_id, parent_id); err != nil {
+		return DestinationListing{}, err
+	}
+	listing, err := reads.FolderContentsContext(ctx, drive_id, parent_id)
+	if err != nil {
+		return DestinationListing{}, err
+	}
+	folders := make([]DestinationFolder, 0, len(listing.Folders))
+	for _, folder := range listing.Folders {
+		folders = append(folders, DestinationFolder{ID: folder.ID, Name: folder.Name})
+	}
+	sort.SliceStable(folders, func(i, k int) bool {
+		return strings.ToLower(folders[i].Name) < strings.ToLower(folders[k].Name)
+	})
+	return DestinationListing{Folders: folders}, nil
+}
+
+// CreateDestinationFolder creates a folder under parent_id in drive_id through
+// the folder service the file list's New folder action also uses.
+func (s *MediaDownloadService) CreateDestinationFolder(ctx context.Context, drive_id int64, parent_id string, name string) (DestinationFolder, error) {
+	if err := s.host.WaitForBackendReady(ctx); err != nil {
+		return DestinationFolder{}, err
+	}
+	dest := media_destination{host: s.host}
+	reads, err := dest.reads(drive_id)
+	if err != nil {
+		return DestinationFolder{}, err
+	}
+	if err := dest.require_folder(reads, drive_id, parent_id); err != nil {
+		return DestinationFolder{}, err
+	}
+	folders := s.host.coreEngine().FolderService()
+	if folders == nil {
+		return DestinationFolder{}, errBackendUnavailable
+	}
+	created, err := folders.CreateContext(ctx, drive_id, name, parent_id)
+	if err != nil {
+		return DestinationFolder{}, err
+	}
+	return DestinationFolder{ID: created.ID, Name: created.Name}, nil
 }
 
 // Cancel stops a running download and removes its temp files.
@@ -164,60 +230,62 @@ func (s *MediaDownloadService) SetToolPath(tool string, path string) error {
 	return s.tools.SetOverride(tool, path)
 }
 
-// media_destination adapts the drive services to the downloader's upload port.
-// It adds no write path of its own: uploads go through the same file service
-// as every other upload, and the folder is created through the folder service.
+// media_destination adapts the drive services to the downloader's destination
+// port. It adds no write path of its own: uploads go through the same file
+// service as every other upload, and folders through the folder service.
 type media_destination struct {
 	host serviceHost
 }
 
-// ResolveFolder returns folder_id when one was given. Otherwise it finds or
-// creates the Downloads folder in the drive's root.
-func (d media_destination) ResolveFolder(ctx context.Context, channel_id int64, folder_id string) (string, error) {
-	if folder_id != "" {
-		return folder_id, nil
-	}
-	engine := d.host.coreEngine()
-	if engine == nil {
-		return "", errBackendUnavailable
-	}
-	reads, err := engineReadService(engine)
+// reads returns the read service after checking that drive_id is a drive the
+// user has joined. A drive the user has left has no channel row.
+func (d media_destination) reads(drive_id int64) (*readservice.Service, error) {
+	reads, err := engineReadService(d.host.coreEngine())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	folders := engine.FolderService()
-	if folders == nil {
-		return "", errBackendUnavailable
+	if _, err := projection.GetChannel(reads.DB, drive_id); err != nil {
+		return nil, errors.New("that drive is not available; reopen the download dialog")
 	}
-	if id, found, err := find_root_folder(ctx, reads, channel_id, MEDIA_DL_DEFAULT_FOLDER); err != nil || found {
-		return id, err
-	}
-	created, err := folders.CreateContext(ctx, channel_id, MEDIA_DL_DEFAULT_FOLDER, projection.RootParent)
-	if err != nil {
-		// A concurrent download may have created it first; look once more.
-		if id, found, lookup_err := find_root_folder(ctx, reads, channel_id, MEDIA_DL_DEFAULT_FOLDER); lookup_err == nil && found {
-			return id, nil
-		}
-		return "", err
-	}
-	return created.ID, nil
+	return reads, nil
 }
 
-// find_root_folder looks for a folder named name directly under the drive root.
-func find_root_folder(ctx context.Context, reads *readservice.Service, channel_id int64, name string) (string, bool, error) {
-	listing, err := reads.FolderContentsContext(ctx, channel_id, projection.RootParent)
-	if err != nil {
-		return "", false, err
+// require_folder accepts the drive root, or a folder that still exists in the drive.
+func (d media_destination) require_folder(reads *readservice.Service, drive_id int64, folder_id string) error {
+	if folder_id == "" {
+		return nil
 	}
-	for _, folder := range listing.Folders {
-		if folder.Name == name {
-			return folder.ID, true, nil
-		}
+	if !projection.IsFolderID(folder_id) || !projection.FolderExists(reads.DB, drive_id, folder_id) {
+		return errors.New("that folder no longer exists; choose another folder")
 	}
-	return "", false, nil
+	return nil
 }
 
-// UploadFile sends one finished file through the normal upload path.
+// CheckTarget runs before a download starts. It requires a joined drive, an
+// existing folder, and the same peer resolution every upload performs first.
+// That resolution is the membership gate the upload path relies on; the upload
+// path has no separate role check to reuse.
+func (d media_destination) CheckTarget(ctx context.Context, channel_id int64, folder_id string) error {
+	reads, err := d.reads(channel_id)
+	if err != nil {
+		return err
+	}
+	if err := d.require_folder(reads, channel_id, folder_id); err != nil {
+		return err
+	}
+	files, err := engineFileService(d.host.coreEngine())
+	if err != nil {
+		return err
+	}
+	if files.Peers == nil {
+		return errBackendUnavailable
+	}
+	_, err = files.Peers.ResolvePeer(ctx, channel_id)
+	return err
+}
+
+// UploadFile sends one finished file through the normal upload path. An empty
+// folder_id uploads to the drive's root.
 func (d media_destination) UploadFile(ctx context.Context, channel_id int64, file_path string, folder_id string) error {
 	svc, err := engineFileService(d.host.coreEngine())
 	if err != nil {

@@ -3,7 +3,9 @@
 import { Events } from '@wailsio/runtime';
 import {
     Cancel as rawCancel,
+    CreateDestinationFolder as rawCreateDestinationFolder,
     InstallTool as rawInstallTool,
+    ListDestinationFolders as rawListDestinationFolders,
     ListJobs as rawListJobs,
     Probe as rawProbe,
     SetToolPath as rawSetToolPath,
@@ -17,9 +19,11 @@ import type {
     StartRequest,
     Status,
 } from '../../bindings/TDrive/backend/mediadl/models';
+import type { DestinationFolder, DestinationListing } from '../../bindings/TDrive/internal/app/models';
 import { invokeBackend, noopRuntimeUnsubscribe, type RuntimeUnsubscribe } from './gateway';
 
 export type { JobView, ProbeResult, ProbeFormat, Preset, StartRequest, Status, ToolStatus } from '../../bindings/TDrive/backend/mediadl/models';
+export type { DestinationFolder, DestinationListing } from '../../bindings/TDrive/internal/app/models';
 
 export const MEDIA_DL_PROGRESS_EVENT = 'media_dl:progress';
 export const MEDIA_DL_SETUP_EVENT = 'media_dl:setup';
@@ -35,6 +39,7 @@ export interface media_progress_event {
     error?: string;
     file_name?: string;
     folder_id?: string;
+    drive_id?: number;
 }
 
 /** One install step. Mirrors MediaSetupEvent. */
@@ -58,6 +63,16 @@ export function probe_link(url: string): Promise<ProbeResult> {
 /** Starts a download to the drive. Returns the job id. */
 export function start_download(request: StartRequest): Promise<string> {
     return invokeBackend(rawStart, request);
+}
+
+/** Subfolders of one folder in a drive. An empty parent_id is the drive's root. */
+export function list_destination_folders(drive_id: number, parent_id: string): Promise<DestinationListing> {
+    return invokeBackend(rawListDestinationFolders, drive_id, parent_id);
+}
+
+/** Creates a folder under parent_id in the drive and returns it. */
+export function create_destination_folder(drive_id: number, parent_id: string, name: string): Promise<DestinationFolder> {
+    return invokeBackend(rawCreateDestinationFolder, drive_id, parent_id, name);
 }
 
 /** Cancels a running job. */
