@@ -7,6 +7,7 @@ import {
     ListChannelSourceTopics as rawListTopics,
     ListChannelSourceCandidates as rawListCandidates,
     ListConnectedChannelSources as rawListConnected,
+    ChannelSourceMediaThumbnail as rawThumbnail,
     ResolvePublicChannelSource as rawResolvePublic,
 } from '../../bindings/TDrive/internal/app/driveservice';
 import { OpenChannelMedia as rawOpenChannelMedia } from '../../bindings/TDrive/internal/app/mediaservice';
@@ -106,6 +107,12 @@ export async function disconnectChannelSource(sourceValue: ChannelSource): Promi
 export async function loadChannelSourcePhoto(sourceValue: ChannelSource): Promise<string> {
     const photo = String(await invokeBackend(rawPhoto, sourceValue.peerKind, sourceValue.peerId, Number(sourceValue.accountId), sourceValue.generation) ?? '');
     return photo ? `data:image/jpeg;base64,${photo}` : '';
+}
+
+/** A photo or video post's small preview as a data URL, or '' when Telegram offers none. */
+export async function load_channel_media_thumbnail(sourceValue: ChannelSource, msgId: number): Promise<string> {
+    const thumb = String(await invokeBackend(rawThumbnail, sourceValue.peerKind, sourceValue.peerId, msgId, Number(sourceValue.accountId), sourceValue.generation) ?? '');
+    return thumb ? `data:image/jpeg;base64,${thumb}` : '';
 }
 
 export const listChannelMedia: ChannelMediaFetcher = async (request) => page(

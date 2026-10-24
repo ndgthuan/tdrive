@@ -82,6 +82,20 @@ func (s *DriveService) ChannelSourcePhoto(peerKind string, peerID, expectedAccou
 	return base64.StdEncoding.EncodeToString(photo), nil
 }
 
+// ChannelSourceMediaThumbnail returns a photo or video post's small preview as
+// base64 JPEG, or "" when Telegram offers none for it.
+func (s *DriveService) ChannelSourceMediaThumbnail(peerKind string, peerID, msgID, expectedAccountID int64, expectedGeneration string) (string, error) {
+	sources, err := s.sourceService()
+	if err != nil {
+		return "", err
+	}
+	thumb, err := sources.SourceThumbnail(s.host.appContext(), peerKind, peerID, msgID, expectedAccountID, expectedGeneration)
+	if err != nil || len(thumb) == 0 {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(thumb), nil
+}
+
 func (s *DriveService) ListChannelMedia(peerKind string, peerID, offsetID int64, limit int, search, kind string, expectedAccountID int64, expectedGeneration string) (channelsource.MediaPage, error) {
 	if expectedAccountID <= 0 || expectedGeneration == "" {
 		return channelsource.MediaPage{}, channelsource.ErrInvalidPage

@@ -11,13 +11,13 @@
  */
 
 import ArchiveIcon from 'phosphor-svelte/lib/ArchiveIcon';
+import FilmSlateIcon from 'phosphor-svelte/lib/FilmSlateIcon';
 import CodeIcon from 'phosphor-svelte/lib/CodeIcon';
 import FileIcon from 'phosphor-svelte/lib/FileIcon';
 import ImageIcon from 'phosphor-svelte/lib/ImageIcon';
 import MusicIcon from 'phosphor-svelte/lib/MusicNoteIcon';
 import TableIcon from 'phosphor-svelte/lib/TableIcon';
 import TextLinesIcon from 'phosphor-svelte/lib/TextAlignLeftIcon';
-import VideoIcon from 'phosphor-svelte/lib/VideoCameraIcon';
 
 export type FileTypeFamily =
     | 'document'
@@ -65,7 +65,7 @@ const FAMILY_BY_EXTENSION: ReadonlyMap<string, FileTypeFamily> = new Map(
 const ICONS: Readonly<Record<FileTypeFamily, typeof FileIcon>> = {
     document: TextLinesIcon,
     image: ImageIcon,
-    video: VideoIcon,
+    video: FilmSlateIcon,
     audio: MusicIcon,
     sheet: TableIcon,
     code: CodeIcon,

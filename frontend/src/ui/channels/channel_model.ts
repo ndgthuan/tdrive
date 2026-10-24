@@ -279,6 +279,15 @@ export function mediaMeta(item: ChannelMediaItem, nowMs = Date.now()): string {
     ].filter(Boolean).join(' · ');
 }
 
+/** The figures a list row shows in its own columns, each '' when unknown. */
+export function media_columns(item: ChannelMediaItem, nowMs = Date.now()): { kind: string; size: string; date: string } {
+    return {
+        kind: mediaKindLabel(item),
+        size: item.size > 0 ? formatBytes(item.size) : '',
+        date: relativeTimeLabel(item.date, nowMs),
+    };
+}
+
 const RESTRICTION_KEYS: Readonly<Record<string, string>> = {
     protected: 'sources.restriction_protected',
     paid: 'sources.restriction_paid',

@@ -16,6 +16,10 @@
     import ChannelTopicPicker from './channel_topic_picker.svelte';
     import { mergeTopicMetadata, type ChannelTopic, type ChannelTopicFetcher } from './channel_topics';
     import ChannelSortMenu from './channel_sort_menu.svelte';
+    import ChannelViewToggle from './channel_view_toggle.svelte';
+    import { load_source_view_mode, save_source_view_mode, type SourceViewMode } from './channel_view_mode';
+    import { thumbnail_key, wants_thumbnail, watch_thumbnail } from './channel_thumbnails';
+    import { SvelteMap } from 'svelte/reactivity';
     import { fileTypeFamily, fileTypeIcon, type FileTypeFamily } from '../file_list/file_type';
     import { pushSheet } from '../modals/sheet_stack';
     import { toAppError } from '../../modules/errors';
@@ -25,6 +29,7 @@
         createChannelMediaPager,
         isOpenable,
         MAX_CHANNEL_ITEMS,
+        media_columns,
         mediaDetails,
         mediaMeta,
         mediaActionKind,
@@ -81,6 +86,10 @@
     let view = $state<ChannelMediaView>({ status: 'idle' });
     let kind = $state<ChannelMediaKind>('all');
     let sort = $state<ChannelSort>('newest');
+    // Desktop only: tiles or a table. A phone keeps its own rows either way.
+    let view_mode = $state<SourceViewMode>(load_source_view_mode());
+    // Preview data URLs for photo and video posts, by thumbnail_key.
+    const previews = new SvelteMap<string, string>();
     let query = $state('');
     let appliedQuery = $state('');
     let scroller = $state<HTMLElement | null>(null);
@@ -103,6 +112,8 @@
     const searchLabel = $derived(selectedTopic ? $t_store('sources.search_files_in', { title: selectedTopic.title }) : $t_store('sources.search_files'));
     const topicUnavailable = $derived(view.status === 'error' && typeof view.error === 'object' && view.error !== null && 'code' in view.error && ['topic_unavailable', 'forum_unavailable'].includes(String(view.error.code)));
     const handle = $derived(sourceHandle(source));
+    const gridding = $derived(!mobile && view_mode === 'grid');
+    const listing = $derived(!mobile && view_mode === 'list');
     const telegramUrl = $derived(channelTelegramUrl(source));
     const failure = $derived(view.status === 'error' ? toAppError(view.error, { source: 'backend' }) : null);
     const empty = $derived.by(() => {
@@ -178,6 +189,12 @@
         if (next === kind) return;
         kind = next;
         reload();
+    }
+
+    function choose_view_mode(next: SourceViewMode): void {
+        if (next === view_mode) return;
+        view_mode = next;
+        save_source_view_mode(next);
     }
 
     function chooseSort(next: ChannelSort): void {
@@ -347,6 +364,9 @@
     {@const openable = isOpenable(item)}
     {@const TypeIcon = fileTypeIcon(family(item))}
     {@const label = badge(item)}
+    {@const preview_key = thumbnail_key(browsingSource, item.msgId)}
+    {@const preview = wants_thumbnail(item) ? previews.get(preview_key) : undefined}
+    {@const columns = media_columns(item)}
     <li class="channel-row" class:is-locked={!openable} class:is-protected={source.protected || item.protected} use:bindProtectedPost={Boolean(source.protected || item.protected)} data-msg-id={item.msgId}>
         <button
             class="channel-row-main"
@@ -356,17 +376,32 @@
             onclick={() => void onOpenPost(item, browsingSource, shown)}
             oncontextmenu={mobile ? undefined : (event) => openPostActions(event, item)}
         >
-            <span class="file-type-icon channel-chip" aria-hidden="true">
-                <span class="chip-layer chip-type"><TypeIcon size={20} /></span>
+            <span
+                class="file-type-icon channel-chip"
+                class:has-preview={Boolean(preview)}
+                aria-hidden="true"
+                use:watch_thumbnail={wants_thumbnail(item) ? { source: browsingSource, msgId: item.msgId, onLoad: (url) => previews.set(preview_key, url) } : null}
+            >
+                {#if preview}
+                    <img class="channel-chip-preview" src={preview} alt="" decoding="async" draggable="false" />
+                {:else}
+                    <span class="chip-layer chip-type"><TypeIcon size={listing ? 16 : 20} /></span>
+                {/if}
                 <span class="chip-layer chip-action">
                     {#if openable && mediaActionKind(item) === 'play'}<PlayIcon size={16} weight="fill" />{:else if openable}<EyeIcon size={16} />{:else}<ExternalLinkIcon size={16} />{/if}
                 </span>
             </span>
             <span class="channel-row-text">
-                <span class="channel-row-title">{mediaTitle(item)}</span>
-                <span class="channel-row-meta">{mediaMeta(item)}{#if topicLabel(item)}<span class="channel-row-topic"> · {topicLabel(item)}</span>{/if}</span>
+                <span class="channel-row-title">{mediaTitle(item)}{#if listing && topicLabel(item)}<span class="channel-row-topic"> · {topicLabel(item)}</span>{/if}</span>
+                {#if !listing}<span class="channel-row-meta">{mediaMeta(item)}{#if topicLabel(item)}<span class="channel-row-topic"> · {topicLabel(item)}</span>{/if}</span>{/if}
+                {#if label && !mobile}<span class="channel-row-badge" title={label === t('sources.restriction_protected') ? t('sources.view_only_hint') : undefined}>{label}</span>{/if}
             </span>
-            {#if label}<span class="channel-row-badge" title={label === t('sources.restriction_protected') ? t('sources.view_only_hint') : undefined}>{label}</span>{/if}
+            {#if listing}
+                <span class="channel-row-kind">{columns.kind}</span>
+                <span class="channel-row-size">{columns.size}</span>
+                <span class="channel-row-date">{columns.date}</span>
+            {/if}
+            {#if label && mobile}<span class="channel-row-badge" title={label === t('sources.restriction_protected') ? t('sources.view_only_hint') : undefined}>{label}</span>{/if}
         </button>
         {#if openable && item.telegramUrl && !mobile}
             <button
@@ -394,7 +429,7 @@
 {/snippet}
 
 {#key $current_locale}
-<section class="channel-view" class:is-mobile={mobile} aria-labelledby="channel-view-title">
+<section class="channel-view" class:is-mobile={mobile} class:is-grid={gridding} class:is-list={listing} aria-labelledby="channel-view-title">
     {#if mobile}
         <header class="channel-topbar" class:is-scrolled={scrolled}>
             <div class="topbar-row">
@@ -474,6 +509,7 @@
                 {#if forum && fetchTopics}<ChannelTopicPicker {source} fetchTopics={fetchTopics} selected={selectedTopic} onChoose={chooseTopic} onTopics={rememberTopics} />{/if}
                 {@render kindPicker()}
                 <ChannelSortMenu value={sort} onChange={chooseSort} />
+                {#if !mobile}<ChannelViewToggle value={view_mode} onChange={choose_view_mode} />{/if}
                 <label class="search-field channel-search">
                     <SearchIcon size={15} aria-hidden="true" />
                     <input
@@ -990,22 +1026,25 @@
        desktop view so the phone rows above keep their list. The tile defaults
        use :where so the hover that turns a tile's chip into its action still
        wins. ---- */
-    .channel-view:not(.is-mobile) .channel-rows {
+    .channel-view.is-grid .channel-rows {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+        justify-content: start;
         gap: var(--space-3);
     }
 
-    .channel-view:not(.is-mobile) .channel-row {
+    /* Wide windows gain columns instead of bigger tiles. */
+    .channel-view.is-grid .channel-row {
         flex-direction: column;
         align-items: stretch;
         min-width: 0;
+        max-width: 220px;
     }
 
-    .channel-view:not(.is-mobile) .channel-row:hover,
-    .channel-view:not(.is-mobile) .channel-row:focus-within { background: transparent; }
+    .channel-view.is-grid .channel-row:hover,
+    .channel-view.is-grid .channel-row:focus-within { background: transparent; }
 
-    .channel-view:not(.is-mobile) .channel-row-main {
+    .channel-view.is-grid .channel-row-main {
         position: relative;
         flex-direction: column;
         align-items: stretch;
@@ -1015,9 +1054,14 @@
         border-radius: var(--radius-sm);
     }
 
-    .channel-view:where(:not(.is-mobile)) .channel-chip {
+    .channel-view:where(.is-grid) .channel-chip {
         width: 100%;
         height: auto;
+        min-width: 0;
+        min-height: 0;
+        max-width: none;
+        max-height: none;
+        margin: 0;
         aspect-ratio: 1;
         border: 1px solid var(--color-border-soft);
         border-radius: var(--radius-sm);
@@ -1025,26 +1069,33 @@
         color: var(--text-muted);
     }
 
-    .channel-view:not(.is-mobile) .channel-row-text {
+    .channel-view.is-grid .channel-row-text {
         padding: 0 2px;
         gap: 1px;
     }
 
-    .channel-view:not(.is-mobile) .channel-row-title {
+    /* A caption keeps to two lines; anything longer ends in an ellipsis. */
+    .channel-view.is-grid .channel-row-title {
+        overflow: hidden;
         font-size: var(--type-sm);
         line-height: 1.3;
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
     }
 
-    .channel-view:not(.is-mobile) .channel-row-meta { font-size: var(--type-xs); }
+    .channel-view.is-grid .channel-row-meta { font-size: var(--type-xs); }
 
-    .channel-view:not(.is-mobile) .channel-row-badge {
+    .channel-view.is-grid .channel-row-badge {
         position: absolute;
         top: 6px;
         left: 6px;
         background: var(--color-surface-0);
     }
 
-    .channel-view:not(.is-mobile) .channel-row-telegram {
+    .channel-view.is-grid .channel-row-telegram {
         position: absolute;
         top: 6px;
         right: 6px;
@@ -1054,13 +1105,13 @@
         background: var(--color-surface-0);
     }
 
-    .channel-view:not(.is-mobile) .channel-skeleton {
+    .channel-view.is-grid .channel-skeleton {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: var(--space-3);
     }
 
-    .channel-view:not(.is-mobile) .channel-skeleton-row {
+    .channel-view.is-grid .channel-skeleton-row {
         flex-direction: column;
         align-items: stretch;
         min-height: 0;
@@ -1068,11 +1119,109 @@
         gap: var(--space-2);
     }
 
-    .channel-view:not(.is-mobile) .channel-skeleton-row .file-state-skeleton-icon {
+    .channel-view.is-grid .channel-skeleton-row .file-state-skeleton-icon {
         width: 100%;
         height: auto;
         aspect-ratio: 1;
         border-radius: var(--radius-sm);
+    }
+
+    /* A photo or video post shows its preview in the type slot. The type icon
+       stays for every other post, and the hover action sits over either. */
+    .channel-chip.has-preview {
+        overflow: hidden;
+        background: var(--color-surface-2);
+    }
+
+    .channel-chip-preview {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        object-fit: cover;
+        border-radius: inherit;
+        pointer-events: none;
+    }
+
+    .channel-chip.has-preview .chip-action {
+        background: color-mix(in srgb, #000 42%, transparent);
+        color: #fff;
+    }
+
+    /* ---- Desktop list. A table of rows 36px tall: the type or preview slot,
+       the name, then kind, size and date. Clicking a row opens it as a tile
+       does. ---- */
+    .channel-view.is-list .channel-row { min-height: 36px; border-radius: var(--radius-sm); }
+
+    .channel-view.is-list .channel-row-main {
+        min-height: 36px;
+        height: 36px;
+        gap: var(--space-3);
+        padding: 0 var(--space-3);
+    }
+
+    .channel-view.is-list .channel-chip {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+        max-width: 32px;
+        max-height: 32px;
+        margin: 0;
+        border-radius: var(--radius-sm);
+    }
+
+    .channel-view.is-list .channel-row-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .channel-view.is-list .channel-row-title {
+        font-size: var(--type-sm);
+        line-height: 1.3;
+    }
+
+    .channel-view.is-list .channel-row-meta { display: none; }
+
+    .channel-view.is-list .channel-row-kind,
+    .channel-view.is-list .channel-row-size,
+    .channel-view.is-list .channel-row-date {
+        flex: 0 0 auto;
+        overflow: hidden;
+        color: var(--text-muted);
+        font-size: var(--type-xs);
+        font-variant-numeric: tabular-nums;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .channel-view.is-list .channel-row-kind { width: 88px; }
+    .channel-view.is-list .channel-row-size { width: 84px; text-align: right; }
+    .channel-view.is-list .channel-row-date { width: 120px; text-align: right; }
+
+    .channel-view.is-list .channel-row-badge { position: static; flex: 0 0 auto; margin-left: var(--space-2); }
+
+    /* The Telegram button floats over a reserved strip, so every row's columns
+       line up whether or not it has one. */
+    .channel-view.is-list .channel-row-main { padding-right: 48px; }
+
+    .channel-view.is-list .channel-row-telegram {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        width: 28px;
+        height: 28px;
+        margin: 0;
+        transform: translateY(-50%);
+    }
+
+    .channel-view.is-list .channel-skeleton-row {
+        min-height: 36px;
+        padding: 0 var(--space-3);
     }
 
     /* ---- Phone. The shell's top bar steps aside for this one, which restates

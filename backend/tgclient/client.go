@@ -284,6 +284,11 @@ type Client interface {
 	// DownloadFileThumbnail streams a Telegram document thumbnail into w.
 	DownloadFileThumbnail(ctx context.Context, peer InputPeer, msgID int64, thumbType string, w io.Writer) error
 
+	// DownloadMessageThumbnail writes the small JPEG preview of a photo or
+	// video message into w. The file itself is never fetched. It writes
+	// nothing when the message has no preview Telegram will serve.
+	DownloadMessageThumbnail(ctx context.Context, peer InputPeer, msgID int64, w io.Writer) error
+
 	// DeleteMessages removes file bodies from the channel. Used by tomb
 	// follow-up and folder hard-delete. Best effort.
 	DeleteMessages(ctx context.Context, peer InputPeer, msgIDs []int64) error

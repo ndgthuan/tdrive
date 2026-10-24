@@ -35,6 +35,14 @@ export function ApproveJoinRequest(channelID: number, userID: number): $Cancella
 }
 
 /**
+ * ChannelSourceMediaThumbnail returns a photo or video post's small preview as
+ * base64 JPEG, or "" when Telegram offers none for it.
+ */
+export function ChannelSourceMediaThumbnail(peerKind: string, peerID: number, msgID: number, expectedAccountID: number, expectedGeneration: string): $CancellablePromise<string> {
+    return $Call.ByID(406154708, peerKind, peerID, msgID, expectedAccountID, expectedGeneration);
+}
+
+/**
  * ChannelSourcePhoto returns a Telegram source's small profile photo as base64,
  * or "" when the peer has none.
  */
