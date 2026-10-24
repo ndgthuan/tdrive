@@ -1,10 +1,12 @@
 <script lang="ts">
     import ArrowClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
     import WarningCircleIcon from 'phosphor-svelte/lib/WarningCircleIcon';
+    import AiActionTimeline from './ai_action_timeline.svelte';
+    import AiApprovalCard from './ai_approval_card.svelte';
     import AiPlanCard from './ai_plan_card.svelte';
     import { render_ai_markdown } from './ai_markdown';
     import { retry_error, run_suggestion } from './ai_chat';
-    import { busy, streaming_text, transcript } from './ai_store';
+    import { busy, streaming_text, tools_running, transcript } from './ai_store';
     import { t_store } from '../../i18n/i18n';
 
     let scroller = $state<HTMLDivElement | null>(null);
@@ -52,6 +54,10 @@
             <div class="ai-reply">{@html render_ai_markdown(item.text)}</div>
         {:else if item.kind === 'plan'}
             <AiPlanCard id={item.id} card={item.card} />
+        {:else if item.kind === 'actions'}
+            <AiActionTimeline rows={item.rows} />
+        {:else if item.kind === 'approval'}
+            <AiApprovalCard request={item.request} />
         {:else}
             <div class="ai-error" role="alert">
                 <WarningCircleIcon size={16} aria-hidden="true" />
@@ -80,8 +86,13 @@
         {#if $streaming_text}
             <div class="ai-reply is-streaming">{$streaming_text}</div>
         {:else}
-            <div class="ai-typing" role="status" aria-label={$t_store('ai.thinking')}>
-                <span></span><span></span><span></span>
+            <div class="ai-typing-row">
+                <div class="ai-typing" role="status" aria-label={$t_store('ai.thinking')}>
+                    <span></span><span></span><span></span>
+                </div>
+                {#if $tools_running}
+                    <span class="ai-working">{$t_store('ai.working')}</span>
+                {/if}
             </div>
         {/if}
     {/if}
@@ -202,6 +213,17 @@
         display: inline-flex;
         gap: 4px;
         padding: var(--space-2) 0;
+    }
+
+    .ai-typing-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .ai-working {
+        color: var(--text-muted);
+        font-size: var(--type-sm);
     }
 
     .ai-typing span {

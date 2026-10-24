@@ -39,17 +39,26 @@ var image_extensions = map[string]bool{
 	".bmp": true, ".heic": true, ".heif": true, ".tif": true, ".tiff": true,
 }
 
+// video_extensions lists file name suffixes treated as videos. Only their poster
+// frame (the rendition thumbnail) is ever sent to a model.
+var video_extensions = map[string]bool{
+	".mp4": true, ".mov": true, ".m4v": true, ".mkv": true, ".webm": true,
+	".avi": true, ".3gp": true, ".wmv": true, ".flv": true,
+}
+
 // OrganizeProgress is the payload of the ai:organize_progress event.
 type OrganizeProgress struct {
 	Analyzed int `json:"analyzed"`
 	Total    int `json:"total"`
 }
 
-// PlanRequest asks for a photo organization plan in one scope.
+// PlanRequest asks for a photo organization plan in one scope. Kind selects
+// what is sorted: "images", "videos" or "both". Empty means both.
 type PlanRequest struct {
 	Scope       Scope  `json:"scope"`
 	Instruction string `json:"instruction"`
 	ModelID     string `json:"model_id"`
+	Kind        string `json:"kind,omitempty"`
 }
 
 // PlannedFile is one proposed move. It is shown to the user for review.
@@ -92,11 +101,12 @@ type image_item struct {
 	rel_path string
 }
 
-// batch_entry is one photo prepared for a model request.
+// batch_entry is one photo or video poster prepared for a model request.
 type batch_entry struct {
-	file_id int64
-	name    string
-	jpeg    []byte
+	file_id  int64
+	name     string
+	is_video bool
+	jpeg     []byte
 }
 
 // organize_reply is the strict JSON shape the model must return.
@@ -172,12 +182,16 @@ func (s *Service) PlanOrganize(ctx context.Context, req PlanRequest) (Plan, erro
 		return Plan{}, err
 	}
 
-	items, root_children, err := collect_images(ctx, drive, req.Scope, max_folder_walk)
+	kind, err := parse_media_kind(req.Kind)
+	if err != nil {
+		return Plan{}, err
+	}
+	items, root_children, err := collect_images(ctx, drive, req.Scope, max_folder_walk, kind)
 	if err != nil {
 		return Plan{}, err
 	}
 	if len(items) == 0 {
-		return Plan{}, errors.New("ai: no photos found in this folder")
+		return Plan{}, errors.New("ai: no photos or videos found in this folder")
 	}
 	s.emit(EventOrganizeProgress, OrganizeProgress{Analyzed: 0, Total: len(items)})
 
@@ -215,9 +229,24 @@ func (s *Service) PlanOrganize(ctx context.Context, req PlanRequest) (Plan, erro
 	return plan, nil
 }
 
-// collect_images walks the scope breadth first and returns every photo, plus the
-// direct child folders of the scope root (used to match existing folder names).
-func collect_images(ctx context.Context, drive Drive, scope Scope, walk_limit int) ([]image_item, []FolderNode, error) {
+// parse_media_kind validates a kind filter. Empty means both.
+func parse_media_kind(kind string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(kind)) {
+	case "", "both":
+		return "both", nil
+	case "images", "image":
+		return "images", nil
+	case "videos", "video":
+		return "videos", nil
+	default:
+		return "", fmt.Errorf("ai: kind must be images, videos or both, not %q", kind)
+	}
+}
+
+// collect_images walks the scope breadth first and returns every photo and/or
+// video selected by kind, plus the direct child folders of the scope root (used
+// to match existing folder names).
+func collect_images(ctx context.Context, drive Drive, scope Scope, walk_limit int, kind string) ([]image_item, []FolderNode, error) {
 	type queued struct {
 		folder_id string
 		rel       string
@@ -245,7 +274,7 @@ func collect_images(ctx context.Context, drive Drive, scope Scope, walk_limit in
 			root_children = folders
 		}
 		for _, file := range files {
-			if is_image_name(file.Name) {
+			if media_selected(file.Name, kind) {
 				items = append(items, image_item{file: file, rel_path: path.Join(current.rel, file.Name)})
 			}
 		}
@@ -268,6 +297,23 @@ func collect_images(ctx context.Context, drive Drive, scope Scope, walk_limit in
 
 func is_image_name(name string) bool {
 	return image_extensions[strings.ToLower(path.Ext(name))]
+}
+
+// is_video_name reports whether the name has a video extension.
+func is_video_name(name string) bool {
+	return video_extensions[strings.ToLower(path.Ext(name))]
+}
+
+// media_selected reports whether a file is picked by a kind filter.
+func media_selected(name, kind string) bool {
+	switch kind {
+	case "images":
+		return is_image_name(name)
+	case "videos":
+		return is_video_name(name)
+	default:
+		return is_image_name(name) || is_video_name(name)
+	}
 }
 
 // fetch_thumbnails returns one prepared JPEG per item, or nil where the preview
@@ -336,7 +382,12 @@ func (s *Service) analyze_batches(
 				skipped++
 				continue
 			}
-			entries = append(entries, batch_entry{file_id: items[i].file.ID, name: items[i].file.Name, jpeg: thumbs[i]})
+			entries = append(entries, batch_entry{
+				file_id:  items[i].file.ID,
+				name:     items[i].file.Name,
+				is_video: is_video_name(items[i].file.Name),
+				jpeg:     thumbs[i],
+			})
 			allowed[items[i].file.ID] = true
 		}
 		if len(entries) > 0 {
@@ -407,14 +458,20 @@ func build_organize_request(instruction string, known []string, entries []batch_
 	system.WriteString("- Omit photos that do not fit the instruction.\n")
 	system.WriteString("- Folder names are short (at most 60 characters) and must not contain / \\ : * ? \" < > |.\n")
 	system.WriteString(fmt.Sprintf("- Use at most %d folders in total.\n", max_plan_folders))
+	system.WriteString("- Group by what is visible: subjects, people, places, events, or whatever the instruction asks for. The file name is only a hint.\n")
+	system.WriteString("- Items marked (video) are poster frames of videos; sort them the same way as photos.\n")
 	if len(known) > 0 {
 		system.WriteString("- Reuse these folder names when they fit: " + strings.Join(known, "; ") + ".\n")
 	}
 	var text strings.Builder
-	text.WriteString("Instruction: " + instruction + "\n\nPhotos in this batch (file_id and name). Images follow in the same order:\n")
+	text.WriteString("Instruction: " + instruction + "\n\nItems in this batch (file_id and name). Pictures follow in the same order:\n")
 	turn := Turn{Role: "user"}
 	for _, entry := range entries {
-		text.WriteString(fmt.Sprintf("- file_id %d: %s\n", entry.file_id, entry.name))
+		label := ""
+		if entry.is_video {
+			label = " (video, poster frame)"
+		}
+		text.WriteString(fmt.Sprintf("- file_id %d: %s%s\n", entry.file_id, entry.name, label))
 		turn.Images = append(turn.Images, Image{MIMEType: "image/jpeg", Data: entry.jpeg})
 	}
 	turn.Text = text.String()

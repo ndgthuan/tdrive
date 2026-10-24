@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 
 	"TDrive/backend/ai"
@@ -61,7 +62,7 @@ func (d *aiDrive) ListFolder(ctx context.Context, channel_id int64, folder_id st
 	}
 	files := make([]ai.FileNode, 0, len(listing.Files))
 	for _, file := range listing.Files {
-		files = append(files, ai.FileNode{ID: file.MsgID, Name: file.Name, ParentID: file.ParentID})
+		files = append(files, ai.FileNode{ID: file.MsgID, Name: file.Name, ParentID: file.ParentID, Size: file.Size})
 	}
 	return folders, files, nil
 }
@@ -96,4 +97,88 @@ func (d *aiDrive) ParentOf(ctx context.Context, channel_id int64, file_id int64)
 // MoveFile moves one file with the same file service the browser uses.
 func (d *aiDrive) MoveFile(ctx context.Context, channel_id int64, file_id int64, parent_id string) error {
 	return d.files.Move(ctx, channel_id, int(file_id), parent_id)
+}
+
+// aiItemObjectID maps an ai item id to the projection object id: a folder is
+// already "d:<uuid>", a file is its message id with the "f:" prefix.
+func aiItemObjectID(item_id string) string {
+	if strings.HasPrefix(item_id, projection.FolderIDPrefix) {
+		return item_id
+	}
+	return projection.FileIDPrefix + item_id
+}
+
+// aiFileMsgID reads the message id of a file item id.
+func aiFileMsgID(item_id string) (int, error) {
+	n, err := strconv.ParseInt(item_id, 10, 64)
+	if err != nil || n <= 0 {
+		return 0, errors.New("ai: not a file id: " + item_id)
+	}
+	return int(n), nil
+}
+
+// Lookup reads one live file or folder from the projection. Trashed and unknown
+// ids are errors, so tools never act on something the drive does not show.
+func (d *aiDrive) Lookup(ctx context.Context, channel_id int64, item_id string) (ai.Item, error) {
+	if err := ctx.Err(); err != nil {
+		return ai.Item{}, err
+	}
+	entry, found, err := projection.DirentByID(d.reads.DB, channel_id, aiItemObjectID(item_id))
+	if err != nil {
+		return ai.Item{}, err
+	}
+	if !found {
+		return ai.Item{}, errors.New("item not found in this drive")
+	}
+	if entry.Tombstoned {
+		return ai.Item{}, errors.New("item is in the trash")
+	}
+	return ai.Item{
+		ID:       item_id,
+		Name:     entry.DisplayName,
+		IsFolder: entry.ObjectKind == projection.ObjectKindFolder,
+		ParentID: entry.ParentID,
+	}, nil
+}
+
+// RenameItem renames through the file or folder service, which apply the shared
+// drive owner rule and the encryption checks.
+func (d *aiDrive) RenameItem(ctx context.Context, channel_id int64, item_id string, new_name string) error {
+	if strings.HasPrefix(item_id, projection.FolderIDPrefix) {
+		return d.folders.RenameContext(ctx, channel_id, item_id, new_name)
+	}
+	msg, err := aiFileMsgID(item_id)
+	if err != nil {
+		return err
+	}
+	return d.files.Rename(ctx, channel_id, msg, new_name)
+}
+
+// MoveItem moves a file or folder through the same services the browser uses.
+func (d *aiDrive) MoveItem(ctx context.Context, channel_id int64, item_id string, parent_id string) error {
+	if strings.HasPrefix(item_id, projection.FolderIDPrefix) {
+		return d.folders.MoveContext(ctx, channel_id, item_id, parent_id)
+	}
+	msg, err := aiFileMsgID(item_id)
+	if err != nil {
+		return err
+	}
+	return d.files.Move(ctx, channel_id, msg, parent_id)
+}
+
+// TrashItem moves a file or folder to the trash. Nothing is destroyed.
+func (d *aiDrive) TrashItem(ctx context.Context, channel_id int64, item_id string) error {
+	if strings.HasPrefix(item_id, projection.FolderIDPrefix) {
+		return d.folders.Delete(ctx, channel_id, item_id)
+	}
+	msg, err := aiFileMsgID(item_id)
+	if err != nil {
+		return err
+	}
+	return d.files.Delete(ctx, channel_id, msg)
+}
+
+// RestoreItem takes a trashed file or folder back out of the trash.
+func (d *aiDrive) RestoreItem(ctx context.Context, channel_id int64, item_id string) error {
+	return d.files.RestoreObject(ctx, channel_id, aiItemObjectID(item_id))
 }

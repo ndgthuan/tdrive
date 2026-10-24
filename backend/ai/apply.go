@@ -264,6 +264,7 @@ func (s *Service) take_undo(token string) (*undo_record, error) {
 // prune_locked drops plans and undo records past their lifetime. The caller
 // holds s.mu.
 func (s *Service) prune_locked(now_ms int64) {
+	s.prune_action_undos_locked(now_ms)
 	plan_cutoff := now_ms - plan_ttl.Milliseconds()
 	for id, plan := range s.plans {
 		if plan.created_ms < plan_cutoff && !plan.applied {

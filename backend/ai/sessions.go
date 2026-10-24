@@ -49,6 +49,9 @@ type ChatMessage struct {
 	Text      string `json:"text"`
 	ModelID   string `json:"model_id,omitempty"`
 	CreatedAt int64  `json:"created_at"`
+	// Actions lists the tool actions of an agent reply in order. The field is
+	// omitted when there were none.
+	Actions []ChatAction `json:"actions,omitempty"`
 }
 
 // ChatSession is a persisted conversation.
@@ -253,7 +256,20 @@ func history_for_model(messages []ChatMessage) []Turn {
 	}
 	turns := make([]Turn, 0, len(messages)-start)
 	for _, msg := range messages[start:] {
-		turns = append(turns, Turn{Role: msg.Role, Text: msg.Text})
+		text := msg.Text
+		if len(msg.Actions) > 0 {
+			// Keep the record of what changed, so later turns can refer to it.
+			summaries := make([]string, 0, len(msg.Actions))
+			for _, action := range msg.Actions {
+				status := "done"
+				if !action.OK {
+					status = "not done"
+				}
+				summaries = append(summaries, action.Summary+" ("+status+")")
+			}
+			text += "\n[Actions in this reply: " + strings.Join(summaries, "; ") + "]"
+		}
+		turns = append(turns, Turn{Role: msg.Role, Text: text})
 	}
 	return turns
 }

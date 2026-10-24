@@ -135,6 +135,28 @@ const DEFAULT_METHODS: Record<string, MockPlan> = {
     DeleteModel: resolves(null),
     SetDefaultModel: resolves(null),
     TestConnection: resolves({ ok: true, message: '' }),
+    // Chat turns. Tests hold SendMessage with setPlan(deferred) and emit
+    // ai:action_done / ai:action_request while the turn is open.
+    ResolveAction: resolves(null),
+    UndoAction: resolves({ ok: true, message: '' }),
+    ListSessions: resolves([]),
+    CreateSession: resolves({
+        id: 'mock-chat',
+        title: 'Chat',
+        scope: { channel_id: 1, folder_id: '' },
+        created_at: 1,
+        updated_at: 1,
+        messages: [],
+    }),
+    GetSession: resolves({
+        id: 'mock-chat',
+        title: 'Chat',
+        scope: { channel_id: 1, folder_id: '' },
+        created_at: 1,
+        updated_at: 1,
+        messages: [],
+    }),
+    SendMessage: resolves({ id: 'mock-reply', role: 'assistant', text: 'Done.', created_at: 2 }),
 };
 
 // The generated bindings call `$Call.ByID(<numeric id>, ...args)` for every

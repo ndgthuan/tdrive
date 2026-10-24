@@ -89,6 +89,16 @@ export function PlanOrganize(request: ai$0.PlanRequest): $CancellablePromise<ai$
 }
 
 /**
+ * ResolveAction answers an ai:action_request raised by a tool that needs the
+ * user's approval (delete, bulk move, folder rename). approved=false denies it.
+ * Each request id works once; the agent treats a missing answer as denied after
+ * five minutes.
+ */
+export function ResolveAction(request_id: string, approved: boolean): $CancellablePromise<void> {
+    return $Call.ByID(1721718896, request_id, approved);
+}
+
+/**
  * SendMessage sends one user turn and returns the assistant reply. The call
  * blocks until the model answers.
  */
@@ -110,6 +120,15 @@ export function SetDefaultModel(id: string): $CancellablePromise<void> {
  */
 export function TestConnection(model_id: string, draft: ai$0.ModelInput): $CancellablePromise<ai$0.TestResult> {
     return $Call.ByID(376904454, model_id, draft);
+}
+
+/**
+ * UndoAction reverses an agent action by its undo_token: a rename, move, folder
+ * creation or trash. Organize apply tokens work here too. The token works once.
+ * Failures come back as ok=false with a message.
+ */
+export function UndoAction(undo_token: string): $CancellablePromise<ai$0.UndoActionResult> {
+    return $Call.ByID(1688669162, undo_token);
 }
 
 /**

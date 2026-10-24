@@ -6,8 +6,10 @@ export {
 } from "./models.js";
 
 export type {
+    ActionItem,
     ApplyFailure,
     ApplyResult,
+    ChatAction,
     ChatMessage,
     ChatSession,
     ModelInput,
@@ -20,6 +22,7 @@ export type {
     SendMessageRequest,
     SessionSummary,
     TestResult,
+    UndoActionResult,
     UndoIssue,
     UndoResult
 } from "./models.js";

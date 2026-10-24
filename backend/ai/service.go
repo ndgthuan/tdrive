@@ -43,17 +43,22 @@ type Options struct {
 	HTTPClient *http.Client
 	// Now is the clock. Default time.Now.
 	Now func() time.Time
+	// ApprovalTimeout is how long an action waits for the user's answer before
+	// it counts as denied. Default 5 minutes.
+	ApprovalTimeout time.Duration
 }
 
 // Service is the AI backend entry point bound to the frontend.
 type Service struct {
 	opts Options
 
-	mu      sync.Mutex
-	manager *Manager
-	chats   *ChatStore
-	plans   map[string]*Plan
-	undos   map[string]*undo_record
+	mu           sync.Mutex
+	manager      *Manager
+	chats        *ChatStore
+	plans        map[string]*Plan
+	undos        map[string]*undo_record
+	action_undos map[string]*action_undo
+	approvals    map[string]chan bool
 }
 
 // NewService returns a service. Stores are opened lazily on first use so the
@@ -69,9 +74,11 @@ func NewService(opts Options) *Service {
 		opts.Now = time.Now
 	}
 	return &Service{
-		opts:  opts,
-		plans: map[string]*Plan{},
-		undos: map[string]*undo_record{},
+		opts:         opts,
+		plans:        map[string]*Plan{},
+		undos:        map[string]*undo_record{},
+		action_undos: map[string]*action_undo{},
+		approvals:    map[string]chan bool{},
 	}
 }
 
@@ -88,6 +95,9 @@ type SendMessageRequest struct {
 	Text      string `json:"text"`
 	Scope     *Scope `json:"scope,omitempty"`
 	ModelID   string `json:"model_id"`
+	// Mode is "agent" (the model may call drive tools) or "ask" (chat only).
+	// Empty means "ask".
+	Mode string `json:"mode"`
 }
 
 // MessageDelta is the ai:message_delta payload. The reply is not streamed:
@@ -253,6 +263,10 @@ func (s *Service) SendMessage(ctx context.Context, req SendMessageRequest) (Chat
 	if err != nil {
 		return ChatMessage{}, err
 	}
+	mode, err := parse_chat_mode(req.Mode)
+	if err != nil {
+		return ChatMessage{}, err
+	}
 	chats, err := s.chat_store()
 	if err != nil {
 		return ChatMessage{}, err
@@ -279,16 +293,46 @@ func (s *Service) SendMessage(ctx context.Context, req SendMessageRequest) (Chat
 	}
 	turns := history_for_model(session.Messages)
 	turns = append(turns, Turn{Role: "user", Text: text})
-	reply, err := completer.Complete(ctx, Request{
-		System:    chat_system_prompt(scope, s.drive_name(scope.ChannelID)),
-		Turns:     turns,
-		MaxTokens: 2048,
-	})
-	if err != nil {
-		return ChatMessage{}, err
+	drive_name := s.drive_name(scope.ChannelID)
+
+	var reply_text string
+	var actions []ChatAction
+	if mode == ModeAgent {
+		drive, err := s.drive()
+		if err != nil {
+			return ChatMessage{}, err
+		}
+		env := agent_env{
+			session_id: req.SessionID,
+			scope:      scope,
+			model_id:   req.ModelID,
+			vision:     runtime.Profile.VisionEnabled,
+			drive:      drive,
+			drive_name: drive_name,
+		}
+		system := agent_system_prompt(scope, drive_name, env.vision)
+		reply_text, actions, err = s.run_agent(ctx, env, system, turns, completer)
+		if err != nil {
+			if len(actions) == 0 {
+				return ChatMessage{}, err
+			}
+			// Some actions already changed the drive. Keep them on record.
+			reply_text = "Stopped early: " + err.Error() + ". The actions listed were already applied."
+		}
+	} else {
+		reply, err := completer.Complete(ctx, Request{
+			System:    chat_system_prompt(scope, drive_name),
+			Turns:     turns,
+			MaxTokens: 2048,
+		})
+		if err != nil {
+			return ChatMessage{}, err
+		}
+		reply_text = reply.Text
 	}
 	user_message := chats.NewMessage("user", text, "")
-	assistant := chats.NewMessage("assistant", reply.Text, runtime.Profile.ID)
+	assistant := chats.NewMessage("assistant", reply_text, runtime.Profile.ID)
+	assistant.Actions = actions
 	_, err = chats.Update(req.SessionID, func(sess *ChatSession) error {
 		sess.Scope = scope
 		if len(sess.Messages) == 0 && sess.Title == "New chat" {

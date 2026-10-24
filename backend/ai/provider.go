@@ -21,12 +21,44 @@ type Image struct {
 	Data     []byte
 }
 
+// ToolSpec declares one tool the model may call. Parameters is a JSON Schema
+// object. Each provider adapter converts it to its own wire format.
+type ToolSpec struct {
+	Name        string
+	Description string
+	Parameters  map[string]any
+}
+
+// ToolCall is one tool invocation requested by the model. Arguments is the
+// JSON object text the model produced. ID echoes the provider's call id;
+// Gemini has none, so ID is the function name there. Signature is Gemini's
+// thought signature, which must be sent back with the call.
+type ToolCall struct {
+	ID        string
+	Name      string
+	Arguments string
+	Signature string
+}
+
+// ToolResult answers one ToolCall. Images carry media the model should look
+// at; adapters place them where their wire format allows.
+type ToolResult struct {
+	CallID  string
+	Name    string
+	Content string
+	IsError bool
+	Images  []Image
+}
+
 // Turn is one message in the conversation sent to a provider. Role is "user"
-// or "assistant".
+// or "assistant". An assistant turn may carry ToolCalls; a user turn may carry
+// ToolResults answering the previous assistant turn.
 type Turn struct {
-	Role   string
-	Text   string
-	Images []Image
+	Role        string
+	Text        string
+	Images      []Image
+	ToolCalls   []ToolCall
+	ToolResults []ToolResult
 }
 
 // Request is the provider-neutral completion request.
@@ -34,15 +66,18 @@ type Request struct {
 	// System is the system prompt. Empty means none.
 	System string
 	Turns  []Turn
+	// Tools lists the tools the model may call. Empty sends no tools.
+	Tools []ToolSpec
 	// JSONOutput asks the provider for a JSON object reply where supported.
 	JSONOutput bool
 	// MaxTokens caps the reply length. Zero picks a provider default.
 	MaxTokens int
 }
 
-// Reply is the assistant text returned by a provider.
+// Reply is what a provider returned: assistant text and/or tool calls.
 type Reply struct {
-	Text string
+	Text      string
+	ToolCalls []ToolCall
 }
 
 // Completer is one configured provider endpoint.
@@ -226,6 +261,24 @@ func max_tokens_or(requested, fallback int) int {
 	return fallback
 }
 
+// arguments_object returns tool arguments as a JSON object, defaulting to {}.
+func arguments_object(text string) json.RawMessage {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" || !json.Valid([]byte(trimmed)) {
+		return json.RawMessage("{}")
+	}
+	return json.RawMessage(trimmed)
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 // openai_completer speaks POST {base}/chat/completions. It serves OpenAI,
 // OpenRouter and any OpenAI-compatible custom endpoint.
 type openai_completer struct {
@@ -237,14 +290,32 @@ type openai_completer struct {
 }
 
 type openai_message struct {
-	Role    string `json:"role"`
-	Content any    `json:"content"`
+	Role       string            `json:"role"`
+	Content    any               `json:"content"`
+	ToolCalls  []openai_tool_out `json:"tool_calls,omitempty"`
+	ToolCallID string            `json:"tool_call_id,omitempty"`
+}
+
+type openai_tool_out struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
 }
 
 type openai_response struct {
 	Choices []struct {
 		Message struct {
-			Content string `json:"content"`
+			Content   *string `json:"content"`
+			ToolCalls []struct {
+				ID       string `json:"id"`
+				Function struct {
+					Name      string `json:"name"`
+					Arguments string `json:"arguments"`
+				} `json:"function"`
+			} `json:"tool_calls"`
 		} `json:"message"`
 	} `json:"choices"`
 }
@@ -255,26 +326,74 @@ func (c *openai_completer) Complete(ctx context.Context, req Request) (Reply, er
 		messages = append(messages, openai_message{Role: "system", Content: req.System})
 	}
 	for _, turn := range req.Turns {
-		if len(turn.Images) == 0 {
+		switch {
+		case len(turn.ToolCalls) > 0:
+			msg := openai_message{Role: "assistant"}
+			if turn.Text != "" {
+				msg.Content = turn.Text
+			}
+			for _, call := range turn.ToolCalls {
+				var out openai_tool_out
+				out.ID = call.ID
+				out.Type = "function"
+				out.Function.Name = call.Name
+				out.Function.Arguments = string(arguments_object(call.Arguments))
+				msg.ToolCalls = append(msg.ToolCalls, out)
+			}
+			messages = append(messages, msg)
+		case len(turn.ToolResults) > 0:
+			// Tool results are text-only in this format, so any media goes into
+			// one user message that follows them.
+			var media []any
+			for _, result := range turn.ToolResults {
+				content := result.Content
+				if result.IsError {
+					content = "Error: " + content
+				}
+				messages = append(messages, openai_message{Role: "tool", Content: content, ToolCallID: result.CallID})
+				for _, img := range result.Images {
+					media = append(media, map[string]any{"type": "image_url", "image_url": map[string]string{"url": image_data_url(img)}})
+				}
+			}
+			if len(media) > 0 || turn.Text != "" {
+				parts := []any{map[string]any{"type": "text", "text": firstNonEmpty(turn.Text, "Media returned by the tool call above:")}}
+				parts = append(parts, media...)
+				messages = append(messages, openai_message{Role: "user", Content: parts})
+			}
+		case len(turn.Images) == 0:
 			messages = append(messages, openai_message{Role: turn.Role, Content: turn.Text})
-			continue
+		default:
+			parts := make([]map[string]any, 0, len(turn.Images)+1)
+			if turn.Text != "" {
+				parts = append(parts, map[string]any{"type": "text", "text": turn.Text})
+			}
+			for _, img := range turn.Images {
+				parts = append(parts, map[string]any{
+					"type":      "image_url",
+					"image_url": map[string]string{"url": image_data_url(img)},
+				})
+			}
+			messages = append(messages, openai_message{Role: turn.Role, Content: parts})
 		}
-		parts := make([]map[string]any, 0, len(turn.Images)+1)
-		if turn.Text != "" {
-			parts = append(parts, map[string]any{"type": "text", "text": turn.Text})
-		}
-		for _, img := range turn.Images {
-			parts = append(parts, map[string]any{
-				"type":      "image_url",
-				"image_url": map[string]string{"url": image_data_url(img)},
-			})
-		}
-		messages = append(messages, openai_message{Role: turn.Role, Content: parts})
 	}
 	body := map[string]any{
 		"model":      c.model,
 		"messages":   messages,
 		"max_tokens": max_tokens_or(req.MaxTokens, 2048),
+	}
+	if len(req.Tools) > 0 {
+		tools := make([]map[string]any, 0, len(req.Tools))
+		for _, tool := range req.Tools {
+			tools = append(tools, map[string]any{
+				"type": "function",
+				"function": map[string]any{
+					"name":        tool.Name,
+					"description": tool.Description,
+					"parameters":  tool.Parameters,
+				},
+			})
+		}
+		body["tools"] = tools
 	}
 	if req.JSONOutput {
 		body["response_format"] = map[string]string{"type": "json_object"}
@@ -291,10 +410,25 @@ func (c *openai_completer) Complete(ctx context.Context, req Request) (Reply, er
 	if err := json.Unmarshal(data, &out); err != nil {
 		return Reply{}, fmt.Errorf("%s: decode reply: %w", c.provider, err)
 	}
-	if len(out.Choices) == 0 || strings.TrimSpace(out.Choices[0].Message.Content) == "" {
+	if len(out.Choices) == 0 {
 		return Reply{}, fmt.Errorf("%s: empty reply", c.provider)
 	}
-	return Reply{Text: out.Choices[0].Message.Content}, nil
+	message := out.Choices[0].Message
+	reply := Reply{}
+	if message.Content != nil {
+		reply.Text = *message.Content
+	}
+	for i, call := range message.ToolCalls {
+		id := call.ID
+		if id == "" {
+			id = fmt.Sprintf("call_%d", i)
+		}
+		reply.ToolCalls = append(reply.ToolCalls, ToolCall{ID: id, Name: call.Function.Name, Arguments: call.Function.Arguments})
+	}
+	if strings.TrimSpace(reply.Text) == "" && len(reply.ToolCalls) == 0 {
+		return Reply{}, fmt.Errorf("%s: empty reply", c.provider)
+	}
+	return reply, nil
 }
 
 // anthropic_completer speaks POST {base}/v1/messages with the 2023-06-01 API
@@ -308,29 +442,68 @@ type anthropic_completer struct {
 
 type anthropic_response struct {
 	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
+		Type  string          `json:"type"`
+		Text  string          `json:"text"`
+		ID    string          `json:"id"`
+		Name  string          `json:"name"`
+		Input json.RawMessage `json:"input"`
 	} `json:"content"`
+}
+
+func anthropic_image_block(img Image) map[string]any {
+	return map[string]any{
+		"type": "image",
+		"source": map[string]string{
+			"type":       "base64",
+			"media_type": image_mime(img),
+			"data":       base64.StdEncoding.EncodeToString(img.Data),
+		},
+	}
 }
 
 func (c *anthropic_completer) Complete(ctx context.Context, req Request) (Reply, error) {
 	messages := make([]map[string]any, 0, len(req.Turns))
 	for _, turn := range req.Turns {
-		blocks := make([]map[string]any, 0, len(turn.Images)+1)
-		for _, img := range turn.Images {
-			blocks = append(blocks, map[string]any{
-				"type": "image",
-				"source": map[string]string{
-					"type":       "base64",
-					"media_type": image_mime(img),
-					"data":       base64.StdEncoding.EncodeToString(img.Data),
-				},
-			})
+		var blocks []map[string]any
+		role := turn.Role
+		switch {
+		case len(turn.ToolCalls) > 0:
+			if turn.Text != "" {
+				blocks = append(blocks, map[string]any{"type": "text", "text": turn.Text})
+			}
+			for _, call := range turn.ToolCalls {
+				blocks = append(blocks, map[string]any{
+					"type":  "tool_use",
+					"id":    call.ID,
+					"name":  call.Name,
+					"input": arguments_object(call.Arguments),
+				})
+			}
+		case len(turn.ToolResults) > 0:
+			role = "user"
+			for _, result := range turn.ToolResults {
+				content := []map[string]any{{"type": "text", "text": result.Content}}
+				for _, img := range result.Images {
+					content = append(content, anthropic_image_block(img))
+				}
+				block := map[string]any{"type": "tool_result", "tool_use_id": result.CallID, "content": content}
+				if result.IsError {
+					block["is_error"] = true
+				}
+				blocks = append(blocks, block)
+			}
+			if turn.Text != "" {
+				blocks = append(blocks, map[string]any{"type": "text", "text": turn.Text})
+			}
+		default:
+			for _, img := range turn.Images {
+				blocks = append(blocks, anthropic_image_block(img))
+			}
+			if turn.Text != "" || len(blocks) == 0 {
+				blocks = append(blocks, map[string]any{"type": "text", "text": turn.Text})
+			}
 		}
-		if turn.Text != "" || len(blocks) == 0 {
-			blocks = append(blocks, map[string]any{"type": "text", "text": turn.Text})
-		}
-		messages = append(messages, map[string]any{"role": turn.Role, "content": blocks})
+		messages = append(messages, map[string]any{"role": role, "content": blocks})
 	}
 	body := map[string]any{
 		"model":      c.model,
@@ -339,6 +512,17 @@ func (c *anthropic_completer) Complete(ctx context.Context, req Request) (Reply,
 	}
 	if req.System != "" {
 		body["system"] = req.System
+	}
+	if len(req.Tools) > 0 {
+		tools := make([]map[string]any, 0, len(req.Tools))
+		for _, tool := range req.Tools {
+			tools = append(tools, map[string]any{
+				"name":         tool.Name,
+				"description":  tool.Description,
+				"input_schema": tool.Parameters,
+			})
+		}
+		body["tools"] = tools
 	}
 	headers := map[string]string{
 		"x-api-key":         c.api_key,
@@ -352,16 +536,21 @@ func (c *anthropic_completer) Complete(ctx context.Context, req Request) (Reply,
 	if err := json.Unmarshal(data, &out); err != nil {
 		return Reply{}, fmt.Errorf("anthropic: decode reply: %w", err)
 	}
+	var reply Reply
 	var text strings.Builder
 	for _, block := range out.Content {
-		if block.Type == "text" {
+		switch block.Type {
+		case "text":
 			text.WriteString(block.Text)
+		case "tool_use":
+			reply.ToolCalls = append(reply.ToolCalls, ToolCall{ID: block.ID, Name: block.Name, Arguments: string(arguments_object(string(block.Input)))})
 		}
 	}
-	if strings.TrimSpace(text.String()) == "" {
+	reply.Text = text.String()
+	if strings.TrimSpace(reply.Text) == "" && len(reply.ToolCalls) == 0 {
 		return Reply{}, errors.New("anthropic: empty reply")
 	}
-	return Reply{Text: text.String()}, nil
+	return reply, nil
 }
 
 // gemini_completer speaks POST {base}/models/{model}:generateContent.
@@ -376,13 +565,46 @@ type gemini_response struct {
 	Candidates []struct {
 		Content struct {
 			Parts []struct {
-				Text string `json:"text"`
+				Text             string `json:"text"`
+				ThoughtSignature string `json:"thoughtSignature"`
+				FunctionCall     *struct {
+					Name string          `json:"name"`
+					Args json.RawMessage `json:"args"`
+				} `json:"functionCall"`
 			} `json:"parts"`
 		} `json:"content"`
 	} `json:"candidates"`
 	PromptFeedback struct {
 		BlockReason string `json:"blockReason"`
 	} `json:"promptFeedback"`
+}
+
+// gemini_schema converts a JSON Schema to the OpenAPI subset Gemini accepts:
+// type names are upper-cased and additionalProperties and $schema are dropped.
+func gemini_schema(value any) any {
+	switch v := value.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(v))
+		for key, item := range v {
+			if key == "additionalProperties" || key == "$schema" {
+				continue
+			}
+			if s, ok := item.(string); ok && key == "type" {
+				out[key] = strings.ToUpper(s)
+				continue
+			}
+			out[key] = gemini_schema(item)
+		}
+		return out
+	case []any:
+		out := make([]any, 0, len(v))
+		for _, item := range v {
+			out = append(out, gemini_schema(item))
+		}
+		return out
+	default:
+		return value
+	}
 }
 
 func (c *gemini_completer) Complete(ctx context.Context, req Request) (Reply, error) {
@@ -392,17 +614,54 @@ func (c *gemini_completer) Complete(ctx context.Context, req Request) (Reply, er
 		if turn.Role == "assistant" {
 			role = "model"
 		}
-		parts := make([]map[string]any, 0, len(turn.Images)+1)
-		for _, img := range turn.Images {
-			parts = append(parts, map[string]any{
-				"inlineData": map[string]string{
-					"mimeType": image_mime(img),
-					"data":     base64.StdEncoding.EncodeToString(img.Data),
-				},
-			})
-		}
-		if turn.Text != "" || len(parts) == 0 {
-			parts = append(parts, map[string]any{"text": turn.Text})
+		var parts []map[string]any
+		switch {
+		case len(turn.ToolCalls) > 0:
+			role = "model"
+			if turn.Text != "" {
+				parts = append(parts, map[string]any{"text": turn.Text})
+			}
+			for _, call := range turn.ToolCalls {
+				part := map[string]any{"functionCall": map[string]any{"name": call.Name, "args": arguments_object(call.Arguments)}}
+				if call.Signature != "" {
+					part["thoughtSignature"] = call.Signature
+				}
+				parts = append(parts, part)
+			}
+		case len(turn.ToolResults) > 0:
+			var media []map[string]any
+			for _, result := range turn.ToolResults {
+				key := "result"
+				if result.IsError {
+					key = "error"
+				}
+				parts = append(parts, map[string]any{"functionResponse": map[string]any{
+					"name":     result.Name,
+					"response": map[string]any{key: result.Content},
+				}})
+				for _, img := range result.Images {
+					media = append(media, map[string]any{"inlineData": map[string]string{
+						"mimeType": image_mime(img),
+						"data":     base64.StdEncoding.EncodeToString(img.Data),
+					}})
+				}
+			}
+			parts = append(parts, media...)
+			if turn.Text != "" {
+				parts = append(parts, map[string]any{"text": turn.Text})
+			}
+		default:
+			for _, img := range turn.Images {
+				parts = append(parts, map[string]any{
+					"inlineData": map[string]string{
+						"mimeType": image_mime(img),
+						"data":     base64.StdEncoding.EncodeToString(img.Data),
+					},
+				})
+			}
+			if turn.Text != "" || len(parts) == 0 {
+				parts = append(parts, map[string]any{"text": turn.Text})
+			}
 		}
 		contents = append(contents, map[string]any{"role": role, "parts": parts})
 	}
@@ -416,6 +675,17 @@ func (c *gemini_completer) Complete(ctx context.Context, req Request) (Reply, er
 	}
 	if req.System != "" {
 		body["systemInstruction"] = map[string]any{"parts": []map[string]string{{"text": req.System}}}
+	}
+	if len(req.Tools) > 0 {
+		declarations := make([]map[string]any, 0, len(req.Tools))
+		for _, tool := range req.Tools {
+			declarations = append(declarations, map[string]any{
+				"name":        tool.Name,
+				"description": tool.Description,
+				"parameters":  gemini_schema(tool.Parameters),
+			})
+		}
+		body["tools"] = []map[string]any{{"functionDeclarations": declarations}}
 	}
 	model := strings.TrimPrefix(c.model, "models/")
 	headers := map[string]string{"x-goog-api-key": c.api_key}
@@ -434,12 +704,22 @@ func (c *gemini_completer) Complete(ctx context.Context, req Request) (Reply, er
 	if len(out.Candidates) == 0 {
 		return Reply{}, errors.New("gemini: empty reply")
 	}
+	var reply Reply
 	var text strings.Builder
 	for _, part := range out.Candidates[0].Content.Parts {
 		text.WriteString(part.Text)
+		if part.FunctionCall != nil {
+			reply.ToolCalls = append(reply.ToolCalls, ToolCall{
+				ID:        part.FunctionCall.Name,
+				Name:      part.FunctionCall.Name,
+				Arguments: string(arguments_object(string(part.FunctionCall.Args))),
+				Signature: part.ThoughtSignature,
+			})
+		}
 	}
-	if strings.TrimSpace(text.String()) == "" {
+	reply.Text = text.String()
+	if strings.TrimSpace(reply.Text) == "" && len(reply.ToolCalls) == 0 {
 		return Reply{}, errors.New("gemini: empty reply")
 	}
-	return Reply{Text: text.String()}, nil
+	return reply, nil
 }
