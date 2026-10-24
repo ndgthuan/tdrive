@@ -3,6 +3,7 @@ package app
 import "testing"
 
 func TestRestoreFromTrashRejectsMissingOrSwitchedDrive(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 	for _, tc := range []struct {
 		channelID int64

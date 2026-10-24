@@ -11,6 +11,7 @@ import (
 )
 
 func TestAppEncryptionSetupFailsClosedWhenPolicyRefreshFails(t *testing.T) {
+	isolate_data_dir(t)
 	detail := errors.New("telegram history unavailable")
 	app, _, telegram := setupEncryptionAppWithPolicyRefresh(t, func(context.Context, int64) error {
 		return detail
@@ -32,6 +33,7 @@ func TestAppEncryptionSetupFailsClosedWhenPolicyRefreshFails(t *testing.T) {
 }
 
 func TestAppEncryptionSetupHonorsConfigRestoredByPolicyRefresh(t *testing.T) {
+	isolate_data_dir(t)
 	var db *sql.DB
 	refreshCalls := 0
 	app, resolvedDB, telegram := setupEncryptionAppWithPolicyRefresh(t, func(context.Context, int64) error {
@@ -58,6 +60,7 @@ func TestAppEncryptionSetupHonorsConfigRestoredByPolicyRefresh(t *testing.T) {
 }
 
 func TestAppEncryptionSetupCreatesOnlyAfterAuthoritativePlaintextPolicy(t *testing.T) {
+	isolate_data_dir(t)
 	refreshCalls := 0
 	app, _, telegram := setupEncryptionAppWithPolicyRefresh(t, func(context.Context, int64) error {
 		refreshCalls++

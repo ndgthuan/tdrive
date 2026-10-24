@@ -1,5 +1,5 @@
 // Package backfill publishes a user's existing local folders/files into
-// their personal Telegram channel as TDX1 mkdir/meta ops, so that wipe-
+// their personal Telegram channel as TDrive mkdir/meta ops, so that wipe-
 // and-resync produces an identical projection.
 //
 // Runs at most once per channel (gated by channels.personal_backfill_done).
@@ -49,7 +49,7 @@ func NewRunner(db *sql.DB, tg tgclient.Client, peers PeerResolver) *Runner {
 }
 
 // RunPersonal publishes every folder and file already projected for the
-// channel as TDX1 ops, then marks personal_backfill_done = 1.
+// channel as TDrive ops, then marks personal_backfill_done = 1.
 //
 // Skips ops whose obj_id is already represented in replay_log (covers
 // re-runs after a partial prior backfill).
@@ -74,7 +74,7 @@ func (r *Runner) RunPersonal(ctx context.Context, channelID int64, onProgress fu
 	}
 
 	// Pre-scan: any obj_ids already in replay_log skip this run. Captures
-	// resumed runs and channels that already had TDX1 ops from someone
+	// resumed runs and channels that already had TDrive ops from someone
 	// uploading mid-Step-3 before backfill landed.
 	seen, err := r.loadAlreadyPublished(channelID)
 	if err != nil {

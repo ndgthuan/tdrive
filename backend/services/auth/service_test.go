@@ -24,6 +24,7 @@ func (f *fakeEvents) Emit(name string, args ...any) {
 }
 
 func TestSystemStatusNeedsSetupWhenNoCreds(t *testing.T) {
+	isolate_data_dir(t)
 	setupConfigDir(t)
 	svc := NewService(nil)
 
@@ -33,6 +34,7 @@ func TestSystemStatusNeedsSetupWhenNoCreds(t *testing.T) {
 }
 
 func TestSystemStatusReadyWhenCredsExist(t *testing.T) {
+	isolate_data_dir(t)
 	setupConfigDir(t)
 	if err := coreauth.SaveImpCredentials(123, "hash"); err != nil {
 		t.Fatalf("save creds: %v", err)
@@ -45,6 +47,7 @@ func TestSystemStatusReadyWhenCredsExist(t *testing.T) {
 }
 
 func TestSubmitCodeUnblocksWaitCode(t *testing.T) {
+	isolate_data_dir(t)
 	svc := NewService(nil)
 	svc.resetAttempt(stageStarted)
 	done := make(chan string, 1)
@@ -65,6 +68,7 @@ func TestSubmitCodeUnblocksWaitCode(t *testing.T) {
 }
 
 func TestCodeRejectedEmitsInvalidEvent(t *testing.T) {
+	isolate_data_dir(t)
 	events := &fakeEvents{}
 	svc := NewService(events)
 
@@ -76,6 +80,7 @@ func TestCodeRejectedEmitsInvalidEvent(t *testing.T) {
 }
 
 func TestCodeRetryDeliversNewCodeAfterRejection(t *testing.T) {
+	isolate_data_dir(t)
 	events := &fakeEvents{}
 	svc := NewService(events)
 	svc.resetAttempt(stageStarted)
@@ -121,6 +126,7 @@ func TestCodeRetryDeliversNewCodeAfterRejection(t *testing.T) {
 }
 
 func TestSubmitPasswordWithoutPasswordRequestDoesNotBlock(t *testing.T) {
+	isolate_data_dir(t)
 	events := &fakeEvents{}
 	svc := NewService(events)
 	done := make(chan struct{}, 1)
@@ -140,6 +146,7 @@ func TestSubmitPasswordWithoutPasswordRequestDoesNotBlock(t *testing.T) {
 }
 
 func TestSendHintEmitsEvent(t *testing.T) {
+	isolate_data_dir(t)
 	events := &fakeEvents{}
 	svc := NewService(events)
 

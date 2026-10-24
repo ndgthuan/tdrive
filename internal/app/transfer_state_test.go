@@ -6,6 +6,7 @@ import (
 )
 
 func TestTransferCompletionKeepsReplacementCancellable(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct {
 		name string
 		kind transferKind
@@ -42,6 +43,7 @@ func TestTransferCompletionKeepsReplacementCancellable(t *testing.T) {
 }
 
 func TestTransferDirectionsHaveIndependentLifetimes(t *testing.T) {
+	isolate_data_dir(t)
 	var state transferState
 	upload, finishUpload := state.begin(t.Context(), uploadTransfer)
 	defer finishUpload()
@@ -61,6 +63,7 @@ func TestTransferDirectionsHaveIndependentLifetimes(t *testing.T) {
 }
 
 func TestResumeUploadDoesNotReplaceActiveBatch(t *testing.T) {
+	isolate_data_dir(t)
 	var state transferState
 	active, finish := state.begin(t.Context(), uploadTransfer)
 	defer finish()
@@ -84,6 +87,7 @@ func TestResumeUploadDoesNotReplaceActiveBatch(t *testing.T) {
 }
 
 func TestTransferConcurrentCompletionAndCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	var state transferState
 	var workers sync.WaitGroup
 	for range 32 {
@@ -104,6 +108,7 @@ func TestTransferConcurrentCompletionAndCancellation(t *testing.T) {
 }
 
 func TestPickerSourcesAreConsumedOnceAndReplacedByNewSelection(t *testing.T) {
+	isolate_data_dir(t)
 	var state transferState
 	state.rememberPickerSources([]string{"old", "selected"})
 	if !state.takePickerSource("selected") || state.takePickerSource("selected") {

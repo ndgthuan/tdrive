@@ -190,6 +190,9 @@ func (remote *TelegramRemote) Commit(ctx context.Context, request mountwrite.Com
 	if remote == nil || request.Mutation.DriveID != remote.driveID {
 		return mountwrite.MutationResult{}, mountwrite.ErrInvalidRequest
 	}
+	if request.Mutation.Kind == mountwrite.MutationHardDelete {
+		return remote.commit_local_purge(ctx, request)
+	}
 	slog.Debug("mountadapter: TelegramRemote.Commit starting", "operation_id", request.OperationID, "kind", request.Mutation.Kind, "content_length", request.Mutation.ContentLength)
 	now := request.CommitTime.UTC()
 	if now.IsZero() {
@@ -208,19 +211,6 @@ func (remote *TelegramRemote) Commit(ctx context.Context, request mountwrite.Com
 	randomID, err := tgclient.StableRandomID(request.OperationID, "commit")
 	if err != nil {
 		return mountwrite.MutationResult{}, err
-	}
-	if request.Mutation.Kind == mountwrite.MutationHardDelete {
-		if err := projection.RegisterHardDeleteIntent(
-			ctx,
-			remote.db,
-			request.Mutation.DriveID,
-			request.OperationID,
-			request.Mutation.ObjectID,
-			int64(request.Mutation.ExpectedRevision),
-		); err != nil {
-			slog.Warn("mountadapter: Commit failed to register hard-delete intent", "operation_id", request.OperationID, "error", err)
-			return mountwrite.MutationResult{}, errors.Join(mapRejectedProjectionError(err.Error()), err)
-		}
 	}
 	header := projection.Format(op)
 	var msgID int64
@@ -258,11 +248,6 @@ func (remote *TelegramRemote) Commit(ctx context.Context, request mountwrite.Com
 	}
 	if operation.Outcome == projection.OperationRejected {
 		slog.Warn("mountadapter: Commit rejected by projection", "operation_id", request.OperationID, "msg_id", msgID, "reason", operation.Error)
-		if request.Mutation.Kind == mountwrite.MutationHardDelete {
-			if abandonErr := projection.AbandonHardDeleteIntent(ctx, remote.db, request.Mutation.DriveID, request.OperationID); abandonErr != nil {
-				return mountwrite.MutationResult{}, errors.Join(mapRejectedProjectionError(operation.Error), abandonErr)
-			}
-		}
 		return mountwrite.MutationResult{}, mapRejectedProjectionError(operation.Error)
 	}
 	if operation.Outcome != projection.OperationApplied {
@@ -275,6 +260,60 @@ func (remote *TelegramRemote) Commit(ctx context.Context, request mountwrite.Com
 	}
 	slog.Debug("mountadapter: Commit applied", "operation_id", request.OperationID, "msg_id", msgID, "object_id", result.ObjectID, "revision", result.Revision, "created", result.Created)
 	return result, nil
+}
+
+// commit_local_purge is the mount's permanent delete. It captures the same
+// local plan the app purge uses (projection.CaptureLocalPurge) and publishes no
+// hard-delete record, so the chat keeps no trace of the object. The Telegram
+// messages in the plan are removed afterwards by the coordinator's journaled
+// body deletion. The ordering barrier runs first so the captured subtree
+// includes every earlier write from other clients.
+func (remote *TelegramRemote) commit_local_purge(ctx context.Context, request mountwrite.CommitRequest) (mountwrite.MutationResult, error) {
+	if remote.projectThrough == nil {
+		return mountwrite.MutationResult{}, mountwrite.ErrUnavailable
+	}
+	if err := remote.projectThrough(ctx, remote.driveID); err != nil {
+		return mountwrite.MutationResult{}, err
+	}
+	object_id := request.Mutation.ObjectID
+	revision, err := projection.RegisterTrashPurgeIntent(ctx, remote.db, remote.driveID, request.OperationID, object_id)
+	if err != nil {
+		slog.Warn("mountadapter: local purge intent rejected", "operation_id", request.OperationID, "error", err)
+		return mountwrite.MutationResult{}, errors.Join(mapRejectedProjectionError(err.Error()), err)
+	}
+	if revision != int64(request.Mutation.ExpectedRevision) {
+		cause := mountwrite.ErrPreconditionFailed
+		return mountwrite.MutationResult{}, remote.abandon_local_purge(ctx, request.OperationID, cause)
+	}
+	if err := projection.CaptureLocalPurge(ctx, remote.db, remote.driveID, request.OperationID, object_id, revision); err != nil {
+		slog.Warn("mountadapter: local purge capture failed", "operation_id", request.OperationID, "error", err)
+		return mountwrite.MutationResult{}, remote.abandon_local_purge(ctx, request.OperationID, errors.Join(mapRejectedProjectionError(err.Error()), err))
+	}
+	return mountwrite.MutationResult{OperationID: request.OperationID, ObjectID: object_id}, nil
+}
+
+// abandon_local_purge releases an uncaptured purge claim. Once the plan exists
+// the claim cannot be released, so the outcome is reported as unknown and the
+// coordinator reconciles it against the captured plan instead of aborting.
+func (remote *TelegramRemote) abandon_local_purge(ctx context.Context, operation_id string, cause error) error {
+	abandon := projection.AbandonHardDeleteIntent(ctx, remote.db, remote.driveID, operation_id)
+	if errors.Is(abandon, projection.ErrHardDeleteIntentApplied) {
+		return errors.Join(mountwrite.ErrCommitOutcomeUnknown, cause)
+	}
+	return errors.Join(cause, abandon)
+}
+
+// reconcile_local_purge reports a purge whose plan was captured locally, which
+// is the only durable evidence a permanent delete leaves behind.
+func (remote *TelegramRemote) reconcile_local_purge(ctx context.Context, operation_id string) (mountwrite.MutationResult, bool, error) {
+	_, _, _, err := projection.HardDeletePlanPage(ctx, remote.db, remote.driveID, operation_id, 0, 1)
+	if errors.Is(err, projection.ErrHardDeletePlanNotFound) {
+		return mountwrite.MutationResult{}, false, nil
+	}
+	if err != nil {
+		return mountwrite.MutationResult{}, false, err
+	}
+	return mountwrite.MutationResult{OperationID: operation_id}, true, nil
 }
 
 func (remote *TelegramRemote) projectCommitted(
@@ -357,6 +396,9 @@ func (remote *TelegramRemote) Reconcile(ctx context.Context, operationID string)
 		return mountwrite.MutationResult{}, false, mountwrite.ErrInvalidRequest
 	}
 	if result, found, err := remote.reconcileProjected(operationID); err != nil || found {
+		return result, found, err
+	}
+	if result, found, err := remote.reconcile_local_purge(ctx, operationID); err != nil || found {
 		return result, found, err
 	}
 	peer, err := remote.peers.ResolvePeer(ctx, remote.driveID)

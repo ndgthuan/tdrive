@@ -78,6 +78,7 @@ func TestServerRejectsInvalidConfiguration(t *testing.T) {
 }
 
 func TestServerStartIsIdempotentOnlyForSameConfig(t *testing.T) {
+	isolate_data_dir(t)
 	fs := testFS(t, nil)
 	server := NewServer()
 	config := StartConfig{FS: fs.fs, DriveID: 42, DriveTitle: "Drive", WindowsDrive: "x"}
@@ -129,6 +130,7 @@ func TestUnexpectedServeFailureIsSanitizedAndGenerationSafe(t *testing.T) {
 }
 
 func TestUnexpectedClosedListenerClearsRunningStatus(t *testing.T) {
+	isolate_data_dir(t)
 	httpServer := &http.Server{}
 	listener := errorListener{err: net.ErrClosed}
 	server := &Server{
@@ -147,6 +149,7 @@ func TestUnexpectedClosedListenerClearsRunningStatus(t *testing.T) {
 }
 
 func TestUnexpectedServeFailureClosesActiveConnections(t *testing.T) {
+	isolate_data_dir(t)
 	serverConnection, clientConnection := net.Pipe()
 	defer clientConnection.Close()
 	listener := newFailingListener(serverConnection)
@@ -239,6 +242,7 @@ func (errorListener) Close() error                       { return nil }
 func (errorListener) Addr() net.Addr                     { return testNetworkAddress("error-listener") }
 
 func TestStopForcesClosedConnectionsAfterDefaultBound(t *testing.T) {
+	isolate_data_dir(t)
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("Listen: %v", err)
@@ -327,6 +331,7 @@ func TestRandomCapabilityAndCommandHints(t *testing.T) {
 }
 
 func TestServerReadProtocolSurface(t *testing.T) {
+	isolate_data_dir(t)
 	opener := &memoryOpener{data: []byte("server bytes")}
 	fs := testFS(t, opener)
 	server := NewServer()

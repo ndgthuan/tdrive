@@ -39,6 +39,7 @@ func lost(ids ...int64) RemoteIndex {
 }
 
 func TestReceiptSweepHoldsLostUploadsForAnExplicitRetry(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(1000, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -86,6 +87,7 @@ func TestReceiptSweepHoldsLostUploadsForAnExplicitRetry(t *testing.T) {
 }
 
 func TestReceiptSweepRestoresAReceiptWhoseFileComesBack(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(2000, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -106,6 +108,7 @@ func TestReceiptSweepRestoresAReceiptWhoseFileComesBack(t *testing.T) {
 }
 
 func TestReceiptSweepIsBoundedResumableAndIdempotent(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(3000, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -167,6 +170,7 @@ func TestReceiptSweepIsBoundedResumableAndIdempotent(t *testing.T) {
 }
 
 func TestReceiptSweepLeavesQueuedAndHeldJobsAlone(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(4000, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -196,6 +200,7 @@ func TestReceiptSweepLeavesQueuedAndHeldJobsAlone(t *testing.T) {
 }
 
 func TestReceiptWalkUsesTheReceiptIndex(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(5000, 0)
 	e, scope := testEngine(t, &now)
 	rows, err := e.db.Query(`EXPLAIN QUERY PLAN SELECT DISTINCT remote_message_id FROM photo_backup_jobs WHERE account_id=? AND drive_id=? AND remote_message_id>? AND status IN (?,?) ORDER BY remote_message_id LIMIT 1`, scope.AccountID, scope.DriveID, 0, Complete, Missing)
@@ -220,6 +225,7 @@ func TestReceiptWalkUsesTheReceiptIndex(t *testing.T) {
 }
 
 func TestMigrateVersionFourAddsReceiptReconciliation(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(6000, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -245,6 +251,7 @@ func TestMigrateVersionFourAddsReceiptReconciliation(t *testing.T) {
 }
 
 func TestReconcileReceiptsRejectsInvalidArguments(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(7000, 0)
 	e, scope := testEngine(t, &now)
 	if _, err := e.ReconcileReceipts(context.Background(), Scope{}, lost(), 0); err != ErrInvalid {

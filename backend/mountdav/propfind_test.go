@@ -20,6 +20,7 @@ import (
 )
 
 func TestPropfindNeverAdvertisesWriteLocks(t *testing.T) {
+	isolate_data_dir(t)
 	portable := testFS(t, nil).fs
 	handler := newPropfindTestHandler(portable)
 
@@ -58,6 +59,7 @@ func TestPropfindNeverAdvertisesWriteLocks(t *testing.T) {
 }
 
 func TestWindowsNoRootPropfindReturnsOnlyImmediateChildren(t *testing.T) {
+	isolate_data_dir(t)
 	opener := &memoryOpener{data: []byte("content must remain unopened")}
 	handler := newPropfindTestHandler(testFS(t, opener).fs)
 	for _, target := range []string{testCapability + "/", testCapability} {
@@ -91,6 +93,7 @@ func TestWindowsNoRootPropfindReturnsOnlyImmediateChildren(t *testing.T) {
 }
 
 func TestWindowsNoRootPropfindReturnsEmptyMultistatusForEmptyDirectory(t *testing.T) {
+	isolate_data_dir(t)
 	source := &sequencedSource{responses: []directoryResponse{{entries: nil}}}
 	opener := &rejectingOpener{}
 	handler := newPropfindTestHandler(newUncachedMountFS(t, source, opener))
@@ -116,6 +119,7 @@ func TestWindowsNoRootPropfindReturnsEmptyMultistatusForEmptyDirectory(t *testin
 }
 
 func TestWindowsNoRootPropfindOmitsNestedCollectionAndKeepsChild(t *testing.T) {
+	isolate_data_dir(t)
 	opener := &memoryOpener{data: []byte("content must remain unopened")}
 	handler := newPropfindTestHandler(testFS(t, opener).fs)
 	request := trustedRequest(
@@ -142,6 +146,7 @@ func TestWindowsNoRootPropfindOmitsNestedCollectionAndKeepsChild(t *testing.T) {
 }
 
 func TestPropfindFilterMatchesNoRootResponseByHref(t *testing.T) {
+	isolate_data_dir(t)
 	input := `<D:multistatus xmlns:D="DAV:">` +
 		`<D:response><D:href>/dav/child/</D:href><D:propstat><D:prop><D:supportedlock><D:lockentry/></D:supportedlock></D:prop></D:propstat></D:response>` +
 		`<D:response><D:href>/dav/</D:href><D:propstat><D:prop><D:supportedlock><D:lockentry/></D:supportedlock></D:prop></D:propstat></D:response>` +
@@ -159,6 +164,7 @@ func TestPropfindFilterMatchesNoRootResponseByHref(t *testing.T) {
 }
 
 func TestWindowsNoRootPropfindPreservesRequestProtection(t *testing.T) {
+	isolate_data_dir(t)
 	handler := newPropfindTestHandler(testFS(t, nil).fs)
 	newRequest := func(target string) *http.Request {
 		request := trustedRequest("PROPFIND", target, bytes.NewBufferString(`<D:propfind xmlns:D="DAV:"><D:allprop/></D:propfind>`))
@@ -190,6 +196,7 @@ func TestWindowsNoRootPropfindPreservesRequestProtection(t *testing.T) {
 }
 
 func TestPropfindPreservesNonMultistatusErrors(t *testing.T) {
+	isolate_data_dir(t)
 	portable := testFS(t, nil).fs
 	handler := newPropfindTestHandler(portable)
 	request := trustedRequest("PROPFIND", testCapability+"/Docs/", bytes.NewBufferString("<invalid"))
@@ -202,6 +209,7 @@ func TestPropfindPreservesNonMultistatusErrors(t *testing.T) {
 }
 
 func TestMalformedPropfindRejectedBeforeMetadataPreflight(t *testing.T) {
+	isolate_data_dir(t)
 	source := &sequencedSource{responses: []directoryResponse{{entries: nil}}}
 	opener := &rejectingOpener{}
 	portable := newUncachedMountFS(t, source, opener)
@@ -224,6 +232,7 @@ func TestMalformedPropfindRejectedBeforeMetadataPreflight(t *testing.T) {
 }
 
 func TestPropfindPreflightRejectsMetadataFailures(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name   string
 		err    error
@@ -258,6 +267,7 @@ func TestPropfindPreflightRejectsMetadataFailures(t *testing.T) {
 }
 
 func TestPropfindUsesOneCompleteMetadataSnapshot(t *testing.T) {
+	isolate_data_dir(t)
 	children := []mountfs.SourceEntry{{
 		ID:         "f:note",
 		ParentID:   mountfs.RootID,

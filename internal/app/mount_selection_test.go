@@ -47,6 +47,7 @@ func TestMountDrivesStartsExactCanonicalSelection(t *testing.T) {
 }
 
 func TestResolveMountDrivesUsesCanonicalRowsAndSkipsUnselectedPersonalPolicy(t *testing.T) {
+	isolate_data_dir(t)
 	refreshCalls := 0
 	app, db, _ := setupEncryptionAppWithPolicyRefresh(t, func(context.Context, int64) error {
 		refreshCalls++
@@ -75,6 +76,7 @@ func TestResolveMountDrivesUsesCanonicalRowsAndSkipsUnselectedPersonalPolicy(t *
 }
 
 func TestResolveMountDrivesRejectsInvalidSelections(t *testing.T) {
+	isolate_data_dir(t)
 	app, _, _ := setupEncryptionAppWithPolicyRefresh(t, func(context.Context, int64) error { return nil })
 	t.Cleanup(app.engine.Close)
 

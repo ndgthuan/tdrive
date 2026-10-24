@@ -61,6 +61,7 @@ func TestParseCLIOptions(t *testing.T) {
 }
 
 func TestNonInteractiveGetRejectsBrokenSymlinkWithoutConnecting(t *testing.T) {
+	isolate_data_dir(t)
 	if runtime.GOOS == "windows" {
 		t.Skip("creating symlinks requires extra privileges on Windows")
 	}

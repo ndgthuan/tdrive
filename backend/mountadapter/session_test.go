@@ -306,8 +306,8 @@ func TestUnlockedEncryptedSessionEncryptsPutsAndAllowsEncryptedMetadataMutations
 		if _, err := session.Delete(context.Background(), mountdav.DeleteRequest{Path: "/secret.txt"}); err != nil {
 			t.Fatalf("encrypted Delete() error = %v", err)
 		}
-		if engine.callCount != 2 {
-			t.Fatalf("metadata engine calls = %d, want 2", engine.callCount)
+		if engine.callCount != 3 {
+			t.Fatalf("metadata engine calls = %d, want 3 (move, trash, purge)", engine.callCount)
 		}
 	})
 
@@ -343,9 +343,14 @@ func TestSessionDeleteUsesHardDeleteForFilesAndRecursiveFolders(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			resolver := newFakeResolver(test.node)
-			engine := &fakeEngine{hardDeleteResult: mountwrite.MutationResult{
-				ObjectID: test.node.ObjectID, Revision: test.node.Revision + 1,
-			}}
+			engine := &fakeEngine{
+				deleteResult: mountwrite.MutationResult{
+					ObjectID: test.node.ObjectID, Revision: test.node.Revision + 1,
+				},
+				hardDeleteResult: mountwrite.MutationResult{
+					ObjectID: test.node.ObjectID, Revision: test.node.Revision + 2,
+				},
+			}
 			session := newTestSession(resolver, engine)
 
 			if _, err := session.Delete(context.Background(), mountdav.DeleteRequest{
@@ -353,14 +358,19 @@ func TestSessionDeleteUsesHardDeleteForFilesAndRecursiveFolders(t *testing.T) {
 			}); err != nil {
 				t.Fatalf("Delete: %v", err)
 			}
+			// The delete is trash then purge: the trash step addresses the live
+			// revision, and the purge addresses the revision the trash produced.
+			trash := engine.deleteRequest
+			if trash.OperationID != mount_trash_operation_id("op-hard-delete") || trash.DriveID != testDriveID ||
+				trash.ObjectID != test.node.ObjectID || trash.ParentID != test.node.ParentID ||
+				trash.ExpectedRevision != test.node.Revision || trash.TrashRetention != defaultTrashRetention {
+				t.Fatalf("trash step request = %+v", trash)
+			}
 			request := engine.hardDeleteRequest
 			if request.OperationID != "op-hard-delete" || request.DriveID != testDriveID ||
 				request.ObjectID != test.node.ObjectID || request.ParentID != test.node.ParentID ||
-				request.ExpectedRevision != test.node.Revision {
+				request.ExpectedRevision != test.node.Revision+1 {
 				t.Fatalf("HardDelete request = %+v", request)
-			}
-			if engine.deleteRequest != (mountwrite.DeleteRequest{}) {
-				t.Fatalf("soft Delete unexpectedly called with %+v", engine.deleteRequest)
 			}
 		})
 	}

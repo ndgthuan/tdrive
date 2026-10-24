@@ -23,6 +23,7 @@ func withConfigHome(t *testing.T) string {
 }
 
 func TestAcquireIgnoresReleasedOwnerMetadata(t *testing.T) {
+	isolate_data_dir(t)
 	dir := withConfigHome(t)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
@@ -54,6 +55,7 @@ func TestAcquireIgnoresReleasedOwnerMetadata(t *testing.T) {
 }
 
 func TestReleaseKeepsGuardInodeAndCannotReleaseSuccessor(t *testing.T) {
+	isolate_data_dir(t)
 	withConfigHome(t)
 	first, err := Acquire("gui")
 	if err != nil {
@@ -95,6 +97,7 @@ func TestReleaseKeepsGuardInodeAndCannotReleaseSuccessor(t *testing.T) {
 }
 
 func TestConcurrentAcquisitionsHaveOneOwner(t *testing.T) {
+	isolate_data_dir(t)
 	withConfigHome(t)
 	start := make(chan struct{})
 	results := make(chan *Lock, 16)
@@ -133,6 +136,7 @@ func TestConcurrentAcquisitionsHaveOneOwner(t *testing.T) {
 }
 
 func TestAcquireRejectsSecondBackend(t *testing.T) {
+	isolate_data_dir(t)
 	withConfigHome(t)
 
 	first, err := Acquire("gui")
@@ -148,6 +152,7 @@ func TestAcquireRejectsSecondBackend(t *testing.T) {
 }
 
 func TestActiveGuardDoesNotDependOnReadableMetadata(t *testing.T) {
+	isolate_data_dir(t)
 	withConfigHome(t)
 	lock, err := Acquire("gui")
 	if err != nil {
@@ -185,6 +190,7 @@ func TestActiveGuardDoesNotDependOnReadableMetadata(t *testing.T) {
 }
 
 func TestAcquireReclaimsLegacyRecordNamingOwnPID(t *testing.T) {
+	isolate_data_dir(t)
 	dir := withConfigHome(t)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
@@ -201,6 +207,7 @@ func TestAcquireReclaimsLegacyRecordNamingOwnPID(t *testing.T) {
 }
 
 func TestAcquireReclaimsStaleLock(t *testing.T) {
+	isolate_data_dir(t)
 	dir := withConfigHome(t)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatalf("mkdir: %v", err)
@@ -220,6 +227,7 @@ func TestAcquireReclaimsStaleLock(t *testing.T) {
 }
 
 func TestUnknownMetadataBlocksStartupWithoutRetainingGuard(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct {
 		name   string
 		record string
@@ -267,6 +275,7 @@ func TestUnknownMetadataBlocksStartupWithoutRetainingGuard(t *testing.T) {
 }
 
 func TestMetadataPublicationFailurePreservesExistingRecord(t *testing.T) {
+	isolate_data_dir(t)
 	path := filepath.Join(t.TempDir(), "backend.lock")
 	original := `{"role":"gui","pid":-1,"lock_version":2}`
 	if err := os.WriteFile(path, []byte(original), fileMode); err != nil {

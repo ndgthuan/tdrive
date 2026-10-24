@@ -95,6 +95,7 @@ func newServiceDB(t *testing.T) *sql.DB {
 }
 
 func TestPrepareUsesSavedDriveWithoutDiscovery(t *testing.T) {
+	isolate_data_dir(t)
 	telegram := &fakeTelegram{}
 	var used int64
 	service := NewService(Config{
@@ -126,6 +127,7 @@ func TestPrepareUsesSavedDriveWithoutDiscovery(t *testing.T) {
 }
 
 func TestPrepareRejectsUnavailableSavedActivation(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("activation failed")
 	service := NewService(Config{
 		DB:         newServiceDB(t),
@@ -146,6 +148,7 @@ func TestPrepareRejectsUnavailableSavedActivation(t *testing.T) {
 }
 
 func TestPrepareValidatesConfiguration(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("config unavailable")
 	service := NewService(Config{
 		LoadConfig: func() (int64, error) { return 0, wantErr },
@@ -163,6 +166,7 @@ func TestPrepareValidatesConfiguration(t *testing.T) {
 }
 
 func TestPrepareMissingConfigRequiresSelectionWithoutTelegram(t *testing.T) {
+	isolate_data_dir(t)
 	telegram := &fakeTelegram{channels: []tgclient.OwnedBroadcastChannel{{ID: 1, Title: "TDrive"}}}
 	service := NewService(Config{
 		Telegram:   telegram,
@@ -184,6 +188,7 @@ func TestPrepareMissingConfigRequiresSelectionWithoutTelegram(t *testing.T) {
 // An unparseable config.json (for example one edited by hand) must lead to
 // the explicit picker, not a dead end, and must never create a channel.
 func TestUnreadableConfigIsTreatedAsUnconfigured(t *testing.T) {
+	isolate_data_dir(t)
 	loadInvalid := func() (int64, error) {
 		return 0, fmt.Errorf("%w: unexpected token", auth.ErrConfigInvalid)
 	}
@@ -220,6 +225,7 @@ func TestUnreadableConfigIsTreatedAsUnconfigured(t *testing.T) {
 }
 
 func TestDiscoverListsSortedCandidatesWithoutCreating(t *testing.T) {
+	isolate_data_dir(t)
 	telegram := &fakeTelegram{channels: []tgclient.OwnedBroadcastChannel{
 		{ID: 9, Title: "Work", CreatedAt: 1, HasActivity: true},
 		{ID: 4, Title: "tdrive", CreatedAt: 40, HasActivity: false},
@@ -258,6 +264,7 @@ func TestDiscoverListsSortedCandidatesWithoutCreating(t *testing.T) {
 }
 
 func TestDiscoverEmptyAndFailureNeverCreate(t *testing.T) {
+	isolate_data_dir(t)
 	t.Run("empty", func(t *testing.T) {
 		telegram := &fakeTelegram{}
 		service := NewService(Config{Telegram: telegram})
@@ -293,6 +300,7 @@ func TestDiscoverEmptyAndFailureNeverCreate(t *testing.T) {
 }
 
 func TestSelectRevalidatesAndRejectsUnknownChannel(t *testing.T) {
+	isolate_data_dir(t)
 	telegram := &fakeTelegram{channels: []tgclient.OwnedBroadcastChannel{{ID: 1001, Title: "TDrive"}}}
 	var saved, active int64
 	service := NewService(Config{
@@ -315,6 +323,7 @@ func TestSelectRevalidatesAndRejectsUnknownChannel(t *testing.T) {
 }
 
 func TestSelectAndCreateUseConfiguredDriveWithoutRemoteMutation(t *testing.T) {
+	isolate_data_dir(t)
 	telegram := &fakeTelegram{}
 	var used []int64
 	service := NewService(Config{
@@ -341,6 +350,7 @@ func TestSelectAndCreateUseConfiguredDriveWithoutRemoteMutation(t *testing.T) {
 }
 
 func TestSelectPropagatesRevalidationFailure(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("lookup failed")
 	service := NewService(Config{
 		Telegram:   &fakeTelegram{listErr: wantErr},
@@ -352,6 +362,7 @@ func TestSelectPropagatesRevalidationFailure(t *testing.T) {
 }
 
 func TestSelectUsesFreshMetadataAndCommitsAfterAuthoritativeSync(t *testing.T) {
+	isolate_data_dir(t)
 	db := newServiceDB(t)
 	telegram := &fakeTelegram{channels: []tgclient.OwnedBroadcastChannel{{
 		ID: 1001, AccessHash: 8001, Title: "Renamed TDrive", CreatedAt: 123, HasActivity: true,
@@ -406,6 +417,7 @@ func TestSelectUsesFreshMetadataAndCommitsAfterAuthoritativeSync(t *testing.T) {
 }
 
 func TestSelectSyncFailureDoesNotCommitOrActivate(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("history unavailable")
 	var saved, active int64
 	db := newServiceDB(t)
@@ -436,6 +448,7 @@ func TestSelectSyncFailureDoesNotCommitOrActivate(t *testing.T) {
 }
 
 func TestFailedSelectionDoesNotPolluteLaterSelection(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("first history scan failed")
 	db := newServiceDB(t)
 	telegram := &fakeTelegram{channels: []tgclient.OwnedBroadcastChannel{
@@ -472,6 +485,7 @@ func TestFailedSelectionDoesNotPolluteLaterSelection(t *testing.T) {
 // has that channel registered as personal. Recovering the real drive must
 // retire it so the sidebar and mount picker never show two personal drives.
 func TestSelectRetiresStalePersonalChannelAndKeepsSharedDrives(t *testing.T) {
+	isolate_data_dir(t)
 	db := newServiceDB(t)
 	const stale, shared, recovered int64 = 4000, 5000, 1001
 	if err := projection.MigratePersonalChannel(db, stale); err != nil {
@@ -518,6 +532,7 @@ func TestSelectRetiresStalePersonalChannelAndKeepsSharedDrives(t *testing.T) {
 // caption-less uploads at root; recovery must only sync incrementally and
 // must not claim the backfill is complete on the channel's behalf.
 func TestSelectOnPopulatedProjectionSyncsIncrementallyAndKeepsLocalState(t *testing.T) {
+	isolate_data_dir(t)
 	db := newServiceDB(t)
 	const channelID int64 = 1001
 	if err := projection.MigratePersonalChannel(db, channelID); err != nil {
@@ -562,6 +577,7 @@ func TestSelectOnPopulatedProjectionSyncsIncrementallyAndKeepsLocalState(t *test
 }
 
 func TestCreateRetriesPendingChannelWithoutCreatingAnother(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("first sync failed")
 	telegram := &fakeTelegram{createResult: tgclient.OwnedBroadcastChannel{
 		ID: 5001, AccessHash: 9001, Title: "TDrive", CreatedAt: 500,
@@ -601,6 +617,7 @@ func TestCreateRetriesPendingChannelWithoutCreatingAnother(t *testing.T) {
 }
 
 func TestCreateRetriesPendingChannelAfterConfigSaveFailure(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("disk full")
 	telegram := &fakeTelegram{createResult: tgclient.OwnedBroadcastChannel{
 		ID: 5001, AccessHash: 9001, Title: "TDrive", CreatedAt: 500,
@@ -641,6 +658,7 @@ func TestCreateRetriesPendingChannelAfterConfigSaveFailure(t *testing.T) {
 }
 
 func TestCreateRejectsRemoteFailuresAndInvalidResults(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("create failed")
 	service := NewService(Config{
 		Telegram:   &fakeTelegram{createErr: wantErr},
@@ -660,6 +678,7 @@ func TestCreateRejectsRemoteFailuresAndInvalidResults(t *testing.T) {
 }
 
 func TestSelectRequiresRecoveryDependencies(t *testing.T) {
+	isolate_data_dir(t)
 	service := NewService(Config{
 		DB: newServiceDB(t),
 		Telegram: &fakeTelegram{channels: []tgclient.OwnedBroadcastChannel{{
@@ -679,6 +698,7 @@ func (r fakePeerResolver) ResolvePeer(ctx context.Context, channelID int64) (tgc
 }
 
 func TestSelectRecoversRemoteTreeWithoutTelegramWrites(t *testing.T) {
+	isolate_data_dir(t)
 	const channelID int64 = 8200
 	db := newServiceDB(t)
 	telegram := tgclient.NewFake(77)

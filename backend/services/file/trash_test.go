@@ -37,6 +37,7 @@ func trashedObjectIDs(t *testing.T, svc *Service) []string {
 }
 
 func TestDeleteTrashesWithoutTouchingTelegram(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	seedCommittedFile(t, db, 2001, 9001, "keep.txt")
 
@@ -63,6 +64,7 @@ func TestDeleteTrashesWithoutTouchingTelegram(t *testing.T) {
 }
 
 func TestRestoreBringsBackAFileWhoseNameWasTakenMeanwhile(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	seedCommittedFile(t, db, 2001, 9001, "notes.txt")
 
@@ -87,6 +89,7 @@ func TestRestoreBringsBackAFileWhoseNameWasTakenMeanwhile(t *testing.T) {
 }
 
 func TestPurgeDeletesOnlyThePlannedBodies(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	seedCommittedFile(t, db, 2001, 9001, "gone.txt")
 	seedCommittedFile(t, db, 2002, 9002, "stays.txt")
@@ -107,11 +110,14 @@ func TestPurgeDeletesOnlyThePlannedBodies(t *testing.T) {
 	if !deleted[9001] {
 		t.Fatalf("purge left the body behind: %v", deleted)
 	}
-	// Neither the untouched file's body nor the control messages that make up
-	// the drive's history may ever enter a plan.
-	for _, id := range []int64{9002, 2001, 2002} {
+	// The file's own upload message is part of the object and goes too. The
+	// untouched file's body and message must never enter a plan.
+	if !deleted[2001] {
+		t.Fatalf("purge left the upload message behind: %v", deleted)
+	}
+	for _, id := range []int64{9002, 2002} {
 		if deleted[id] {
-			t.Fatalf("purge deleted msg %d, which was never its body", id)
+			t.Fatalf("purge deleted msg %d, which belongs to another file", id)
 		}
 	}
 	if ids := trashedObjectIDs(t, svc); len(ids) != 0 {
@@ -123,6 +129,7 @@ func TestPurgeDeletesOnlyThePlannedBodies(t *testing.T) {
 }
 
 func TestExpiredSweepDeletesNothingBeforePurgeAfter(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	seedCommittedFile(t, db, 2001, 9001, "pending.txt")
 	if err := svc.Delete(context.Background(), personalChannelID, 2001); err != nil {
@@ -163,6 +170,7 @@ func TestExpiredSweepDeletesNothingBeforePurgeAfter(t *testing.T) {
 }
 
 func TestPurgeResumesAfterTheMarkerIsAlreadyProjected(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	seedCommittedFile(t, db, 2001, 9001, "interrupted.txt")
 	if err := svc.Delete(context.Background(), personalChannelID, 2001); err != nil {

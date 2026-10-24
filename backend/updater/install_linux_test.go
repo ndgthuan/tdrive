@@ -10,6 +10,7 @@ import (
 )
 
 func TestLinuxTargetRequiresAppImage(t *testing.T) {
+	isolate_data_dir(t)
 	var notInstallable *NotInstallableError
 	if _, err := (linuxInstaller{appImage: func() string { return "" }}).Target(); !errors.As(err, &notInstallable) {
 		t.Fatalf("Target without APPIMAGE = %v, want NotInstallableError", err)
@@ -28,6 +29,7 @@ func TestLinuxTargetRequiresAppImage(t *testing.T) {
 }
 
 func TestLinuxInstallReplacesAppImage(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	current := filepath.Join(dir, "TDrive.AppImage")
 	if err := os.WriteFile(current, []byte("old"), 0o755); err != nil {

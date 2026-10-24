@@ -202,6 +202,7 @@ func TestStatNormalizesMacOSDecomposedPathBeforeLengthValidation(t *testing.T) {
 }
 
 func TestOperationsRejectUnsafePathsBeforeCallingSource(t *testing.T) {
+	isolate_data_dir(t)
 	source := newFakeDirectorySource(nil)
 	fs := mustNewFS(t, 42, source, &fakeContentOpener{})
 	unsafePaths := []string{

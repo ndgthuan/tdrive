@@ -237,12 +237,12 @@ type Client interface {
 	ResolveUsersFromMessages(ctx context.Context, peer InputPeer, refs []UserMessageRef) ([]UserProfile, error)
 
 	// SendControl posts a text-only message into the channel. The text is
-	// expected to be a TDX1 header (possibly with a human-readable comment
+	// expected to be a TDrive header (possibly with a human-readable comment
 	// after a newline). Returns the new msgID.
 	SendControl(ctx context.Context, peer InputPeer, text string, silent bool) (msgID int64, err error)
 
 	// SendFile uploads and sends a document with the given caption. The
-	// caption is expected to start with a TDX1|t=f|... header. onProgress is
+	// caption is expected to start with a TDrive | type=file | ... header. onProgress is
 	// optional; pass nil to skip progress callbacks.
 	SendFile(ctx context.Context, peer InputPeer, r io.Reader, name, caption string, totalSize int64, onProgress func(sent, total int64)) (SendFileResult, error)
 

@@ -70,7 +70,7 @@ func ClearUserData(mode LogoutMode) error {
 		if err := os.RemoveAll(filepath.Join(cacheDir, "photo-backup-desktop")); err != nil {
 			return fmt.Errorf("auth: clear desktop photo staging: %w", err)
 		}
-		nativeCache, err := os.UserCacheDir()
+		nativeCache, err := datadir.UserCacheBase()
 		if err != nil {
 			return fmt.Errorf("auth: locate native cache: %w", err)
 		}

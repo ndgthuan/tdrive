@@ -7,6 +7,7 @@ import (
 )
 
 func TestParseETagConditions(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name   string
 		values []string
@@ -42,6 +43,7 @@ func TestParseETagConditions(t *testing.T) {
 }
 
 func TestParseDAVIfTaggedAndNegatedConditions(t *testing.T) {
+	isolate_data_dir(t)
 	value := `<http://127.0.0.1:7331` + testCapability + `/Docs/note.txt> (` +
 		`<opaquelocktoken:abc> ["r1"]) (Not <opaquelocktoken:def>) ` +
 		`<http://127.0.0.1:7331` + testCapability + `/Docs/other.txt> ([W/"r2"])`
@@ -64,6 +66,7 @@ func TestParseDAVIfTaggedAndNegatedConditions(t *testing.T) {
 }
 
 func TestParseDAVIfRejectsMalformedGrammar(t *testing.T) {
+	isolate_data_dir(t)
 	for _, input := range []string{
 		"",
 		"token",
@@ -83,6 +86,7 @@ func TestParseDAVIfRejectsMalformedGrammar(t *testing.T) {
 }
 
 func TestParseMutationConditionsResolvesTaggedResources(t *testing.T) {
+	isolate_data_dir(t)
 	request := trustedRequest(http.MethodPut, testCapability+"/Docs/note.txt", nil)
 	request.Header.Set("If-Match", `"r1"`)
 	request.Header.Set("If", `<http://127.0.0.1:7331`+testCapability+`/Docs/note.txt> (<opaquelocktoken:abc>)`)
@@ -107,6 +111,7 @@ func TestParseMutationConditionsResolvesTaggedResources(t *testing.T) {
 }
 
 func TestEntityTagSerializationAndValidation(t *testing.T) {
+	isolate_data_dir(t)
 	if got := serializeEntityTag(EntityTag{Weak: true, Opaque: "revision"}); got != `W/"revision"` {
 		t.Fatalf("serialized weak ETag = %q", got)
 	}

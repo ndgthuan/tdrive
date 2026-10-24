@@ -24,14 +24,14 @@ func TestRenditionWireRemainsLegacyHiddenPart(t *testing.T) {
 	}
 	// The historical parser reads only t/u/pix/sz for parts and ignores every
 	// unrecognized key. Removing the extension exercises its exact old branch.
-	fields := strings.Split(header, "|")
-	legacy := []string{}
+	fields := strings.Split(header, " | ")
+	kept := []string{}
 	for _, field := range fields {
-		if !strings.HasPrefix(field, "rend=") {
-			legacy = append(legacy, field)
+		if !strings.HasPrefix(field, "rendition=") {
+			kept = append(kept, field)
 		}
 	}
-	old, err := Parse(strings.Join(legacy, "|"))
+	old, err := Parse(strings.Join(kept, " | "))
 	if err != nil || old.Type != OpFilePart || old.Rendition != nil {
 		t.Fatalf("legacy parser: %+v, %v", old, err)
 	}

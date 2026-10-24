@@ -16,7 +16,7 @@ import (
 // partAttachmentName names a part's Telegram document attachment after the
 // original file it belongs to, rather than a meaningless-outside-TDrive
 // "part-NNNNN" label. The part index TDrive itself relies on for
-// reconstruction lives entirely in the TDX1 caption text (pix=), never in
+// reconstruction lives entirely in the TDrive caption text (part_index=), never in
 // this filename, so this is purely cosmetic -- it exists so a file browsed
 // directly in the Telegram channel, or downloaded straight from it, shows
 // its real name. A single-part upload (the common case) keeps the exact

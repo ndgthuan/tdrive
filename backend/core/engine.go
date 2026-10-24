@@ -231,6 +231,12 @@ func New(ctx context.Context, cfg Config) (*Engine, error) {
 	e.syncEngine = tdsync.NewEngine(backend.DB, e.tg, peerResolverFn(e.ResolvePeer))
 	e.syncEngine.OnProgress = e.emitDriveScanProgress
 	e.syncEngine.EmitTomb = func(channelID int64, fileMsgID int64) error {
+		// A reconcile pass can hold a stale list of live files while a purge
+		// removes the file's messages. A file that is no longer live was already
+		// removed by TDrive, so no tombstone record is sent for it.
+		if backend.DB != nil && !projection.FileIsLive(backend.DB, channelID, fileMsgID) {
+			return nil
+		}
 		_, err := e.EmitAndProject(channelID, projection.Op{
 			Type: projection.OpTomb,
 			Obj:  fmt.Sprintf("%s%d", projection.FileIDPrefix, fileMsgID),

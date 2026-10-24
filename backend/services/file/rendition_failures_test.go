@@ -36,6 +36,7 @@ func (c *rejectingRenditionClient) DeleteMessages(ctx context.Context, peer tgcl
 }
 
 func TestEncryptedDerivativeFailureLeavesOnlyCiphertextDurable(t *testing.T) {
+	isolate_data_dir(t)
 	s, db, fake, _ := newTestService(t)
 	raw := tinyRenditionJPEG(t)
 	key := bytes.Repeat([]byte{7}, 32)
@@ -64,6 +65,7 @@ func TestEncryptedDerivativeFailureLeavesOnlyCiphertextDurable(t *testing.T) {
 	}
 }
 func TestRenditionRecoveryRetainsIntentUntilReceiptAndCleanupAreCertain(t *testing.T) {
+	isolate_data_dir(t)
 	for _, mode := range []string{"empty receipt", "stale delete failure", "completion failure", "corrupt header", "corrupt payload"} {
 		t.Run(mode, func(t *testing.T) {
 			s, db, fake, _ := newTestService(t)
@@ -106,6 +108,7 @@ func TestRenditionRecoveryRetainsIntentUntilReceiptAndCleanupAreCertain(t *testi
 	}
 }
 func TestRenditionPreparationRejectsInvalidLocalSources(t *testing.T) {
+	isolate_data_dir(t)
 	s, _, _, _ := newTestService(t)
 	ctx := context.Background()
 	raw := tinyRenditionJPEG(t)

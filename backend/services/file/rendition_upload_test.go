@@ -23,6 +23,7 @@ func seedRenditionSource(t *testing.T, s *Service, db *sql.DB, raw []byte, encry
 	return source
 }
 func TestPrepareRenditionsUploadsHiddenImagesAndSkipsCompleted(t *testing.T) {
+	isolate_data_dir(t)
 	for _, encrypted := range []bool{false, true} {
 		t.Run(map[bool]string{false: "plain", true: "encrypted"}[encrypted], func(t *testing.T) {
 			s, db, tg, _ := newTestService(t)
@@ -73,6 +74,7 @@ func TestPrepareRenditionsUploadsHiddenImagesAndSkipsCompleted(t *testing.T) {
 }
 
 func TestRenditionOutboxReconcilesAcceptedReceiptAfterLocalFailure(t *testing.T) {
+	isolate_data_dir(t)
 	s, db, tg, _ := newTestService(t)
 	raw := tinyRenditionJPEG(t)
 	ctx := context.Background()
@@ -113,6 +115,7 @@ func TestRenditionOutboxReconcilesAcceptedReceiptAfterLocalFailure(t *testing.T)
 	}
 }
 func TestRenditionResumeDeletesStaleAcceptedBody(t *testing.T) {
+	isolate_data_dir(t)
 	s, db, tg, _ := newTestService(t)
 	ctx := context.Background()
 	raw := tinyRenditionJPEG(t)

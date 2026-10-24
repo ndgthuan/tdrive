@@ -23,6 +23,7 @@ func (r *recordingEvents) Emit(name string, args ...any) {
 }
 
 func TestEmitDriveScanProgressUsesStringIDsAndWholeSeconds(t *testing.T) {
+	isolate_data_dir(t)
 	events := &recordingEvents{}
 	engine := &Engine{events: events}
 
@@ -57,6 +58,7 @@ func TestEmitDriveScanProgressUsesStringIDsAndWholeSeconds(t *testing.T) {
 }
 
 func TestEmitDriveScanProgressWithoutEventSink(t *testing.T) {
+	isolate_data_dir(t)
 	(&Engine{}).emitDriveScanProgress(tdsync.Progress{ChannelID: 1, Phase: tdsync.ProgressCounting})
 	var nilEngine *Engine
 	nilEngine.emitDriveScanProgress(tdsync.Progress{ChannelID: 1, Phase: tdsync.ProgressCounting})

@@ -18,6 +18,9 @@ import (
 // filesystem contract. Every mutating operation is denied unconditionally.
 type FileSystem struct {
 	fs mountfs.ReadFilesystem
+	// alias, when set, exposes the drive root only under one child folder of
+	// the capability root (see root_alias.go). Empty means no alias.
+	alias string
 }
 
 func NewFileSystem(fs mountfs.ReadFilesystem) *FileSystem {
@@ -63,18 +66,44 @@ func (fs *FileSystem) lookup(ctx context.Context, operation, name string) (strin
 	if err != nil {
 		return "", mountfs.Entry{}, pathError(operation, name, err)
 	}
-	entry, err := fs.fs.Stat(ctx, clean)
+	kind, drive := resolveRootAlias(fs.alias, clean)
+	if kind == rootAliasOutside {
+		return "", mountfs.Entry{}, pathError(operation, clean, os.ErrNotExist)
+	}
+	entry, err := fs.fs.Stat(ctx, drive)
 	if err != nil {
 		return "", mountfs.Entry{}, mapMountFSError(operation, clean, err)
+	}
+	if kind == rootAliasFolder {
+		entry.Name = fs.alias
 	}
 	return clean, entry, nil
 }
 
-func (fs *FileSystem) openEntry(ctx context.Context, clean string, entry mountfs.Entry) (webdav.File, error) {
-	if entry.Kind == mountfs.KindDirectory {
-		children, err := fs.fs.ReadDir(ctx, clean)
+// childEntries lists the direct children of the collection at clean as the
+// WebDAV client sees them. The capability root lists only the alias folder.
+func (fs *FileSystem) childEntries(ctx context.Context, clean string) ([]mountfs.Entry, error) {
+	kind, drive := resolveRootAlias(fs.alias, clean)
+	if kind == rootAliasCapabilityRoot {
+		root, err := fs.fs.Stat(ctx, "/")
 		if err != nil {
 			return nil, mapMountFSError("readdir", clean, err)
+		}
+		root.Name = fs.alias
+		return []mountfs.Entry{root}, nil
+	}
+	children, err := fs.fs.ReadDir(ctx, drive)
+	if err != nil {
+		return nil, mapMountFSError("readdir", clean, err)
+	}
+	return children, nil
+}
+
+func (fs *FileSystem) openEntry(ctx context.Context, clean string, entry mountfs.Entry) (webdav.File, error) {
+	if entry.Kind == mountfs.KindDirectory {
+		children, err := fs.childEntries(ctx, clean)
+		if err != nil {
+			return nil, err
 		}
 		infos := make([]os.FileInfo, len(children))
 		for index, child := range children {
@@ -82,7 +111,8 @@ func (fs *FileSystem) openEntry(ctx context.Context, clean string, entry mountfs
 		}
 		return newDirectoryFile(newFileInfo(entry), infos), nil
 	}
-	file, err := fs.fs.Open(ctx, clean)
+	_, drive := resolveRootAlias(fs.alias, clean)
+	file, err := fs.fs.Open(ctx, drive)
 	if err != nil {
 		return nil, mapMountFSError("open", clean, err)
 	}

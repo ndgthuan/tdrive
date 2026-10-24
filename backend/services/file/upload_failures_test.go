@@ -32,6 +32,7 @@ func (c *batchFailureClient) SendFileWithRandomID(ctx context.Context, peer tgcl
 }
 
 func TestUploadWithFailuresPartialBatch(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fake, _ := newTestService(t)
 	svc.FloodWaitRetry = instantRetryPolicy()
 	svc.TG = &batchFailureClient{Fake: fake, name: "failed.txt", err: tgclient.ErrInjectedTransport}
@@ -56,6 +57,7 @@ func TestUploadWithFailuresPartialBatch(t *testing.T) {
 }
 
 func TestUploadWithFailuresUnknownAcceptanceCannotRestart(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fake, _ := newTestService(t)
 	svc.FloodWaitRetry = instantRetryPolicy()
 	svc.TG = &batchFailureClient{Fake: fake, name: "lost.txt", accept: true, err: errors.Join(tgclient.ErrSendOutcomeUnknown, tgclient.ErrInjectedTransport)}
@@ -66,6 +68,7 @@ func TestUploadWithFailuresUnknownAcceptanceCannotRestart(t *testing.T) {
 }
 
 func TestUploadWithFailuresProjectionPendingCannotRestart(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fake, _ := newTestService(t)
 	if _, err := db.Exec(`CREATE TRIGGER reject_upload BEFORE INSERT ON files BEGIN SELECT RAISE(ABORT, 'index unavailable'); END`); err != nil {
 		t.Fatal(err)
@@ -77,6 +80,7 @@ func TestUploadWithFailuresProjectionPendingCannotRestart(t *testing.T) {
 }
 
 func TestUploadWithFailuresCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fake, _ := newTestService(t)
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
@@ -87,6 +91,7 @@ func TestUploadWithFailuresCancellation(t *testing.T) {
 }
 
 func TestUploadWithFailuresRetainsAllInputIndices(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fake, _ := newTestService(t)
 	paths := make([]string, 5)
 	parents := make([]string, len(paths))
@@ -105,6 +110,7 @@ func TestUploadWithFailuresRetainsAllInputIndices(t *testing.T) {
 }
 
 func TestUploadFailureEligibility(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct {
 		name      string
 		err       error
@@ -126,6 +132,7 @@ func TestUploadFailureEligibility(t *testing.T) {
 }
 
 func TestUploadWithFailuresKeepsDurableJobRecovery(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fake, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.FloodWaitRetry = instantRetryPolicy()
@@ -141,6 +148,7 @@ func TestUploadWithFailuresKeepsDurableJobRecovery(t *testing.T) {
 }
 
 func TestUploadWithFailuresPreflightReportsNothingSent(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fake, _ := newTestService(t)
 	svc.ActorID = func(context.Context) (int64, error) { return 0, errors.New("actor unavailable") }
 	_, failures, err := svc.UploadWithFailures(t.Context(), personalChannelID, []string{"first.txt", "second.txt"}, []string{"", ""}, false)

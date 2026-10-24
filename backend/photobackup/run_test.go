@@ -13,6 +13,7 @@ import (
 )
 
 func TestUnknownSendHeldUntilExplicitRetry(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -71,6 +72,7 @@ func TestUnknownSendHeldUntilExplicitRetry(t *testing.T) {
 }
 
 func TestRunNextCompetingWorkersRespectNewBackoff(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	e.db.SetMaxOpenConns(1)
@@ -118,6 +120,7 @@ func TestRunNextCompetingWorkersRespectNewBackoff(t *testing.T) {
 }
 
 func TestRunNextReceiptOverridesAllInterruptionReasons(t *testing.T) {
+	isolate_data_dir(t)
 	for _, uploadErr := range []error{tgclient.ErrSendOutcomeUnknown, ErrUploadNotStarted, context.Canceled} {
 		t.Run(uploadErr.Error(), func(t *testing.T) {
 			now := time.Unix(100, 0)
@@ -148,6 +151,7 @@ func TestRunNextReceiptOverridesAllInterruptionReasons(t *testing.T) {
 }
 
 func TestRunNextDistinguishesFailureFromEmptyQueue(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -168,6 +172,7 @@ func TestRunNextDistinguishesFailureFromEmptyQueue(t *testing.T) {
 }
 
 func TestRunNextBackoffStartsWhenUploadFails(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -193,6 +198,7 @@ func TestRunNextBackoffStartsWhenUploadFails(t *testing.T) {
 }
 
 func TestMigrateVersionSevenAddsFIFOClaimIndex(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -223,6 +229,7 @@ func TestMigrateVersionSevenAddsFIFOClaimIndex(t *testing.T) {
 }
 
 func TestRunNextPreservesFIFOAcrossReadyAndIneligibleJobs(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)
@@ -264,6 +271,7 @@ UPDATE photo_backup_settings SET videos=0`); err != nil {
 }
 
 func TestRunNextConcurrentClaimsReleaseDatabaseBeforeUpload(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	e.db.SetMaxOpenConns(1)
@@ -329,6 +337,7 @@ func TestRunNextConcurrentClaimsReleaseDatabaseBeforeUpload(t *testing.T) {
 }
 
 func TestRunNextUnsentCancellationReturnsPending(t *testing.T) {
+	isolate_data_dir(t)
 	now := time.Unix(100, 0)
 	e, scope := testEngine(t, &now)
 	configure(t, e, scope)

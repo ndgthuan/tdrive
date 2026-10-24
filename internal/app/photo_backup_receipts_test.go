@@ -26,6 +26,7 @@ func photoBackupProjectionDB(t *testing.T) *sql.DB {
 }
 
 func TestPhotoBackupLostFilesCountsOnlyUnrecoverableUploads(t *testing.T) {
+	isolate_data_dir(t)
 	db := photoBackupProjectionDB(t)
 	if _, err := db.Exec(`
 		INSERT INTO files VALUES(41,100,0),(41,101,1),(41,102,1),(41,105,0);
@@ -47,6 +48,7 @@ func TestPhotoBackupLostFilesCountsOnlyUnrecoverableUploads(t *testing.T) {
 }
 
 func TestPhotoBackupLostFilesTreatsAnUnbuiltIndexAsNothingLost(t *testing.T) {
+	isolate_data_dir(t)
 	db := photoBackupProjectionDB(t)
 	if _, err := db.Exec(`INSERT INTO files VALUES(42,1,0)`); err != nil {
 		t.Fatal(err)

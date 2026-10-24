@@ -3,6 +3,7 @@ package updater
 import "testing"
 
 func TestAppAssetName(t *testing.T) {
+	isolate_data_dir(t)
 	cases := []struct {
 		platform Platform
 		want     string
@@ -23,6 +24,7 @@ func TestAppAssetName(t *testing.T) {
 }
 
 func TestReleaseAssetMatchesExactNameOnly(t *testing.T) {
+	isolate_data_dir(t)
 	release := Release{Assets: []Asset{
 		{Name: "TDrive-v1.7.0-windows-amd64-cli.zip"},
 		{Name: "TDrive-v1.7.0-windows-amd64.zip", Size: 7},
@@ -37,6 +39,7 @@ func TestReleaseAssetMatchesExactNameOnly(t *testing.T) {
 }
 
 func TestManifestAssetNames(t *testing.T) {
+	isolate_data_dir(t)
 	if checksumsAssetName != "checksums.txt" {
 		t.Fatalf("checksumsAssetName = %q", checksumsAssetName)
 	}

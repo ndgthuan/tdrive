@@ -431,10 +431,21 @@ func (application *readApplication) requestResourcePath(request *http.Request, a
 	if err != nil {
 		return "", http.StatusBadRequest
 	}
+	if !application.writablePathAllowed(clean) {
+		return "", http.StatusForbidden
+	}
 	if !allowRoot && clean == "/" {
 		return "", http.StatusForbidden
 	}
 	return clean, 0
+}
+
+// writablePathAllowed reports whether a mutation may name clean. With a root
+// alias, only paths strictly inside the alias folder are writable: the
+// capability root and the alias folder itself are read-only.
+func (application *readApplication) writablePathAllowed(clean string) bool {
+	kind, _ := resolveRootAlias(application.rootAlias, clean)
+	return kind == rootAliasDrive || kind == rootAliasInside
 }
 
 func (application *readApplication) parseDestination(request *http.Request) (string, int) {
@@ -465,7 +476,7 @@ func (application *readApplication) parseDestination(request *http.Request) (str
 	if err != nil {
 		return "", http.StatusBadRequest
 	}
-	if clean == "/" {
+	if clean == "/" || !application.writablePathAllowed(clean) {
 		return "", http.StatusForbidden
 	}
 	return clean, 0

@@ -12,6 +12,7 @@ import (
 )
 
 func TestBoundedLockSystemPublicTokensCapacityAndExpiry(t *testing.T) {
+	isolate_data_dir(t)
 	locks := newBoundedLockSystem(1)
 	now := time.Unix(1_700_000_000, 0)
 	details := webdav.LockDetails{Root: "/one", Duration: time.Second, ZeroDepth: true}
@@ -49,6 +50,7 @@ func TestBoundedLockSystemPublicTokensCapacityAndExpiry(t *testing.T) {
 }
 
 func TestWritableLOCKRefreshCapsTimeout(t *testing.T) {
+	isolate_data_dir(t)
 	handler := newWritableTestHandler(t, &recordingWriteCoordinator{})
 	token := createTestLock(t, handler, testCapability+"/Docs/note.txt")
 	request := trustedRequest("LOCK", testCapability+"/Docs/note.txt", nil)
@@ -64,6 +66,7 @@ func TestWritableLOCKRefreshCapsTimeout(t *testing.T) {
 }
 
 func TestWritableLOCKRefreshRequiresMatchingResource(t *testing.T) {
+	isolate_data_dir(t)
 	handler := newWritableTestHandler(t, &recordingWriteCoordinator{})
 	token := createTestLock(t, handler, testCapability+"/Docs/note.txt")
 	request := trustedRequest("LOCK", testCapability+"/Docs/other.txt", nil)
@@ -78,6 +81,7 @@ func TestWritableLOCKRefreshRequiresMatchingResource(t *testing.T) {
 }
 
 func TestWritableLOCKValidation(t *testing.T) {
+	isolate_data_dir(t)
 	validBody := `<D:lockinfo xmlns:D="DAV:"><D:lockscope><D:exclusive/></D:lockscope><D:locktype><D:write/></D:locktype></D:lockinfo>`
 	for _, test := range []struct {
 		name    string
@@ -114,6 +118,7 @@ func TestWritableLOCKValidation(t *testing.T) {
 }
 
 func TestWritableUNLOCKRequiresMatchingResource(t *testing.T) {
+	isolate_data_dir(t)
 	handler := newWritableTestHandler(t, &recordingWriteCoordinator{})
 	token := createTestLock(t, handler, testCapability+"/Docs/note.txt")
 	request := trustedRequest("UNLOCK", testCapability+"/Docs/other.txt", nil)
@@ -128,6 +133,7 @@ func TestWritableUNLOCKRequiresMatchingResource(t *testing.T) {
 }
 
 func TestNegatedLockTokenNeverAuthorizesMutation(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	handler := newWritableTestHandler(t, writer)
 	token := createTestLock(t, handler, testCapability+"/Docs/note.txt")
@@ -146,6 +152,7 @@ func TestNegatedLockTokenNeverAuthorizesMutation(t *testing.T) {
 }
 
 func TestFalseNegatedTokenCanAccompanyValidPositiveLockToken(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	handler := newWritableTestHandler(t, writer)
 	token := createTestLock(t, handler, testCapability+"/Docs/note.txt")
@@ -164,6 +171,7 @@ func TestFalseNegatedTokenCanAccompanyValidPositiveLockToken(t *testing.T) {
 }
 
 func TestInvalidPositiveTokenMakesCompoundLockListFail(t *testing.T) {
+	isolate_data_dir(t)
 	writer := &recordingWriteCoordinator{}
 	handler := newWritableTestHandler(t, writer)
 	token := createTestLock(t, handler, testCapability+"/Docs/note.txt")
@@ -182,6 +190,7 @@ func TestInvalidPositiveTokenMakesCompoundLockListFail(t *testing.T) {
 }
 
 func TestWritableLockLimitIsBounded(t *testing.T) {
+	isolate_data_dir(t)
 	locks := newBoundedLockSystem(1)
 	application := &readApplication{
 		capabilityPath: testCapability,
@@ -206,6 +215,7 @@ func TestWritableLockLimitIsBounded(t *testing.T) {
 }
 
 func TestWritablePropfindAdvertisesExclusiveWriteLocks(t *testing.T) {
+	isolate_data_dir(t)
 	handler := newWritableTestHandler(t, &recordingWriteCoordinator{})
 	request := trustedRequest("PROPFIND", testCapability+"/Docs/", strings.NewReader(`<D:propfind xmlns:D="DAV:"><D:prop><D:supportedlock/></D:prop></D:propfind>`))
 	request.Header.Set("Depth", "0")

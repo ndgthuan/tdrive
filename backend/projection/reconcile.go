@@ -14,6 +14,15 @@ type FileMessageRefs struct {
 	BackingMsgIDs []int64
 }
 
+// FileIsLive reports whether msgID names a live (non-tombstoned) file.
+func FileIsLive(db *sql.DB, channelID, msgID int64) bool {
+	var one int
+	err := db.QueryRow(`
+		SELECT 1 FROM files WHERE channel_id = ? AND msg_id = ? AND tombstoned = 0
+	`, channelID, msgID).Scan(&one)
+	return err == nil
+}
+
 // LiveFileMessageIDs returns every live (non-tombstoned) file in channelID
 // together with all Telegram message IDs that back its content.
 func LiveFileMessageIDs(db *sql.DB, channelID int64) ([]FileMessageRefs, error) {

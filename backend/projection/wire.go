@@ -33,21 +33,9 @@ func Parse(raw string) (Op, error) {
 		return Op{}, ErrWireMissingHeader
 	}
 
-	parts := strings.Split(header, "|")
-	if len(parts) < 2 {
-		return Op{}, ErrWireMalformed
-	}
-	if parts[0] != wireVersionPrefix {
-		return Op{}, ErrWireBadVersion
-	}
-
-	kv := make(map[string]string, len(parts)-1)
-	for _, p := range parts[1:] {
-		eq := strings.IndexByte(p, '=')
-		if eq <= 0 {
-			return Op{}, ErrWireMalformed
-		}
-		kv[p[:eq]] = p[eq+1:]
+	kv, err := parse_wire_fields(header)
+	if err != nil {
+		return Op{}, err
 	}
 
 	t, ok := kv["t"]
@@ -331,7 +319,9 @@ func Parse(raw string) (Op, error) {
 	return op, nil
 }
 
-func Format(op Op) string {
+// format_legacy renders the legacy TDX1 form. Format (readable) is built on it,
+// so both writers share one field table.
+func format_legacy(op Op) string {
 	var b strings.Builder
 	b.WriteString(wireVersionPrefix)
 	b.WriteString("|t=")
@@ -705,4 +695,10 @@ func setPartCount(op *Op, raw string) error {
 	}
 	op.PartCount = n
 	return nil
+}
+
+// Format encodes op as one readable TDrive header line. Parse also accepts
+// the legacy TDX1 form, so both generations of captions decode to the same Op.
+func Format(op Op) string {
+	return format_readable(format_legacy(op))
 }

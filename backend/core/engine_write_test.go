@@ -43,6 +43,7 @@ func (c *retryingControlClient) SendControlWithRandomID(
 }
 
 func TestEmitAndProjectContextRetriesControlWithStableRandomID(t *testing.T) {
+	isolate_data_dir(t)
 	db := openEngineWriteTestDB(t)
 	previousDB := backend.DB
 	backend.DB = db
@@ -90,6 +91,7 @@ func TestEmitAndProjectContextRetriesControlWithStableRandomID(t *testing.T) {
 }
 
 func TestNewFileServicePropagatesImportContextToFolderCreation(t *testing.T) {
+	isolate_data_dir(t)
 	db := openEngineWriteTestDB(t)
 	var emittedContext context.Context
 	folderService := &folderservice.Service{
@@ -130,6 +132,7 @@ func TestNewFileServicePropagatesImportContextToFolderCreation(t *testing.T) {
 }
 
 func TestRunImportStopsAfterControlProjectionFailure(t *testing.T) {
+	isolate_data_dir(t)
 	db := openEngineWriteTestDB(t)
 	previousDB := backend.DB
 	backend.DB = db
@@ -188,6 +191,7 @@ func TestRunImportStopsAfterControlProjectionFailure(t *testing.T) {
 }
 
 func TestEmitAndProjectBatchMarksPostSendProjectionFailure(t *testing.T) {
+	isolate_data_dir(t)
 	db := openEngineWriteTestDB(t)
 	previousDB := backend.DB
 	backend.DB = db

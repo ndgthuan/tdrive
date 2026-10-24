@@ -16,6 +16,7 @@ import (
 var errInjectedHiddenUploadCrash = errors.New("injected crash after hidden send")
 
 func TestRecoverAndDiscardHiddenUploadClosesSendReceiptCrashGap(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name    string
 		payload []byte
@@ -96,6 +97,7 @@ func TestRecoverAndDiscardHiddenUploadClosesSendReceiptCrashGap(t *testing.T) {
 }
 
 func TestRecoverAndDiscardHiddenUploadResendsOnlyFirstUnprojectedPart(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 4
 	request := plaintextHiddenRequest("op-crash-gap-multipart", "large.bin", 10)
@@ -158,6 +160,7 @@ func TestRecoverAndDiscardHiddenUploadResendsOnlyFirstUnprojectedPart(t *testing
 }
 
 func TestDiscardHiddenReceiptRejectsMessageIDsWithoutProjectedOwnership(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	request := plaintextHiddenRequest("op-reject-unowned-cleanup", "owned.bin", 7)
 	body, err := svc.UploadHidden(
@@ -190,6 +193,7 @@ func TestDiscardHiddenReceiptRejectsMessageIDsWithoutProjectedOwnership(t *testi
 }
 
 func TestDiscardHiddenReceiptRejectsUploadUUIDFromAnotherOperation(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	request := plaintextHiddenRequest("op-reject-wrong-upload", "owned.bin", 7)
 	body, err := svc.UploadHidden(
@@ -213,6 +217,7 @@ func TestDiscardHiddenReceiptRejectsUploadUUIDFromAnotherOperation(t *testing.T)
 }
 
 func TestDiscardHiddenReceiptTreatsMissingProjectionAsCompletedCleanup(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	request := plaintextHiddenRequest("op-cleanup-already-complete", "owned.bin", 7)
 	body, err := svc.UploadHidden(
@@ -250,6 +255,7 @@ func restartedHiddenUploadService(previous *Service) *Service {
 }
 
 func TestRecoverAndDiscardHiddenUploadRejectsUntrustedPartPrefix(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name string
 		op   projection.Op
@@ -296,6 +302,7 @@ func TestRecoverAndDiscardHiddenUploadRejectsUntrustedPartPrefix(t *testing.T) {
 }
 
 func TestRecoverHiddenUploadResolvesActorBeforeUncertainResend(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	actorErr := errors.New("actor unavailable")
 	svc.ActorID = func(context.Context) (int64, error) { return 0, actorErr }
@@ -315,6 +322,7 @@ func TestRecoverHiddenUploadResolvesActorBeforeUncertainResend(t *testing.T) {
 }
 
 func TestRecoverAndDiscardHiddenUploadPersistsRecoveredReceiptBeforeDeleteRetry(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	request := plaintextHiddenRequest("op-recovered-receipt-delete-retry", "retry.bin", 7)
 	stored := []byte("payload")
@@ -428,6 +436,7 @@ func (c *acceptThenLoseReceiptClient) SendFileWithRandomID(
 }
 
 func TestUploadHiddenUnknownSendOutcomeReconcilesCurrentPartBeforeCleanup(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 4
 	lostReceipt := errors.New("connection lost after Telegram accepted part")
@@ -471,6 +480,7 @@ func TestUploadHiddenUnknownSendOutcomeReconcilesCurrentPartBeforeCleanup(t *tes
 }
 
 func TestUploadHiddenAcceptedSendWithoutReceiptIsRecoveredBeforeCleanup(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.TG = &acceptThenZeroReceiptClient{Fake: fakeTG}
 	request := plaintextHiddenRequest("op-zero-accepted-receipt", "zero.bin", 1)
@@ -504,6 +514,7 @@ func TestUploadHiddenAcceptedSendWithoutReceiptIsRecoveredBeforeCleanup(t *testi
 }
 
 func TestUploadHiddenCancellationAfterProjectedPrefixDefersExactCleanup(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 4
 	ctx, cancel := context.WithCancel(context.Background())
@@ -541,6 +552,7 @@ func TestUploadHiddenCancellationAfterProjectedPrefixDefersExactCleanup(t *testi
 }
 
 func TestUploadHiddenProjectionFailureReturnsPositiveReceiptWithoutDeleting(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	request := plaintextHiddenRequest("op-project-failure-receipt", "project.bin", 1)
 	if _, err := db.Exec(`

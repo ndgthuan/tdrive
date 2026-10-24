@@ -8,6 +8,7 @@ import (
 )
 
 func TestCatalogStorageBytes(t *testing.T) {
+	isolate_data_dir(t)
 	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "catalog.db"))
 	if err != nil {
 		t.Fatal(err)
@@ -23,6 +24,7 @@ func TestCatalogStorageBytes(t *testing.T) {
 }
 
 func TestClearGalleryCachePreservesCatalog(t *testing.T) {
+	isolate_data_dir(t)
 	app, db := setupEncryptionApp(t)
 	svc, err := app.requireFileService()
 	if err != nil {
@@ -47,6 +49,7 @@ func TestClearGalleryCachePreservesCatalog(t *testing.T) {
 }
 
 func TestGalleryStorageRequiresService(t *testing.T) {
+	isolate_data_dir(t)
 	if _, err := (&App{}).GetGalleryStorage(); err == nil {
 		t.Fatal("missing service accepted")
 	}

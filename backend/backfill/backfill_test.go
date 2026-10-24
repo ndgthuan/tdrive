@@ -69,10 +69,10 @@ func TestBackfillPublishesMkdirAndMeta(t *testing.T) {
 	}
 
 	// First two ops must be mkdir, ordered parents-first.
-	if !contains(controls[0].Text, "t=mkdir") || !contains(controls[0].Text, "obj=d:a") {
+	if !contains(controls[0].Text, "type=make_directory") || !contains(controls[0].Text, "object=d:a") {
 		t.Fatalf("control[0] = %q, want mkdir d:a", controls[0].Text)
 	}
-	if !contains(controls[1].Text, "t=mkdir") || !contains(controls[1].Text, "obj=d:b") {
+	if !contains(controls[1].Text, "type=make_directory") || !contains(controls[1].Text, "object=d:b") {
 		t.Fatalf("control[1] = %q, want mkdir d:b", controls[1].Text)
 	}
 	for _, c := range controls {
@@ -84,7 +84,7 @@ func TestBackfillPublishesMkdirAndMeta(t *testing.T) {
 	// Next two must be meta ops.
 	metaCount := 0
 	for _, c := range controls[2:] {
-		if contains(c.Text, "t=meta") {
+		if contains(c.Text, "type=metadata") {
 			metaCount++
 		}
 	}
@@ -130,7 +130,7 @@ func TestBackfillIsResumableViaReplayLog(t *testing.T) {
 	if len(controls) != 1 {
 		t.Fatalf("control count = %d, want 1 (d:a was already published)", len(controls))
 	}
-	if !contains(controls[0].Text, "obj=d:b") {
+	if !contains(controls[0].Text, "object=d:b") {
 		t.Fatalf("control[0] = %q, want d:b", controls[0].Text)
 	}
 }

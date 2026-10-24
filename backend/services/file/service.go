@@ -2,7 +2,7 @@
 // local file into Telegram document messages and back, and the only place that
 // decides which messages constitute one logical file.
 //
-// Everything it publishes leaves as a projection.Op whose formatted TDX1 header
+// Everything it publishes leaves as a projection.Op whose formatted TDrive header
 // is the Telegram caption. projection owns the SQLite write, tgclient owns the
 // transport and its flood-wait retries, crypto owns the TDE1 stream format, and
 // mountwrite owns the durable journal behind mounted writes. This package

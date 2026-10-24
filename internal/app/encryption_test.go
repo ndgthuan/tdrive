@@ -26,9 +26,10 @@ func setupEncryptionApp(t *testing.T) (*App, *sql.DB) {
 func setupEncryptionAppWithPolicyRefresh(t *testing.T, refresh func(context.Context, int64) error) (*App, *sql.DB, *tgclient.Fake) {
 	t.Helper()
 
-	tempHome := t.TempDir()
-	t.Setenv("HOME", tempHome)
-	t.Setenv("XDG_CONFIG_HOME", tempHome)
+	// SaveConfig writes the real config dir unless datadir is redirected. HOME
+	// and XDG_CONFIG_HOME alone do not do that on Windows, so isolate both
+	// datadir roots and the OS env vars.
+	isolate_data_dir(t)
 
 	oldDB := backend.DB
 	db, err := sql.Open("sqlite", ":memory:")
@@ -74,6 +75,7 @@ func setupEncryptionAppWithPolicyRefresh(t *testing.T, refresh func(context.Cont
 }
 
 func TestEncryptionPasswordStoresHint(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 
 	if result := app.encryption.CreateEncryptionPassword("old-password", "pet name"); !result.OK {
@@ -104,6 +106,7 @@ func TestEncryptionPasswordStoresHint(t *testing.T) {
 }
 
 func TestChangeEncryptionPasswordRewrapsConfig(t *testing.T) {
+	isolate_data_dir(t)
 	app, db := setupEncryptionApp(t)
 
 	if result := app.encryption.CreateEncryptionPassword("old-password", "old hint"); !result.OK {

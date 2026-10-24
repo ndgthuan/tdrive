@@ -57,6 +57,7 @@ func (r *argumentEventRecorder) named(name string) []capturedEvent {
 }
 
 func TestDownloadFolderRestoresMixedNestedTreeAndEmptyFolders(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	masterKey := bytes.Repeat([]byte{0x4a}, 32)
@@ -166,6 +167,7 @@ func TestDownloadFolderRestoresMixedNestedTreeAndEmptyFolders(t *testing.T) {
 }
 
 func TestDownloadFolderRestoresCompletelyEmptyTree(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 10, 7, projection.Op{
 		Type: projection.OpMkdir, Obj: "d:project", Parent: projection.RootParent, Name: "Project",
@@ -200,6 +202,7 @@ func TestDownloadFolderRestoresCompletelyEmptyTree(t *testing.T) {
 }
 
 func TestFolderDownloadProgressIsMonotonicAcrossRetryLikeUpdates(t *testing.T) {
+	isolate_data_dir(t)
 	recorder := &argumentEventRecorder{}
 	progress := newFolderDownloadProgress(
 		&Service{Events: recorder}, "d:project", "Project",
@@ -248,6 +251,7 @@ func TestFolderDownloadProgressIsMonotonicAcrossRetryLikeUpdates(t *testing.T) {
 }
 
 func TestFolderDownloadDeadlineIsReportedAsCanceled(t *testing.T) {
+	isolate_data_dir(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 0)
 	defer cancel()
 	result := folderDownloadFailure(ctx, context.DeadlineExceeded)
@@ -257,6 +261,7 @@ func TestFolderDownloadDeadlineIsReportedAsCanceled(t *testing.T) {
 }
 
 func TestBuildFolderDownloadPlanRejectsCanonicalPathCollisions(t *testing.T) {
+	isolate_data_dir(t)
 	manifest := projection.FolderDownloadManifest{
 		Root: projection.DownloadDirectory{ID: "d:root", Name: "Root", ParentID: projection.RootParent, Revision: 1},
 		Folders: []projection.DownloadDirectory{
@@ -273,6 +278,7 @@ func TestBuildFolderDownloadPlanRejectsCanonicalPathCollisions(t *testing.T) {
 }
 
 func TestBuildFolderDownloadPlanHonorsCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	manifest := projection.FolderDownloadManifest{
@@ -288,6 +294,7 @@ func TestBuildFolderDownloadPlanHonorsCancellation(t *testing.T) {
 }
 
 func TestRemoveFolderDownloadStagingRetriesBoundedFailures(t *testing.T) {
+	isolate_data_dir(t)
 	calls := 0
 	remove := func(string) error {
 		calls++
@@ -316,6 +323,7 @@ func TestRemoveFolderDownloadStagingRetriesBoundedFailures(t *testing.T) {
 }
 
 func TestFolderDownloadPathValidation(t *testing.T) {
+	isolate_data_dir(t)
 	directory := t.TempDir()
 	if err := validateDestinationParent(directory); err != nil {
 		t.Fatalf("validate directory: %v", err)
@@ -365,6 +373,7 @@ func TestFolderDownloadPathValidation(t *testing.T) {
 }
 
 func TestFileDownloadVerificationAndErrorClassification(t *testing.T) {
+	isolate_data_dir(t)
 	file, err := os.CreateTemp(t.TempDir(), "verify-*")
 	if err != nil {
 		t.Fatalf("create verification file: %v", err)
@@ -418,6 +427,7 @@ func TestFileDownloadVerificationAndErrorClassification(t *testing.T) {
 }
 
 func TestDownloadFolderRejectsInvalidServiceInputsAndPickerFailure(t *testing.T) {
+	isolate_data_dir(t)
 	if result := (&Service{}).DownloadFolder(context.Background(), 1, "d:root", func(string) (string, error) { return "", nil }); result.Status != "error" {
 		t.Fatalf("nil database result = %+v", result)
 	}
@@ -469,6 +479,7 @@ func (c *recordingDownloadClient) requestedIDs() []int64 {
 }
 
 func TestDownloadFolderUsesCurrentImmutableContentMessage(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	project(t, db, personalChannelID, 10, 7, projection.Op{
 		Type: projection.OpMkdir, Obj: "d:project", Parent: projection.RootParent, Name: "Project",
@@ -517,6 +528,7 @@ func TestDownloadFolderUsesCurrentImmutableContentMessage(t *testing.T) {
 }
 
 func TestDownloadFileUsesCurrentImmutableContentMessage(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	peer := tgclient.InputPeer{ChannelID: personalChannelID, AccessHash: 99}
 	oldResult, err := fakeTG.SendFile(context.Background(), peer, strings.NewReader("old"), "report.txt", "", 3, nil)
@@ -559,6 +571,7 @@ func TestDownloadFileUsesCurrentImmutableContentMessage(t *testing.T) {
 }
 
 func TestDownloadFolderChecksEncryptionBeforePicker(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 10, 7, projection.Op{
 		Type: projection.OpMkdir, Obj: "d:locked", Parent: projection.RootParent, Name: "Locked",
@@ -589,6 +602,7 @@ func TestDownloadFolderChecksEncryptionBeforePicker(t *testing.T) {
 }
 
 func TestDownloadFolderPickerCancelAndExistingDestinationDoNotMutateDisk(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, _, _ := newTestService(t)
 	project(t, db, personalChannelID, 10, 7, projection.Op{
 		Type: projection.OpMkdir, Obj: "d:project", Parent: projection.RootParent, Name: "Project",
@@ -643,6 +657,7 @@ func (c *blockingDownloadClient) DownloadFileAt(
 }
 
 func TestDownloadFolderCancellationKeepsFinalPathHiddenAndCleansStaging(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	project(t, db, personalChannelID, 10, 7, projection.Op{
 		Type: projection.OpMkdir, Obj: "d:project", Parent: projection.RootParent, Name: "Project",
@@ -703,6 +718,7 @@ func (c *failSecondDownloadClient) DownloadFileAt(
 }
 
 func TestDownloadFolderFailureRemovesCompletedFilesAndStaging(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.FloodWaitRetry = tgclient.FloodWaitRetryPolicy{MaxTransientRetries: 0}
 	project(t, db, personalChannelID, 10, 7, projection.Op{

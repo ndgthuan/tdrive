@@ -42,6 +42,10 @@ type StartConfig struct {
 	WindowsDrive string
 	Writable     bool
 	Writer       WriteCoordinator
+	// RootAlias, when set, serves the drive root only under one child folder
+	// of the capability root, and makes that capability root and the folder
+	// read-only. Empty leaves the capability root as the drive root.
+	RootAlias string
 }
 
 type Status struct {
@@ -71,6 +75,7 @@ type activeConfig struct {
 	windowsDrive string
 	writable     bool
 	writer       WriteCoordinator
+	rootAlias    string
 }
 
 type Server struct {
@@ -114,6 +119,7 @@ func (server *Server) Start(ctx context.Context, config StartConfig) (Status, er
 	}
 	authority := listener.Addr().String()
 	filesystem := NewFileSystem(config.FS)
+	filesystem.alias = active.rootAlias
 	lockSystem := webdav.NewMemLS()
 	var resume *resumeStore
 	var pendingCreates *pendingCreateStore
@@ -132,7 +138,8 @@ func (server *Server) Start(ctx context.Context, config StartConfig) (Status, er
 		authority:      authority,
 		fs:             filesystem,
 		lockSystem:     lockSystem,
-		writer:         active.writer,
+		writer:         newAliasedWriter(active.rootAlias, active.writer),
+		rootAlias:      active.rootAlias,
 		resume:         resume,
 		pendingCreates: pendingCreates,
 	}
@@ -288,6 +295,9 @@ func validateStartConfig(ctx context.Context, config StartConfig) (activeConfig,
 	if err != nil {
 		return activeConfig{}, err
 	}
+	if err := validateRootAlias(config.RootAlias); err != nil {
+		return activeConfig{}, err
+	}
 	hasWriter := !isNilWriteCoordinator(config.Writer)
 	if config.Writable != hasWriter {
 		return activeConfig{}, fmt.Errorf("mountdav: writable mode requires an explicit writer and flag")
@@ -299,6 +309,7 @@ func validateStartConfig(ctx context.Context, config StartConfig) (activeConfig,
 		windowsDrive: drive,
 		writable:     config.Writable,
 		writer:       config.Writer,
+		rootAlias:    config.RootAlias,
 	}, nil
 }
 
@@ -308,6 +319,7 @@ func sameActiveConfig(left, right activeConfig) bool {
 		left.driveTitle == right.driveTitle &&
 		left.windowsDrive == right.windowsDrive &&
 		left.writable == right.writable &&
+		left.rootAlias == right.rootAlias &&
 		sameWriteCoordinator(left.writer, right.writer)
 }
 

@@ -26,6 +26,7 @@ func (c *throttledManifestClient) SendControlWithRandomID(ctx context.Context, p
 }
 
 func TestMultipartManifestWaitsThroughRepeatedThrottling(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	client := &throttledManifestClient{Fake: fakeTG}
@@ -63,6 +64,7 @@ func TestMultipartManifestWaitsThroughRepeatedThrottling(t *testing.T) {
 }
 
 func TestHiddenUploadWaitsThroughRepeatedThrottling(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	fakeTG.InjectFloodWaits(5)
 	body := []byte("hidden content survives repeated Telegram throttling")
@@ -96,6 +98,7 @@ func (c *hiddenUnknownThenThrottledClient) SendFileWithRandomID(ctx context.Cont
 }
 
 func TestHiddenUploadPreservesUnknownOutcomeWhenCooldownCanceled(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	client := &hiddenUnknownThenThrottledClient{Fake: fakeTG}
 	svc.TG = client

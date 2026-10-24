@@ -7,6 +7,7 @@ import (
 )
 
 func TestDownloadProgressEmitsTheRequestIDFromContext(t *testing.T) {
+	isolate_data_dir(t)
 	recorder := &argumentEventRecorder{}
 	svc := &Service{Events: recorder}
 	progress := svc.downloadProgress(WithDownloadProgressID(context.Background(), "file:7:42"), 100)

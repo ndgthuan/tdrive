@@ -29,6 +29,7 @@ func protectedTestHandler(maxConcurrent int, next http.Handler) http.Handler {
 }
 
 func TestProtectedHandlerAdvertisesOnlyReadMethods(t *testing.T) {
+	isolate_data_dir(t)
 	calls := 0
 	handler := protectedTestHandler(2, http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		calls++
@@ -69,6 +70,7 @@ func TestProtectedHandlerAdvertisesOnlyReadMethods(t *testing.T) {
 }
 
 func TestProtectedHandlerAllowsTrustedRootOptionsProbe(t *testing.T) {
+	isolate_data_dir(t)
 	calls := 0
 	handler := protectedTestHandler(2, http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		calls++
@@ -123,6 +125,7 @@ func TestProtectedHandlerAllowsTrustedRootOptionsProbe(t *testing.T) {
 }
 
 func TestProtectedHandlerRejectsUntrustedMetadata(t *testing.T) {
+	isolate_data_dir(t)
 	handler := protectedTestHandler(2, http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		response.WriteHeader(http.StatusOK)
 	}))
@@ -154,6 +157,7 @@ func TestProtectedHandlerRejectsUntrustedMetadata(t *testing.T) {
 }
 
 func TestProtectedHandlerValidatesDepthAndBody(t *testing.T) {
+	isolate_data_dir(t)
 	handler := protectedTestHandler(2, http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		body, err := io.ReadAll(request.Body)
 		if err != nil {
@@ -207,6 +211,7 @@ func TestProtectedHandlerValidatesDepthAndBody(t *testing.T) {
 }
 
 func TestProtectedHandlerCarriesNoRootAsInternalRequestState(t *testing.T) {
+	isolate_data_dir(t)
 	var gotDepth string
 	var gotOmitRoot bool
 	var gotHeaders http.Header
@@ -237,6 +242,7 @@ func TestProtectedHandlerCarriesNoRootAsInternalRequestState(t *testing.T) {
 }
 
 func TestProtectedHandlerBoundsConcurrency(t *testing.T) {
+	isolate_data_dir(t)
 	entered := make(chan struct{})
 	release := make(chan struct{})
 	var once sync.Once

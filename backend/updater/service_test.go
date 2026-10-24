@@ -193,6 +193,7 @@ func (f *fixture) drainEvents() []State {
 }
 
 func TestDevBuildIsDisabled(t *testing.T) {
+	isolate_data_dir(t)
 	s := New(Options{CurrentVersion: "dev", CacheDir: t.TempDir(), Installer: &fakeInstaller{}, Source: &fakeSource{}})
 	if s.State().Phase != PhaseDisabled {
 		t.Fatalf("phase = %s, want disabled", s.State().Phase)
@@ -206,6 +207,7 @@ func TestDevBuildIsDisabled(t *testing.T) {
 }
 
 func TestCheckReportsUpToDate(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.7.0", "1.7.0")
 	got := f.service.Check(context.Background())
 	if got.Phase != PhaseUpToDate || got.Latest != nil || got.CheckedAt == 0 {
@@ -218,6 +220,7 @@ func TestCheckReportsUpToDate(t *testing.T) {
 }
 
 func TestCheckNoReleaseIsUpToDate(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.7.0", "1.8.0")
 	f.source.err = ErrNoRelease
 	if got := f.service.Check(context.Background()); got.Phase != PhaseUpToDate || got.Error != "" {
@@ -226,6 +229,7 @@ func TestCheckNoReleaseIsUpToDate(t *testing.T) {
 }
 
 func TestFullLifecycle(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 
 	got := f.service.Check(context.Background())
@@ -303,6 +307,7 @@ func TestFullLifecycle(t *testing.T) {
 }
 
 func TestCheckReusesVerifiedCachedPayload(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	if err := os.WriteFile(filepath.Join(f.cacheDir, f.assetName), f.payload, 0o644); err != nil {
 		t.Fatal(err)
@@ -320,6 +325,7 @@ func TestCheckReusesVerifiedCachedPayload(t *testing.T) {
 }
 
 func TestCheckDiscardsCorruptCachedPayload(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	path := filepath.Join(f.cacheDir, f.assetName)
 	if err := os.WriteFile(path, []byte("corrupt"), 0o644); err != nil {
@@ -334,6 +340,7 @@ func TestCheckDiscardsCorruptCachedPayload(t *testing.T) {
 }
 
 func TestNewPrunesCacheBelowCurrentVersion(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	touch(t, dir, "TDrive-v1.6.0-macos-arm64.zip")
 	touch(t, dir, "TDrive-v1.7.0-macos-arm64.zip.part")
@@ -344,6 +351,7 @@ func TestNewPrunesCacheBelowCurrentVersion(t *testing.T) {
 }
 
 func TestMissingPlatformAssetIsNotInstallable(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.source.release.Assets = f.source.release.Assets[1:]
 	got := f.service.Check(context.Background())
@@ -357,6 +365,7 @@ func TestMissingPlatformAssetIsNotInstallable(t *testing.T) {
 }
 
 func TestCheckLinuxAppImageNames(t *testing.T) {
+	isolate_data_dir(t)
 	const preferred = "TDrive-v2.0.2-x86_64.AppImage"
 	const legacy = "TDrive-v2.0.2-linux-amd64.AppImage"
 	cases := []struct {
@@ -409,6 +418,7 @@ func TestCheckLinuxAppImageNames(t *testing.T) {
 }
 
 func TestUnsupportedPlatformIsNotInstallable(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.service.opts.Platform = Platform{OS: "linux", Arch: "arm64"}
 	got := f.service.Check(context.Background())
@@ -418,6 +428,7 @@ func TestUnsupportedPlatformIsNotInstallable(t *testing.T) {
 }
 
 func TestMissingChecksumsIsNotInstallable(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.source.release.Assets = f.source.release.Assets[:2]
 	got := f.service.Check(context.Background())
@@ -427,6 +438,7 @@ func TestMissingChecksumsIsNotInstallable(t *testing.T) {
 }
 
 func TestChecksumFetchFailureIsAFailedCheck(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.mu.Lock()
 	f.serveSums = ""
@@ -442,6 +454,7 @@ func TestChecksumFetchFailureIsAFailedCheck(t *testing.T) {
 }
 
 func TestNotInstallableTargetKeepsReleaseVisible(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.installer.targetErr = &NotInstallableError{Reason: "TDrive is running from a temporary location."}
 	got := f.service.Check(context.Background())
@@ -451,6 +464,7 @@ func TestNotInstallableTargetKeepsReleaseVisible(t *testing.T) {
 }
 
 func TestMissingManifestSignatureIsNotInstallable(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.source.release.Assets = f.source.release.Assets[:len(f.source.release.Assets)-1]
 
@@ -464,6 +478,7 @@ func TestMissingManifestSignatureIsNotInstallable(t *testing.T) {
 }
 
 func TestTamperedManifestIsNotInstallable(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.mu.Lock()
 	f.serveSums += "# changed after signing\n"
@@ -476,6 +491,7 @@ func TestTamperedManifestIsNotInstallable(t *testing.T) {
 }
 
 func TestTamperedManifestSignatureIsNotInstallable(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.mu.Lock()
 	f.serveSig = []byte(manifestRecord(t, f.signingKey, []byte("different manifest\n")))
@@ -488,6 +504,7 @@ func TestTamperedManifestSignatureIsNotInstallable(t *testing.T) {
 }
 
 func TestOversizedManifestSignatureIsNotInstallable(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.mu.Lock()
 	f.serveSig = make([]byte, manifestSignatureMaxBytes+1)
@@ -500,6 +517,7 @@ func TestOversizedManifestSignatureIsNotInstallable(t *testing.T) {
 }
 
 func TestSourceFailureKeepsPreviousPhase(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.service.Check(context.Background())
 	if err := f.service.StartDownload(); err != nil {
@@ -518,6 +536,7 @@ func TestSourceFailureKeepsPreviousPhase(t *testing.T) {
 }
 
 func TestDownloadCancelReturnsToAvailableWithoutError(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.mu.Lock()
 	f.blockBody = make(chan struct{})
@@ -570,6 +589,7 @@ func TestDownloadCancelReturnsToAvailableWithoutError(t *testing.T) {
 }
 
 func TestDownloadFailureReportsError(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.mu.Lock()
 	f.serveBody = false
@@ -585,6 +605,7 @@ func TestDownloadFailureReportsError(t *testing.T) {
 }
 
 func TestChecksumMismatchDiscardsDownload(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.setManifest(sha256Hex([]byte("something else")) + "  " + f.assetName + "\n")
 	f.service.Check(context.Background())
@@ -601,6 +622,7 @@ func TestChecksumMismatchDiscardsDownload(t *testing.T) {
 }
 
 func TestInstallFailureReturnsToReady(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.service.Check(context.Background())
 	if err := f.service.StartDownload(); err != nil {
@@ -625,6 +647,7 @@ func TestInstallFailureReturnsToReady(t *testing.T) {
 }
 
 func TestInstallRejectsMutatedReadyPayload(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.service.Check(context.Background())
 	if err := f.service.StartDownload(); err != nil {
@@ -655,6 +678,7 @@ func TestInstallRejectsMutatedReadyPayload(t *testing.T) {
 }
 
 func TestInstallRequiresReady(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	if err := f.service.Install(); !errors.Is(err, ErrNotReady) {
 		t.Fatalf("Install = %v, want ErrNotReady", err)
@@ -662,6 +686,7 @@ func TestInstallRequiresReady(t *testing.T) {
 }
 
 func TestNewerReleaseSupersedesReadyPayload(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.6.0", "1.7.0")
 	f.service.Check(context.Background())
 	if err := f.service.StartDownload(); err != nil {
@@ -689,6 +714,7 @@ func TestNewerReleaseSupersedesReadyPayload(t *testing.T) {
 }
 
 func TestCleanupAfterRestartUsesInstallerTarget(t *testing.T) {
+	isolate_data_dir(t)
 	f := newFixture(t, "1.7.0", "1.7.0")
 	if err := f.service.CleanupAfterRestart(); err != nil {
 		t.Fatal(err)
@@ -703,6 +729,7 @@ func TestCleanupAfterRestartUsesInstallerTarget(t *testing.T) {
 }
 
 func TestUserMessage(t *testing.T) {
+	isolate_data_dir(t)
 	cases := map[error]string{
 		&NotInstallableError{Reason: "custom"}: "custom",
 		ErrRateLimited:                         userMessage(ErrRateLimited),

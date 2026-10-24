@@ -7,6 +7,7 @@ import (
 )
 
 func TestPhotoBackupBackgroundFailsClosedWithoutLease(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	if a.enterPhotoBackupBackground("ios") {
 		t.Fatal("background execution must require a native lease")
@@ -17,6 +18,7 @@ func TestPhotoBackupBackgroundFailsClosedWithoutLease(t *testing.T) {
 }
 
 func TestPhotoBackupDeadlineCancelsActiveWorker(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{photoBackupWaiters: make(map[string]chan photoBackupMaterialization)}
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan struct{})
@@ -39,6 +41,7 @@ func TestPhotoBackupDeadlineCancelsActiveWorker(t *testing.T) {
 }
 
 func TestPhotoBackupBackgroundLeaseSchedulesExpiry(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	expiryScheduled := make(chan time.Duration, 1)
 	a.photoBackupBackground.now = func() time.Time { return time.Unix(100, 0) }
@@ -62,6 +65,7 @@ func TestPhotoBackupBackgroundLeaseSchedulesExpiry(t *testing.T) {
 }
 
 func TestPhotoBackupForegroundCancelsDeadline(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	a.SetPhotoBackupBackgroundLease(true)
 	if !a.enterPhotoBackupBackground("android") {
@@ -77,6 +81,7 @@ func TestPhotoBackupForegroundCancelsDeadline(t *testing.T) {
 }
 
 func TestStalePhotoBackupDeadlineCannotCancelRenewedLease(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	var callbacks []func()
 	a.photoBackupBackground.after = func(_ time.Duration, fn func()) *time.Timer {
@@ -96,6 +101,7 @@ func TestStalePhotoBackupDeadlineCannotCancelRenewedLease(t *testing.T) {
 }
 
 func TestRepeatedPhotoBackupArmKeepsExistingDeadlineValid(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	var expire func()
 	a.photoBackupBackground.after = func(_ time.Duration, fn func()) *time.Timer {

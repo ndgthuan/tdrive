@@ -6,6 +6,7 @@ import (
 )
 
 func TestParseChecksums(t *testing.T) {
+	isolate_data_dir(t)
 	const digest = "3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855e"
 	input := strings.Join([]string{
 		"# generated",
@@ -38,6 +39,7 @@ func TestParseChecksums(t *testing.T) {
 }
 
 func TestParseChecksumsRejectsMalformedLines(t *testing.T) {
+	isolate_data_dir(t)
 	for _, input := range []string{
 		"abc  file.zip",
 		"zz0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855e  file.zip",

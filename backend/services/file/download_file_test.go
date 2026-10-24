@@ -57,6 +57,7 @@ func (c *recordingRangeDownloadClient) saw(offset int64) bool {
 }
 
 func TestResumableDownloadRestartsWithVerifiedBlocks(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name    string
 		corrupt bool
@@ -203,6 +204,7 @@ func pausedDownloadFixture(t *testing.T) (*Service, *tgclient.Fake, string, stri
 }
 
 func TestResumableDownloadGuardsSourceAndDestination(t *testing.T) {
+	isolate_data_dir(t)
 	t.Run("source removed", func(t *testing.T) {
 		svc, _, jobID, destination, _ := pausedDownloadFixture(t)
 		job, err := svc.loadDownloadJob(t.Context(), jobID)
@@ -368,6 +370,7 @@ func (c *exactPartDownloadClient) DownloadFileAt(
 }
 
 func TestDownloadMultipartPlainRejectsPartSizeMismatch(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name   string
 		bodies map[int64][]byte
@@ -427,6 +430,7 @@ func TestDownloadMultipartPlainRejectsPartSizeMismatch(t *testing.T) {
 }
 
 func TestDownloadMultipartPlainStreamsVerifiedParts(t *testing.T) {
+	isolate_data_dir(t)
 	directory := t.TempDir()
 	destination := filepath.Join(directory, "archive.bin")
 	service := &Service{TG: &exactPartDownloadClient{bodies: map[int64][]byte{

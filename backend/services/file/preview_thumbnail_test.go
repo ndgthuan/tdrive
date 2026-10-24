@@ -12,6 +12,7 @@ import (
 )
 
 func TestPreviewThumbnailUsesBestInlineImageWithoutRemoteReads(t *testing.T) {
+	isolate_data_dir(t)
 	larger := append(bytes.Clone(tinyPNG), 0x01)
 	for _, tc := range []struct {
 		name   string
@@ -50,6 +51,7 @@ func (c *selectedPreviewThumbnailClient) DownloadFileThumbnail(ctx context.Conte
 }
 
 func TestPreviewThumbnailRetryDiscardsPartialBytes(t *testing.T) {
+	isolate_data_dir(t)
 	svc, client := renditionFixture(t)
 	svc.FloodWaitRetry = instantRetryPolicy()
 	client.doc.Thumbs = []tgclient.FileThumb{
@@ -83,6 +85,7 @@ func TestPreviewThumbnailRetryDiscardsPartialBytes(t *testing.T) {
 }
 
 func TestPreviewThumbnailRejectsUnusablePayloads(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct {
 		name      string
 		body      []byte
@@ -115,6 +118,7 @@ func TestPreviewThumbnailRejectsUnusablePayloads(t *testing.T) {
 }
 
 func TestPreviewThumbnailRejectsMissingAndUnsupportedFiles(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fake, _ := newTestService(t)
 	fake.SeedHistory(tgclient.HistoryMessage{MsgID: 92, HasMedia: true, DocumentName: "document.pdf"})
 	for _, tc := range []struct {
@@ -133,6 +137,7 @@ func TestPreviewThumbnailRejectsMissingAndUnsupportedFiles(t *testing.T) {
 }
 
 func TestPreviewThumbnailDoesNotReplaceMissingOrOversizedInlineImageWithOriginal(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct {
 		name   string
 		thumbs []tgclient.FileThumb

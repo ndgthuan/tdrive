@@ -42,6 +42,7 @@ func newTestService(t *testing.T) (*Service, *sql.DB) {
 }
 
 func TestPasswordStatusAndRememberedKey(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 
 	status, err := svc.Status()
@@ -77,6 +78,7 @@ func TestPasswordStatusAndRememberedKey(t *testing.T) {
 }
 
 func TestChangePasswordKeepsMasterKey(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db := newTestService(t)
 
 	if err := svc.CreatePassword("old-password", "old hint"); err != nil {
@@ -126,6 +128,7 @@ func TestChangePasswordKeepsMasterKey(t *testing.T) {
 }
 
 func TestConfigOpCarriesRecoverableVault(t *testing.T) {
+	isolate_data_dir(t)
 	_, db := newTestService(t)
 	master := bytes.Repeat([]byte{0x42}, 32)
 	cfg, err := buildConfig(testChannelID, "password-1", "pet name", master, 0)
@@ -159,6 +162,7 @@ func TestConfigOpCarriesRecoverableVault(t *testing.T) {
 }
 
 func TestMasterKeyGates(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _ := newTestService(t)
 
 	if key, err := svc.MasterKeyForUpload(testChannelID, false); err != nil || key != nil {

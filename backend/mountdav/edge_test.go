@@ -14,6 +14,7 @@ import (
 )
 
 func TestRandomAccessFileEdgeContracts(t *testing.T) {
+	isolate_data_dir(t)
 	fs := testFS(t, &memoryOpener{data: []byte("0123456789")})
 	file, err := fs.OpenFile(context.Background(), "/Docs/note.txt", os.O_RDONLY, 0)
 	if err != nil {
@@ -76,6 +77,7 @@ func TestRandomAccessFileEdgeContracts(t *testing.T) {
 }
 
 func TestDirectoryFileEdgeContracts(t *testing.T) {
+	isolate_data_dir(t)
 	fs := testFS(t, nil)
 	directory, err := fs.OpenFile(context.Background(), "/", os.O_RDONLY, 0)
 	if err != nil {
@@ -123,6 +125,7 @@ func TestDirectoryFileEdgeContracts(t *testing.T) {
 }
 
 func TestFileSystemPathAndErrorMapping(t *testing.T) {
+	isolate_data_dir(t)
 	fs := testFS(t, nil)
 	if _, err := NewFileSystem(nil).Stat(context.Background(), "/"); err == nil {
 		t.Fatal("nil filesystem Stat unexpectedly succeeded")
@@ -165,6 +168,7 @@ func TestFileSystemPathAndErrorMapping(t *testing.T) {
 }
 
 func TestFileInfoStableMetadata(t *testing.T) {
+	isolate_data_dir(t)
 	modTime := time.Date(2026, time.August, 19, 1, 2, 3, 4, time.UTC)
 	entry := mountfs.Entry{ChannelID: 7, ID: "f:1", Name: "blob.unknown-extension", Kind: mountfs.KindFile, Size: 8, ModTime: modTime, ContentRef: "telegram:1", Revision: 1, ContentHash: "sha256:one"}
 	info := newFileInfo(entry)
@@ -208,6 +212,7 @@ func TestFileInfoStableMetadata(t *testing.T) {
 }
 
 func TestServingErrorMappingAndMetadataSeeker(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		err    error
 		status int

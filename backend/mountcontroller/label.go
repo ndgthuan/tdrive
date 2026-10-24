@@ -35,7 +35,7 @@ func displayLabel(drive Drive) (string, error) {
 		return "", err
 	}
 	if drive.Kind == DriveKindPersonal {
-		return "Tdrive personal", nil
+		return "Telegram Drive", nil
 	}
 
 	titleRunes := maxDisplayLabelRunes - utf8.RuneCountInString(sharedLabelPrefix)

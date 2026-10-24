@@ -11,6 +11,7 @@ import (
 )
 
 func TestParseSetupArgsReadsSuccessivePipedAnswers(t *testing.T) {
+	isolate_data_dir(t)
 	stdin := replaceStdin(t, "12345\nabcdef0123456789\n")
 	defer stdin()
 
@@ -24,6 +25,7 @@ func TestParseSetupArgsReadsSuccessivePipedAnswers(t *testing.T) {
 }
 
 func TestPromptLineReturnsEOFWhenInputIsEmpty(t *testing.T) {
+	isolate_data_dir(t)
 	stdin := replaceStdin(t, "")
 	defer stdin()
 
@@ -33,6 +35,7 @@ func TestPromptLineReturnsEOFWhenInputIsEmpty(t *testing.T) {
 }
 
 func TestPickerUsesRemainingPipedInputAfterPrompt(t *testing.T) {
+	isolate_data_dir(t)
 	stdin := replaceStdin(t, "+123456789\n2\n")
 	defer stdin()
 
@@ -51,6 +54,7 @@ func TestPickerUsesRemainingPipedInputAfterPrompt(t *testing.T) {
 }
 
 func TestParseSetupArgsReadsAPIHashFromStdin(t *testing.T) {
+	isolate_data_dir(t)
 	stdin := replaceStdin(t, "abcdef0123456789\n")
 	defer stdin()
 
@@ -64,6 +68,7 @@ func TestParseSetupArgsReadsAPIHashFromStdin(t *testing.T) {
 }
 
 func TestParseSetupArgsRejectsConflictingAPIHashSources(t *testing.T) {
+	isolate_data_dir(t)
 	tests := [][]string{
 		{"--api-id", "12345", "--api-hash", "secret", "--api-hash-stdin"},
 		{"--api-id", "12345", "--api-id", "67890", "--api-hash", "secret"},
@@ -78,6 +83,7 @@ func TestParseSetupArgsRejectsConflictingAPIHashSources(t *testing.T) {
 }
 
 func TestParseLoginArgsExplicitDriveChoice(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name       string
 		args       []string
@@ -108,6 +114,7 @@ func TestParseLoginArgsExplicitDriveChoice(t *testing.T) {
 }
 
 func TestChooseExplicitPersonalDriveRequiresOfferedCandidate(t *testing.T) {
+	isolate_data_dir(t)
 	client := &fakePersonalDriveSetupClient{}
 	setup := daemon.PersonalDriveSetup{Status: "selection_required", Candidates: []daemon.PersonalDriveCandidate{{ID: "42"}}}
 	if _, err := chooseExplicitPersonalDrive(client, setup, "99", false); err == nil {

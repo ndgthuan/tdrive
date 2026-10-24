@@ -212,7 +212,7 @@ func TestRoundTripFormatParse(t *testing.T) {
 
 	for _, want := range cases {
 		raw := Format(want)
-		if !strings.HasPrefix(raw, "TDX1|t=") {
+		if !strings.HasPrefix(raw, "TDrive | type=") {
 			t.Fatalf("Format(%v) = %q, missing prefix", want, raw)
 		}
 		got, err := Parse(raw)
@@ -238,10 +238,10 @@ func TestFormatFileUploadIncludesSizeAndTime(t *testing.T) {
 		FileSize:       55,
 		FileUploadTime: 66,
 	})
-	if !strings.Contains(raw, "|sz=55") {
+	if !strings.Contains(raw, " | size=55") {
 		t.Fatalf("formatted header missing size: %q", raw)
 	}
-	if !strings.Contains(raw, "|ts=66") {
+	if !strings.Contains(raw, " | time="+format_iso_utc(66)) {
 		t.Fatalf("formatted header missing upload time: %q", raw)
 	}
 }

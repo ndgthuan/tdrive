@@ -93,6 +93,7 @@ type App struct {
 	encryption *EncryptionService
 	media      *MediaService
 	updates    *UpdateService
+	assistant  *AIService
 
 	photoBackupMu          sync.Mutex
 	photoBackupDiscoveryMu sync.Mutex

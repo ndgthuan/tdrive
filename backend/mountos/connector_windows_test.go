@@ -6,11 +6,19 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
 
 	"golang.org/x/sys/windows"
+)
+
+// testBareRemote is the capability root as Windows reports it, and
+// testMappedRemote is the root-folder mapping this connector now requests.
+const (
+	testBareRemote   = `\\127.0.0.1@49152\DavWWWRoot\tdrive-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`
+	testMappedRemote = testBareRemote + `\Telegram Drive`
 )
 
 type windowsRecordingRunner struct {
@@ -77,7 +85,7 @@ func newTestWindowsConnector(runner commandRunner, system *windowsFakeSystem) *w
 }
 
 func TestWindowsAttachPreparesWebClientBeforeMapping(t *testing.T) {
-	remote := `\\127.0.0.1@49152\DavWWWRoot\tdrive-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`
+	remote := testMappedRemote
 	system := &windowsFakeSystem{remoteDrive: true, remoteResults: []remoteResult{{remote: remote, mapped: true}}}
 	prepared := false
 	runner := &windowsRecordingRunner{beforeRun: func() {
@@ -158,7 +166,7 @@ func TestWindowsAttachPreservesCanceledWebClientContext(t *testing.T) {
 }
 
 func TestWindowsAttachRetriesColdMappingVerification(t *testing.T) {
-	remote := `\\127.0.0.1@49152\DavWWWRoot\tdrive-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`
+	remote := testMappedRemote
 	system := &windowsFakeSystem{remoteDrive: true, remoteResults: []remoteResult{
 		{mapped: false},
 		{remote: remote, mapped: true},
@@ -188,7 +196,7 @@ func TestWindowsAttachRetriesColdMappingVerification(t *testing.T) {
 }
 
 func TestWindowsAttachOpenDetach(t *testing.T) {
-	remote := `\\127.0.0.1@49152\DavWWWRoot\tdrive-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`
+	remote := testMappedRemote
 	system := &windowsFakeSystem{remoteDrive: true, remoteResults: []remoteResult{
 		{remote: remote, mapped: true},
 		{remote: remote, mapped: true},
@@ -273,7 +281,7 @@ func TestWindowsDetachRequiresExactSystemRemote(t *testing.T) {
 }
 
 func TestWindowsAttachRollsBackUnverifiedMapping(t *testing.T) {
-	remote := `\\127.0.0.1@49152\DavWWWRoot\tdrive-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`
+	remote := testMappedRemote
 	system := &windowsFakeSystem{remoteDrive: false, remoteResults: []remoteResult{
 		{remote: remote, mapped: true},
 		{remote: remote, mapped: true},
@@ -310,7 +318,7 @@ func TestWindowsOpenRevalidatesSystemMapping(t *testing.T) {
 }
 
 func TestWindowsPostCommandLookupFailureAttemptsSafeRollback(t *testing.T) {
-	remote := `\\127.0.0.1@49152\DavWWWRoot\tdrive-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`
+	remote := testMappedRemote
 	system := &windowsFakeSystem{remoteDrive: true, remoteResults: []remoteResult{
 		{err: errors.New("transient lookup failure")},
 		{remote: remote, mapped: true},
@@ -367,4 +375,102 @@ func TestWindowsRemoteLookupReportsUnusedDriveAsUnmapped(t *testing.T) {
 		return
 	}
 	t.Skip("all Windows drive letters are occupied")
+}
+
+func TestWindowsAttachLabelIsWrittenBeforeAndAfterMapping(t *testing.T) {
+	remote := testMappedRemote
+	system := &windowsFakeSystem{remoteDrive: true, remoteResults: []remoteResult{{remote: remote, mapped: true}}}
+	var events []string
+	runner := &windowsRecordingRunner{beforeRun: func() { events = append(events, "run") }}
+	connector := newTestWindowsConnector(runner, system)
+	connector.set_mount_label = func(name, label string) error {
+		if name != remote || label != windows_mount_label {
+			t.Errorf("label applied to (%q, %q); want the endpoint remote and %q", name, label, windows_mount_label)
+		}
+		events = append(events, "label")
+		return nil
+	}
+	connector.clear_mount_label = func(string) error {
+		events = append(events, "clear")
+		return nil
+	}
+	connector.notify_drive = func(drive string) { events = append(events, "notify:"+drive) }
+
+	if _, err := connector.Attach(context.Background(), Config{Endpoint: testEndpoint, Label: "Tdrive personal"}); err != nil {
+		t.Fatalf("Attach() error = %v", err)
+	}
+	want := `label,run,label,notify:T:\`
+	if got := strings.Join(events, ","); got != want {
+		t.Fatalf("event order = %q; want %q", got, want)
+	}
+}
+
+func TestWindowsAttachLabelIsClearedWhenMappingCommandFails(t *testing.T) {
+	expected := testMappedRemote
+	system := &windowsFakeSystem{remoteResults: []remoteResult{{mapped: false}}}
+	var events, cleared []string
+	runner := &windowsRecordingRunner{
+		errAt:     map[int]error{0: errors.New("failed for " + testEndpoint)},
+		beforeRun: func() { events = append(events, "run") },
+	}
+	connector := newTestWindowsConnector(runner, system)
+	connector.set_mount_label = func(string, string) error {
+		events = append(events, "label")
+		return nil
+	}
+	connector.clear_mount_label = func(name string) error {
+		events = append(events, "clear")
+		cleared = append(cleared, name)
+		return nil
+	}
+
+	_, err := connector.Attach(context.Background(), Config{Endpoint: testEndpoint, Label: "Tdrive personal"})
+	if !errors.Is(err, ErrWindowsWebDAVUnavailable) {
+		t.Fatalf("Attach() = %v, want Windows WebDAV unavailable", err)
+	}
+	if want := "label,run,clear,clear"; strings.Join(events, ",") != want {
+		t.Fatalf("event order = %q; want %q", strings.Join(events, ","), want)
+	}
+	if want := []string{expected, testBareRemote}; !slices.Equal(cleared, want) {
+		t.Fatalf("cleared remotes = %q; want %q", cleared, want)
+	}
+}
+
+func TestWindowsAttachLabelIsClearedAfterRollbackOfUnverifiedMapping(t *testing.T) {
+	remote := testMappedRemote
+	system := &windowsFakeSystem{remoteDrive: false, remoteResults: []remoteResult{
+		{remote: remote, mapped: true},
+		{remote: remote, mapped: true},
+		{mapped: false},
+	}}
+	var events []string
+	runner := &windowsRecordingRunner{beforeRun: func() { events = append(events, "run") }}
+	connector := newTestWindowsConnector(runner, system)
+	connector.set_mount_label = func(string, string) error {
+		events = append(events, "label")
+		return nil
+	}
+	connector.clear_mount_label = func(string) error {
+		events = append(events, "clear")
+		return nil
+	}
+
+	_, err := connector.Attach(context.Background(), Config{Endpoint: testEndpoint, Label: "Tdrive personal"})
+	if !errors.Is(err, ErrVerificationFailed) {
+		t.Fatalf("Attach() = %v; want verification failure", err)
+	}
+	if want := "label,run,run,clear,clear"; strings.Join(events, ",") != want {
+		t.Fatalf("event order = %q; want %q", strings.Join(events, ","), want)
+	}
+}
+
+func TestWindowsExpectedRemoteMatchesMappedRemoteSpelling(t *testing.T) {
+	want := `\\127.0.0.1@49152\DavWWWRoot\tdrive-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef`
+	got, ok := windowsExpectedRemote(testEndpoint)
+	if !ok || got != want {
+		t.Fatalf("windowsExpectedRemote() = %q, %v; want %q", got, ok, want)
+	}
+	if _, ok := windowsExpectedRemote("http://127.0.0.1:49152"); ok {
+		t.Fatal("endpoint without a path produced an expected remote")
+	}
 }

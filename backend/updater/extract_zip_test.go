@@ -33,6 +33,7 @@ func writeZip(t *testing.T, entries map[string]string) string {
 }
 
 func TestExtractZipWritesNestedEntries(t *testing.T) {
+	isolate_data_dir(t)
 	src := writeZip(t, map[string]string{
 		"TDrive.exe":      "exe",
 		"media/mpv.exe":   "mpv",
@@ -62,6 +63,7 @@ func TestExtractZipWritesNestedEntries(t *testing.T) {
 }
 
 func TestExtractZipRejectsTraversal(t *testing.T) {
+	isolate_data_dir(t)
 	for _, name := range []string{"../escape.txt", "sub/../../escape.txt", "/abs.txt", "C:/abs.txt"} {
 		src := writeZip(t, map[string]string{name: "x"})
 		dest := filepath.Join(t.TempDir(), "out")
@@ -73,6 +75,7 @@ func TestExtractZipRejectsTraversal(t *testing.T) {
 }
 
 func TestSafeJoinAcceptsPlainPaths(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	got, err := safeJoin(root, "a/b/c.txt")
 	if err != nil {

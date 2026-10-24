@@ -33,6 +33,7 @@ func githubServer(t *testing.T, status int, headers map[string]string, body stri
 }
 
 func TestGitHubSourceParsesLatestRelease(t *testing.T) {
+	isolate_data_dir(t)
 	source := githubServer(t, http.StatusOK, nil, `{
 		"tag_name": "v1.7.0",
 		"html_url": "https://github.com/owner/repo/releases/tag/v1.7.0",
@@ -62,6 +63,7 @@ func TestGitHubSourceParsesLatestRelease(t *testing.T) {
 }
 
 func TestGitHubSourceErrors(t *testing.T) {
+	isolate_data_dir(t)
 	cases := []struct {
 		name    string
 		status  int

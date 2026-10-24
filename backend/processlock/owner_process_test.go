@@ -9,8 +9,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"TDrive/backend/datadir"
 )
 
 // A separate process establishes crash recovery, not merely seeded metadata.
@@ -19,6 +22,19 @@ func TestLockOwnerProcess(t *testing.T) {
 	if mode == "" {
 		return
 	}
+	// The parent already isolated its data dir. The child must join that same
+	// dir, not isolate a fresh one, or the two processes would not share a lock.
+	// The parent passes the TDrive dir, so its parent is the datadir override.
+	shared := os.Getenv("TDRIVE_TEST_LOCK_DIR")
+	if shared == "" {
+		t.Fatal("owner process has no shared lock dir")
+	}
+	datadir.Set(filepath.Dir(shared))
+	datadir.SetCache(filepath.Dir(shared))
+	t.Cleanup(func() {
+		datadir.Set("")
+		datadir.SetCache("")
+	})
 	if mode == "legacy" {
 		path, err := Path()
 		if err != nil {
@@ -63,8 +79,12 @@ func startOwnerProcess(t *testing.T, mode string) *ownerProcess {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	t.Cleanup(cancel)
+	lockPath, err := Path()
+	if err != nil {
+		t.Fatal(err)
+	}
 	cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestLockOwnerProcess$")
-	cmd.Env = append(os.Environ(), "TDRIVE_TEST_LOCK_OWNER="+mode)
+	cmd.Env = append(os.Environ(), "TDRIVE_TEST_LOCK_OWNER="+mode, "TDRIVE_TEST_LOCK_DIR="+filepath.Dir(lockPath))
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -105,6 +125,7 @@ func (p *ownerProcess) crash(t *testing.T) {
 }
 
 func TestAcquireAfterOwnerProcessDiesWithoutRelease(t *testing.T) {
+	isolate_data_dir(t)
 	withConfigHome(t)
 	owner := startOwnerProcess(t, "kernel")
 	if lock, err := Acquire("daemon"); !errors.Is(err, ErrAlreadyRunning) {
@@ -130,6 +151,7 @@ func TestAcquireAfterOwnerProcessDiesWithoutRelease(t *testing.T) {
 }
 
 func TestUpgradeDoesNotTakeOverLiveLegacyOwner(t *testing.T) {
+	isolate_data_dir(t)
 	withConfigHome(t)
 	owner := startOwnerProcess(t, "legacy")
 	if lock, err := Acquire("daemon"); !errors.Is(err, ErrAlreadyRunning) {

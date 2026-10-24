@@ -13,6 +13,7 @@ import (
 )
 
 func TestDaemonMountFailsClosedWhenPersonalPolicyCannotBeProven(t *testing.T) {
+	isolate_data_dir(t)
 	configureDaemonPolicyTestHome(t)
 	const (
 		personalID int64 = 8_300_001
@@ -44,6 +45,7 @@ func TestDaemonMountFailsClosedWhenPersonalPolicyCannotBeProven(t *testing.T) {
 }
 
 func TestDaemonMountUsesEncryptedPolicyRestoredByAuthoritativeRefresh(t *testing.T) {
+	isolate_data_dir(t)
 	for _, unlocked := range []bool{false, true} {
 		t.Run(map[bool]string{false: "locked", true: "unlocked"}[unlocked], func(t *testing.T) {
 			configureDaemonPolicyTestHome(t)
@@ -78,6 +80,7 @@ func TestDaemonMountUsesEncryptedPolicyRestoredByAuthoritativeRefresh(t *testing
 }
 
 func TestDaemonMountAllowsPlaintextOnlyAfterAuthoritativeRefresh(t *testing.T) {
+	isolate_data_dir(t)
 	configureDaemonPolicyTestHome(t)
 	const (
 		personalID int64 = 8_500_001
@@ -104,6 +107,7 @@ func TestDaemonMountAllowsPlaintextOnlyAfterAuthoritativeRefresh(t *testing.T) {
 }
 
 func TestDaemonVaultAndGeneralStatusFailClosedWhenPolicyCannotBeProven(t *testing.T) {
+	isolate_data_dir(t)
 	configureDaemonPolicyTestHome(t)
 	const (
 		personalID int64 = 8_600_001
@@ -135,6 +139,7 @@ func TestDaemonVaultAndGeneralStatusFailClosedWhenPolicyCannotBeProven(t *testin
 }
 
 func TestDaemonVaultStatusReportsUnconfiguredOnlyAfterAuthoritativeRefresh(t *testing.T) {
+	isolate_data_dir(t)
 	configureDaemonPolicyTestHome(t)
 	const (
 		personalID int64 = 8_700_001

@@ -21,6 +21,7 @@ import (
 )
 
 func TestChannelMediaPagesRequireCapturedConnectionScope(t *testing.T) {
+	isolate_data_dir(t)
 	// Scope validation must work without an initialized host.
 	service := &DriveService{}
 	for _, test := range []struct {
@@ -61,6 +62,7 @@ func (c *stalledChannelResolve) ResolveDocument(ctx context.Context, peer tgclie
 }
 
 func TestChannelMediaLogoutRevokesAndRejectsInFlightOpen(t *testing.T) {
+	isolate_data_dir(t)
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	oldDB := backend.DB

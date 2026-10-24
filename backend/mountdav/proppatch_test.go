@@ -9,6 +9,7 @@ import (
 )
 
 func TestParseProppatchPropertiesRejectsInvalidDocuments(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name string
 		body string
@@ -31,6 +32,7 @@ func TestParseProppatchPropertiesRejectsInvalidDocuments(t *testing.T) {
 }
 
 func TestParseProppatchPropertiesDeduplicatesAndBoundsNames(t *testing.T) {
+	isolate_data_dir(t)
 	body := `<D:propertyupdate xmlns:D="DAV:" xmlns:Z="urn:schemas-microsoft-com:">
 <D:set><D:prop><Z:Win32CreationTime><nested/></Z:Win32CreationTime></D:prop></D:set>
 <D:remove><D:prop><Z:Win32CreationTime/></D:prop></D:remove>
@@ -60,6 +62,7 @@ func TestParseProppatchPropertiesDeduplicatesAndBoundsNames(t *testing.T) {
 }
 
 func TestWritableProppatchRejectsInvalidBoundaryInputs(t *testing.T) {
+	isolate_data_dir(t)
 	valid := `<D:propertyupdate xmlns:D="DAV:"><D:set><D:prop><D:displayname>ignored</D:displayname></D:prop></D:set></D:propertyupdate>`
 	tests := []struct {
 		name        string

@@ -40,6 +40,7 @@ func TestDaemonMountShutdownBudgetCoversDetachAndEndpointCleanup(t *testing.T) {
 }
 
 func TestStartMountPinsSelectedDriveAndReturnsCapabilityFreeStatus(t *testing.T) {
+	isolate_data_dir(t)
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("APPDATA", t.TempDir())
@@ -122,6 +123,7 @@ func TestStartMountPinsSelectedDriveAndReturnsCapabilityFreeStatus(t *testing.T)
 }
 
 func TestMountStatusWithoutControllerIsStopped(t *testing.T) {
+	isolate_data_dir(t)
 	response := (*Server)(nil).mountStatus()
 	if response.Running || response.Mounted || response.Phase != string(mountcontroller.PhaseStopped) {
 		t.Fatalf("mountStatus() = %#v", response)
@@ -129,6 +131,7 @@ func TestMountStatusWithoutControllerIsStopped(t *testing.T) {
 }
 
 func TestStartMountPropagatesEncryptedPersonalEligibility(t *testing.T) {
+	isolate_data_dir(t)
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	t.Setenv("APPDATA", t.TempDir())
@@ -189,6 +192,7 @@ func TestMountStatusOwnsPinnedDriveDuringLifecycle(t *testing.T) {
 }
 
 func TestMountResponseMapsOnlySafeControllerFields(t *testing.T) {
+	isolate_data_dir(t)
 	response := mountResponse(mountcontroller.Status{
 		Phase:        mountcontroller.PhaseFailed,
 		Running:      true,

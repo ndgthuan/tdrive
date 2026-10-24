@@ -12,7 +12,7 @@ import (
 // in raw_header but absent from their serialized Op. Never reinterpret mutable
 // network captions here: only the original locally canonical header is eligible.
 func restoreRenditionExtension(op Op, header string) Op {
-	if op.Type != OpFilePart || op.Rendition != nil || !strings.Contains(header, "|rend=") {
+	if op.Type != OpFilePart || op.Rendition != nil || !header_has_rendition(header) {
 		return op
 	}
 	parsed, err := Parse(header)
@@ -21,6 +21,13 @@ func restoreRenditionExtension(op Op, header string) Op {
 	}
 	op.Rendition = parsed.Rendition
 	return op
+}
+
+// header_has_rendition reports whether a caption carries the rendition field in
+// either wire form.
+func header_has_rendition(header string) bool {
+	fields, err := parse_wire_fields(strings.TrimSpace(ExtractHeaderLine(header)))
+	return err == nil && fields["rend"] != ""
 }
 
 // migrateRenditionReferences pages by replay_log's composite key. An old client

@@ -375,9 +375,9 @@ func (s *Service) ListTrash(channelID int64) ([]TrashListing, error) {
 
 // PurgeObject destroys one trashed object for good, on the user's explicit
 // instruction. Ordering is what makes it safe to interrupt: the intent is
-// claimed first, the marker hides the object and captures an immutable body
-// plan second, and only messages that plan already listed are ever deleted from
-// Telegram.
+// claimed first, the local purge plan (bodies plus every control message about
+// the object) is captured atomically second, and only messages that plan already
+// listed are ever deleted from Telegram. No hard-delete record is sent.
 func (s *Service) PurgeObject(ctx context.Context, channelID int64, objectID string) error {
 	return s.purgeObject(ctx, channelID, objectID, func(opID string) (int64, error) {
 		return projection.RegisterTrashPurgeIntent(ctx, s.DB, channelID, opID, objectID)
@@ -455,7 +455,11 @@ func (s *Service) purgeObject(ctx context.Context, channelID int64, objectID str
 		if err != nil {
 			return err
 		}
-		if err := s.emitWritable(ctx, channelID, projection.HardDeleteOp(opID, objectID, revision)); err != nil {
+			// No hard-delete marker is published. The cleanup plan is captured
+			// locally, and the Telegram messages it lists (bodies, the upload
+		// message and every control message about the object) are removed
+		// below, so the chat keeps no record of a purged object.
+		if err := projection.CaptureLocalPurge(ctx, s.DB, channelID, opID, objectID, revision); err != nil {
 			if abandonErr := projection.AbandonHardDeleteIntent(ctx, s.DB, channelID, opID); abandonErr != nil {
 				return errors.Join(err, abandonErr)
 			}

@@ -56,6 +56,7 @@ func noSeedOpenCurrent() (io.ReadCloser, int64, error) { return nil, 0, nil }
 // different request legitimately created in the meantime -- or corrupt the
 // aggregate quota counter by double-subtracting.
 func TestResumeStoreConflictingTotalCannotCorruptARacingReplacementEntry(t *testing.T) {
+	isolate_data_dir(t)
 	store := newTestResumeStore(t)
 	path := "/Docs/photo.png"
 	tokens := []string{"opaquelocktoken:test"}
@@ -130,6 +131,7 @@ func TestResumeStoreConflictingTotalCannotCorruptARacingReplacementEntry(t *test
 // claim while that copy was in flight. Completion must fail rather than
 // silently deleting whatever now occupies the map slot.
 func TestResumeStoreConflictingTotalDuringFinalChunkFailsCleanly(t *testing.T) {
+	isolate_data_dir(t)
 	store := newTestResumeStore(t)
 	path := "/Docs/photo.png"
 	tokens := []string{"opaquelocktoken:test"}
@@ -196,6 +198,7 @@ func TestResumeStoreConflictingTotalDuringFinalChunkFailsCleanly(t *testing.T) {
 }
 
 func TestResumeStoreMapsAggregateQuotaAndReleasesCompletedReservation(t *testing.T) {
+	isolate_data_dir(t)
 	store, err := newResumeStore(t.TempDir(), time.Minute, 100, 10)
 	if err != nil {
 		t.Fatalf("new resume store: %v", err)
@@ -247,6 +250,7 @@ func TestResumeStoreMapsAggregateQuotaAndReleasesCompletedReservation(t *testing
 }
 
 func TestResumeStoreRollsBackQuotaWhenExclusiveCreateFails(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	if err := os.WriteFile(filepath.Join(root, "1.resume"), []byte("collision"), 0o600); err != nil {
 		t.Fatalf("seed colliding file: %v", err)

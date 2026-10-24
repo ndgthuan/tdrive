@@ -37,6 +37,7 @@ func manifestRecord(t *testing.T, key manifestTestKey, manifest []byte) string {
 }
 
 func TestManifestKeyRingVerifiesDomainSeparatedManifest(t *testing.T) {
+	isolate_data_dir(t)
 	key := newManifestTestKey(t)
 	manifest := []byte("abc123  TDrive-v1.7.0-macos-arm64.zip\n")
 	envelope := []byte(manifestRecord(t, key, manifest))
@@ -65,6 +66,7 @@ func TestManifestKeyRingVerifiesDomainSeparatedManifest(t *testing.T) {
 }
 
 func TestManifestKeyRingSupportsRotationAndCopiesKeys(t *testing.T) {
+	isolate_data_dir(t)
 	oldKey := newManifestTestKey(t)
 	newKey := newManifestTestKey(t)
 	manifest := []byte("signed manifest\n")
@@ -84,6 +86,7 @@ func TestManifestKeyRingSupportsRotationAndCopiesKeys(t *testing.T) {
 }
 
 func TestManifestKeyRingAllowsUnknownKeyAlongsideValidKey(t *testing.T) {
+	isolate_data_dir(t)
 	trustedKey := newManifestTestKey(t)
 	unknownKey := newManifestTestKey(t)
 	manifest := []byte("manifest\n")
@@ -96,6 +99,7 @@ func TestManifestKeyRingAllowsUnknownKeyAlongsideValidKey(t *testing.T) {
 }
 
 func TestManifestKeyRingRejectsMalformedOrDuplicateRecords(t *testing.T) {
+	isolate_data_dir(t)
 	key := newManifestTestKey(t)
 	manifest := []byte("manifest\n")
 	validRecord := strings.TrimSuffix(manifestRecord(t, key, manifest), "\n")
@@ -127,6 +131,7 @@ func TestManifestKeyRingRejectsMalformedOrDuplicateRecords(t *testing.T) {
 }
 
 func TestManifestKeyRingRejectsUnknownOrAllInvalidSignatures(t *testing.T) {
+	isolate_data_dir(t)
 	trustedKey := newManifestTestKey(t)
 	otherKey := newManifestTestKey(t)
 	manifest := []byte("manifest\n")
@@ -147,6 +152,7 @@ func TestManifestKeyRingRejectsUnknownOrAllInvalidSignatures(t *testing.T) {
 }
 
 func TestManifestKeyRingRejectsInvalidKeys(t *testing.T) {
+	isolate_data_dir(t)
 	manifest := []byte("manifest\n")
 	ring := newManifestKeyRing([]ed25519.PublicKey{make(ed25519.PublicKey, ed25519.PublicKeySize-1)})
 
@@ -156,6 +162,7 @@ func TestManifestKeyRingRejectsInvalidKeys(t *testing.T) {
 }
 
 func TestMustManifestKeyRingFromHexRejectsInvalidConfiguration(t *testing.T) {
+	isolate_data_dir(t)
 	key := newManifestTestKey(t)
 	validKey := hex.EncodeToString(key.publicKey)
 	cases := map[string][]string{
@@ -177,6 +184,7 @@ func TestMustManifestKeyRingFromHexRejectsInvalidConfiguration(t *testing.T) {
 }
 
 func TestProductionManifestKeyRingExcludesBootstrapPlaceholder(t *testing.T) {
+	isolate_data_dir(t)
 	placeholderKey, err := hex.DecodeString(bootstrapManifestPublicKeyPlaceholderHex)
 	if err != nil {
 		t.Fatal(err)
@@ -193,6 +201,7 @@ func TestProductionManifestKeyRingExcludesBootstrapPlaceholder(t *testing.T) {
 }
 
 func TestReleaseSigningArtifactsUseEmbeddedKeys(t *testing.T) {
+	isolate_data_dir(t)
 	manifestPath := os.Getenv("TDRIVE_RELEASE_MANIFEST_PATH")
 	envelopePath := os.Getenv("TDRIVE_RELEASE_SIGNATURE_PATH")
 	encodedKeyIDs := os.Getenv("TDRIVE_RELEASE_SIGNING_KEY_IDS")

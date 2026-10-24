@@ -9,6 +9,7 @@ import (
 )
 
 func TestGalleryAppBoundaryPreservesWireContract(t *testing.T) {
+	isolate_data_dir(t)
 	app, db := setupEncryptionApp(t)
 	if _, err := db.Exec(`INSERT INTO files(channel_id,msg_id,name,size,parent_id,upload_time,content_msg_id,content_hash,revision) VALUES(?,9,'photo.jpg',100,'',1700000000,99,'content-hash',3)`, testEncryptionChannelID); err != nil {
 		t.Fatal(err)
@@ -50,6 +51,7 @@ func TestGalleryAppBoundaryPreservesWireContract(t *testing.T) {
 }
 
 func TestGalleryAppBoundaryRejectsUnavailableBackend(t *testing.T) {
+	isolate_data_dir(t)
 	app := &App{}
 	if _, err := app.GetMediaTimeline(); !errors.Is(err, errBackendUnavailable) {
 		t.Fatalf("timeline error=%v", err)

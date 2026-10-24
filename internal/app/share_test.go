@@ -18,6 +18,7 @@ func (resolve uploadPreparationPeerResolver) ResolvePeer(ctx context.Context, ch
 }
 
 func TestUploadKeepsDestinationWhenDriveChangesDuringPreparation(t *testing.T) {
+	isolate_data_dir(t)
 	app, db, fake := setupEncryptionAppWithPolicyRefresh(t, nil)
 	app.ctx = t.Context()
 	app.engine.SetActiveChannelID(testEncryptionChannelID)
@@ -62,6 +63,7 @@ func TestUploadKeepsDestinationWhenDriveChangesDuringPreparation(t *testing.T) {
 }
 
 func TestMobileUploadSourceStagingKeepsOnlyOwnedCopies(t *testing.T) {
+	isolate_data_dir(t)
 	datadir.Set(t.TempDir())
 	t.Cleanup(func() { datadir.Set("") })
 	cache := t.TempDir()
@@ -121,6 +123,7 @@ func TestMobileUploadSourceStagingKeepsOnlyOwnedCopies(t *testing.T) {
 }
 
 func TestMobileUploadSourceStagingRejectsCanceledCopy(t *testing.T) {
+	isolate_data_dir(t)
 	datadir.Set(t.TempDir())
 	t.Cleanup(func() { datadir.Set("") })
 	source := filepath.Join(t.TempDir(), "large-video.mp4")
@@ -147,6 +150,7 @@ func TestMobileUploadSourceStagingRejectsCanceledCopy(t *testing.T) {
 }
 
 func TestUniqueDownloadPathNumbersDuplicates(t *testing.T) {
+	isolate_data_dir(t)
 	dir := t.TempDir()
 	if got, want := uniqueDownloadPath(dir, "plan.pdf"), filepath.Join(dir, "plan.pdf"); got != want {
 		t.Fatalf("free name = %q, want %q", got, want)
@@ -166,6 +170,7 @@ func TestUniqueDownloadPathNumbersDuplicates(t *testing.T) {
 }
 
 func TestUnderAcceptsOnlyFilesBelowARoot(t *testing.T) {
+	isolate_data_dir(t)
 	root := filepath.Join(string(filepath.Separator), "data", "TDrive")
 	for _, tc := range []struct {
 		name string
@@ -192,6 +197,7 @@ func TestUnderAcceptsOnlyFilesBelowARoot(t *testing.T) {
 }
 
 func TestDownloadsDirFallsBackToTheDataDirectory(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	datadir.Set(root)
 	t.Cleanup(func() { datadir.Set("") })
@@ -215,6 +221,7 @@ func TestDownloadsDirFallsBackToTheDataDirectory(t *testing.T) {
 }
 
 func TestShareFileOnlySharesSandboxFiles(t *testing.T) {
+	isolate_data_dir(t)
 	root := t.TempDir()
 	datadir.Set(root)
 	t.Cleanup(func() { datadir.Set("") })

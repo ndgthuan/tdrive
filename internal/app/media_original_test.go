@@ -9,6 +9,7 @@ import (
 )
 
 func TestOpenOriginalImageDelegatesExactIdentity(t *testing.T) {
+	isolate_data_dir(t)
 	want := media.OpenResult{Token: "image-token", Kind: media.StreamKindImage}
 	opener := &recordingOriginalImageOpener{result: want}
 	ctx := context.WithValue(context.Background(), originalImageContextKey{}, "expected")
@@ -26,6 +27,7 @@ func TestOpenOriginalImageDelegatesExactIdentity(t *testing.T) {
 }
 
 func TestOpenOriginalImagePropagatesServiceError(t *testing.T) {
+	isolate_data_dir(t)
 	wantErr := errors.New("open failed")
 	_, err := openOriginalImage(context.Background(), &recordingOriginalImageOpener{err: wantErr}, 1, 2, 3)
 	if !errors.Is(err, wantErr) {
@@ -34,6 +36,7 @@ func TestOpenOriginalImagePropagatesServiceError(t *testing.T) {
 }
 
 func TestOpenOriginalImageRefreshesStaleRevisionOnce(t *testing.T) {
+	isolate_data_dir(t)
 	opener := &staleOriginalImageOpener{currentRevision: 12}
 
 	got, err := openOriginalImage(context.Background(), opener, 7, 42, 11)
@@ -52,6 +55,7 @@ func TestOpenOriginalImageRefreshesStaleRevisionOnce(t *testing.T) {
 }
 
 func TestMediaServiceOpenOriginalImageRequiresBackend(t *testing.T) {
+	isolate_data_dir(t)
 	if _, err := newTestMediaService().OpenOriginalImage(2, 1); err == nil {
 		t.Fatal("OpenOriginalImage without backend succeeded")
 	}

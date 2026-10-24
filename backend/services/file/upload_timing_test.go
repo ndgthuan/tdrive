@@ -9,6 +9,7 @@ import (
 )
 
 func TestNormalUploadReportsBoundedStageTimings(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, _, _ := newTestService(t)
 	path := writeTempNamedFile(t, "timed.txt", []byte("payload"))
 
@@ -40,6 +41,7 @@ func TestNormalUploadReportsBoundedStageTimings(t *testing.T) {
 }
 
 func TestUploadTimingDebugAggregationPreservesCaller(t *testing.T) {
+	isolate_data_dir(t)
 	previous := slog.Default()
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug})))
 	t.Cleanup(func() { slog.SetDefault(previous) })
@@ -63,6 +65,7 @@ func TestUploadTimingDebugAggregationPreservesCaller(t *testing.T) {
 }
 
 func TestUploadBatchTimingUsesBoundedQuantileBuckets(t *testing.T) {
+	isolate_data_dir(t)
 	var timings uploadBatchTimings
 	for _, sample := range []time.Duration{time.Millisecond, 2 * time.Millisecond, 3 * time.Millisecond, 9 * time.Millisecond} {
 		timings.observe("transfer", sample)

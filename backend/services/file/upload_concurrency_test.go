@@ -80,6 +80,7 @@ func (c *countingClient) SendFileWithRandomID(ctx context.Context, peer tgclient
 }
 
 func TestUploadBatchHonorsConfiguredConcurrency(t *testing.T) {
+	isolate_data_dir(t)
 	const fileCount = 6
 	for _, tc := range []struct {
 		name    string
@@ -170,6 +171,7 @@ type uploadEventFunc func(string, ...any)
 func (f uploadEventFunc) Emit(event string, args ...any) { f(event, args...) }
 
 func TestEarlyMultipartCompletionDoesNotHoldUploadSlot(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.MaxConcurrentUploads = 1
@@ -211,6 +213,7 @@ func TestEarlyMultipartCompletionDoesNotHoldUploadSlot(t *testing.T) {
 }
 
 func TestMultipartCompletionDoesNotWaitForOtherBatchFiles(t *testing.T) {
+	isolate_data_dir(t)
 	svc, db, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.MaxConcurrentUploads = 2
@@ -279,6 +282,7 @@ func TestMultipartCompletionDoesNotWaitForOtherBatchFiles(t *testing.T) {
 }
 
 func TestConcurrentMultipartUploadsRecoverIndependentlyAfterSharedFailures(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxUploadBytes = 1000
 	svc.MaxConcurrentUploads = 3
@@ -329,6 +333,7 @@ func TestConcurrentMultipartUploadsRecoverIndependentlyAfterSharedFailures(t *te
 }
 
 func TestConcurrentUploadCallsShareConfiguredLimiter(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxConcurrentUploads = 1
 
@@ -370,6 +375,7 @@ func TestConcurrentUploadCallsShareConfiguredLimiter(t *testing.T) {
 }
 
 func TestUploadLimiterHonorsCancellationWhileQueued(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxConcurrentUploads = 1
 	pathA := writeTempNamedFile(t, "active.txt", []byte("active"))
@@ -411,6 +417,7 @@ func TestUploadLimiterHonorsCancellationWhileQueued(t *testing.T) {
 }
 
 func TestVisibleAndHiddenUploadsShareConfiguredLimiter(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxConcurrentUploads = 1
 
@@ -462,6 +469,7 @@ func TestVisibleAndHiddenUploadsShareConfiguredLimiter(t *testing.T) {
 }
 
 func TestUploadConcurrencyClamp(t *testing.T) {
+	isolate_data_dir(t)
 	for _, tc := range []struct {
 		configured int
 		want       int
@@ -483,6 +491,7 @@ func TestUploadConcurrencyClamp(t *testing.T) {
 // cancels the backend held a single handle for the whole direction, so the ×
 // on any row took every concurrent upload down with it.
 func TestCancelUploadStopsOneFileAndLeavesTheBatchRunning(t *testing.T) {
+	isolate_data_dir(t)
 	svc, _, fakeTG, _ := newTestService(t)
 	svc.MaxConcurrentUploads = 3
 	svc.FloodWaitRetry = instantRetryPolicy()

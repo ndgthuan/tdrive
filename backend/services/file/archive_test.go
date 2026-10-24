@@ -12,6 +12,7 @@ import (
 )
 
 func TestIsArchive(t *testing.T) {
+	isolate_data_dir(t)
 	for in, want := range map[string]bool{
 		"x.zip":     true,
 		"X.ZIP":     true,
@@ -111,6 +112,7 @@ func findEntry(entries []ArchiveEntry, rel string) (ArchiveEntry, bool) {
 }
 
 func TestScanArchive(t *testing.T) {
+	isolate_data_dir(t)
 	regular := map[string]string{"top.txt": "hello", "a/b/c.txt": "deep!"}
 	unsafe := map[string]string{"../evil.txt": "x", "/abs.txt": "y"}
 
@@ -145,6 +147,7 @@ func TestScanArchive(t *testing.T) {
 }
 
 func TestStreamArchiveFiles(t *testing.T) {
+	isolate_data_dir(t)
 	regular := map[string]string{"top.txt": "hello", "a/b/c.txt": "deep!"}
 
 	for _, tc := range []struct {
@@ -183,6 +186,7 @@ func TestStreamArchiveFiles(t *testing.T) {
 }
 
 func TestTarHardlinksAreSkipped(t *testing.T) {
+	isolate_data_dir(t)
 	p := filepath.Join(t.TempDir(), "links.tar.gz")
 	f, err := os.Create(p)
 	if err != nil {

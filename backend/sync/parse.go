@@ -4,14 +4,13 @@ import (
 	"cmp"
 	"log/slog"
 	"slices"
-	"strings"
 
 	"TDrive/backend/projection"
 	"TDrive/backend/tgclient"
 )
 
 // ParsedMessage is a tgclient.HistoryMessage that decoded into a projectable
-// op. By default only TDX1 captions are projectable. Personal-drive sync can
+// op. By default only TDrive (or legacy TDX1) header captions are projectable. Personal-drive sync can
 // opt into adopting captionless Telegram documents as root files.
 type ParsedMessage struct {
 	MsgID              int64
@@ -80,7 +79,7 @@ func ParseHistoryPageWithOptions(msgs []tgclient.HistoryMessage, opts ParseOptio
 }
 
 func tdriveHeaderCandidate(header string) bool {
-	return strings.HasPrefix(strings.TrimSpace(header), "TDX1")
+	return projection.IsManagedHeader(header)
 }
 
 func captionlessMediaOp(m tgclient.HistoryMessage) (projection.Op, string, bool) {

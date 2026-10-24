@@ -10,9 +10,10 @@ const (
 	hardDeleteBatchSize    = 100
 )
 
-// HardDelete commits a durable namespace marker, imports the exact backing
-// message plan into the local journal, and synchronously deletes every body.
-// A caller receives success only after the projection has finalized the plan.
+// HardDelete captures the object's local purge plan through the remote commit
+// (no hard-delete record is published), imports the exact backing message plan
+// into the local journal, and synchronously deletes every body. A caller
+// receives success only after the projection has finalized the plan.
 func (c *Coordinator) HardDelete(ctx context.Context, request HardDeleteRequest) (MutationResult, error) {
 	if c == nil || ctx == nil {
 		return MutationResult{}, newOperationError(request.OperationID, MutationHardDelete, ErrInvalidRequest)

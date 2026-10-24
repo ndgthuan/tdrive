@@ -14,6 +14,7 @@ import (
 )
 
 func TestEncryptionLockWaitsForInFlightMountStart(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.ctx = context.Background()
@@ -57,6 +58,7 @@ func TestEncryptionLockWaitsForInFlightMountStart(t *testing.T) {
 }
 
 func TestCreateEncryptionPasswordSerializesPolicyChangeWithMountStart(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.ctx = context.Background()
@@ -105,6 +107,7 @@ func TestCreateEncryptionPasswordSerializesPolicyChangeWithMountStart(t *testing
 }
 
 func TestEncryptionStatusDoesNotWaitForMountLifecycle(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.ctx = context.Background()
@@ -140,6 +143,7 @@ func TestEncryptionStatusDoesNotWaitForMountLifecycle(t *testing.T) {
 }
 
 func TestLogoutLifecyclePermanentlyRejectsQueuedMountStart(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.ctx = context.Background()
@@ -188,6 +192,7 @@ func TestLogoutLifecyclePermanentlyRejectsQueuedMountStart(t *testing.T) {
 }
 
 func TestPasswordKeyWritersSerializeBeforeLockAndLogout(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name      string
 		configure func(*barrierEncryptionService)
@@ -251,6 +256,7 @@ func TestPasswordKeyWritersSerializeBeforeLockAndLogout(t *testing.T) {
 }
 
 func TestAppShutdownMakesMountLifecycleTerminal(t *testing.T) {
+	isolate_data_dir(t)
 	controller := newBarrierAppMountController()
 	app := &App{
 		ctx:             context.Background(),
@@ -274,6 +280,7 @@ func TestAppShutdownMakesMountLifecycleTerminal(t *testing.T) {
 }
 
 func TestAppShutdownWithoutControllerMakesMountLifecycleTerminal(t *testing.T) {
+	isolate_data_dir(t)
 	constructionCalls := 0
 	app := &App{
 		ctx: context.Background(),
@@ -295,6 +302,7 @@ func TestAppShutdownWithoutControllerMakesMountLifecycleTerminal(t *testing.T) {
 }
 
 func TestFailedLogoutCleanupLeavesMountLifecycleRecoverable(t *testing.T) {
+	isolate_data_dir(t)
 	app, _ := setupEncryptionApp(t)
 	t.Cleanup(app.engine.Close)
 	app.ctx = context.Background()

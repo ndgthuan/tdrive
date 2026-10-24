@@ -14,6 +14,7 @@ import (
 )
 
 func TestWriteMachineSuccess(t *testing.T) {
+	isolate_data_dir(t)
 	var output bytes.Buffer
 	if err := writeMachineSuccess(&output, "ls", map[string]any{"entries": []string{"a\n\"b"}}); err != nil {
 		t.Fatal(err)
@@ -38,6 +39,7 @@ func TestWriteMachineSuccess(t *testing.T) {
 }
 
 func TestMachineArgsEndOfOptions(t *testing.T) {
+	isolate_data_dir(t)
 	got, err := parseMachineArgs([]string{"--parents", "--", "--folder"}, "--parents")
 	if err != nil {
 		t.Fatal(err)
@@ -48,6 +50,7 @@ func TestMachineArgsEndOfOptions(t *testing.T) {
 }
 
 func TestMachineArgsRejectUnknown(t *testing.T) {
+	isolate_data_dir(t)
 	_, err := parseMachineArgs([]string{"--oops"}, "--parents")
 	if err == nil || !strings.Contains(err.Error(), "--oops") {
 		t.Fatalf("expected unknown option error, got %v", err)
@@ -72,6 +75,7 @@ func TestMachineRejectsUnsupportedSubcommandBeforeDaemonStart(t *testing.T) {
 }
 
 func TestMachineRemotePath(t *testing.T) {
+	isolate_data_dir(t)
 	for _, path := range []string{"/", "/Photos/2026", "/--strange"} {
 		if err := requireAbsoluteRemote(path); err != nil {
 			t.Errorf("%q: %v", path, err)
@@ -110,6 +114,7 @@ func (client *recordingMachineClient) MountStatus() (daemon.MountResponse, error
 }
 
 func TestMachineListUsesExplicitDrive(t *testing.T) {
+	isolate_data_dir(t)
 	client := &recordingMachineClient{}
 	data, err := machineFilesystem(client, []string{"ls", "/Photos"}, cliOptions{DriveID: 42})
 	if err != nil {
@@ -124,6 +129,7 @@ func TestMachineListUsesExplicitDrive(t *testing.T) {
 }
 
 func TestMachineRemoveNeedsConfirmation(t *testing.T) {
+	isolate_data_dir(t)
 	_, err := machineFilesystem(&recordingMachineClient{}, []string{"rm", "/Photos"}, cliOptions{DriveID: 42})
 	var cliErr *CLIError
 	if !errors.As(err, &cliErr) || cliErr.Code != "confirmation_required" {
@@ -132,6 +138,7 @@ func TestMachineRemoveNeedsConfirmation(t *testing.T) {
 }
 
 func TestMachineFindRejectsExcessiveLimit(t *testing.T) {
+	isolate_data_dir(t)
 	_, err := machineFilesystem(&recordingMachineClient{}, []string{"find", "--limit", "1001", "query"}, cliOptions{DriveID: 42})
 	if err == nil || !strings.Contains(err.Error(), "--limit") {
 		t.Fatalf("expected limit validation error, got %v", err)
@@ -139,6 +146,7 @@ func TestMachineFindRejectsExcessiveLimit(t *testing.T) {
 }
 
 func TestMachinePutRejectsDirectory(t *testing.T) {
+	isolate_data_dir(t)
 	_, err := machineTransfer(&recordingMachineClient{}, []string{"put", t.TempDir(), "/Backup"}, cliOptions{DriveID: 42})
 	if err == nil || !strings.Contains(err.Error(), "regular files") {
 		t.Fatalf("expected directory rejection, got %v", err)
@@ -146,6 +154,7 @@ func TestMachinePutRejectsDirectory(t *testing.T) {
 }
 
 func TestMachineDownloadPrechecksExistingTarget(t *testing.T) {
+	isolate_data_dir(t)
 	target := filepath.Join(t.TempDir(), "existing")
 	if err := os.WriteFile(target, []byte("do not replace"), 0o600); err != nil {
 		t.Fatal(err)
@@ -162,6 +171,7 @@ func TestMachineDownloadPrechecksExistingTarget(t *testing.T) {
 }
 
 func TestMachineSyncUsesExplicitDrive(t *testing.T) {
+	isolate_data_dir(t)
 	client := &recordingMachineClient{}
 	if _, err := machineMaintenance(client, []string{"sync"}, cliOptions{DriveID: 42}); err != nil {
 		t.Fatal(err)
@@ -175,6 +185,7 @@ func TestMachineSyncUsesExplicitDrive(t *testing.T) {
 }
 
 func TestMachineMountStatusRedactsEndpoint(t *testing.T) {
+	isolate_data_dir(t)
 	data, err := machineResult(&recordingMachineClient{}, []string{"mount", "status"}, cliOptions{})
 	if err != nil {
 		t.Fatal(err)

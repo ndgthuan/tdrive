@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"TDrive/backend/daemon"
+	"TDrive/backend/datadir"
 	"TDrive/backend/processlock"
 )
 
@@ -161,11 +162,7 @@ func daemonLogPath() (string, error) {
 }
 
 func tdriveConfigDir() (string, error) {
-	base, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(base, "TDrive"), nil
+	return datadir.Dir()
 }
 
 func isDaemonNotRunning(err error) bool {

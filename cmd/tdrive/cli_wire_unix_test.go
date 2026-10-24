@@ -14,6 +14,7 @@ import (
 )
 
 func TestRunListSendsExplicitDriveID(t *testing.T) {
+	isolate_data_dir(t)
 	base, err := os.MkdirTemp("", "tdrive-cli-wire-*")
 	if err != nil {
 		t.Fatal(err)

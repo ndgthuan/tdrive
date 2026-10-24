@@ -13,6 +13,7 @@ import (
 )
 
 func TestOperationErrorCodes(t *testing.T) {
+	isolate_data_dir(t)
 	tests := []struct {
 		name string
 		err  error
@@ -40,6 +41,7 @@ func TestOperationErrorCodes(t *testing.T) {
 }
 
 func TestOperationResultJSONKeepsControlCodeSeparateFromDisplayMessage(t *testing.T) {
+	isolate_data_dir(t)
 	result := operationFailureMessage(fs.ErrExist, "A folder with this name is already here")
 	encoded, err := json.Marshal(result)
 	if err != nil {
@@ -59,6 +61,7 @@ func TestOperationResultJSONKeepsControlCodeSeparateFromDisplayMessage(t *testin
 }
 
 func TestMountOperationResultPreservesStableErrorCodeAndState(t *testing.T) {
+	isolate_data_dir(t)
 	mount := MountView{Phase: "idle", Label: "Tdrive personal"}
 	result := mountOperationResult(mount, encservice.ErrPasswordRequired)
 

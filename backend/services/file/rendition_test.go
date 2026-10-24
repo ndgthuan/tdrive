@@ -51,6 +51,7 @@ func renditionFixture(t *testing.T) (*Service, *renditionClient) {
 	return s, c
 }
 func TestRenditionMissingNeverDownloadsOriginal(t *testing.T) {
+	isolate_data_dir(t)
 	s, c := renditionFixture(t)
 	for _, kind := range []string{"thumbnail", "preview"} {
 		_, err := s.Rendition(context.Background(), personalChannelID, 91, 1, kind)
@@ -63,6 +64,7 @@ func TestRenditionMissingNeverDownloadsOriginal(t *testing.T) {
 	}
 }
 func TestRenditionPlainThumbnailIgnoresOriginalSize(t *testing.T) {
+	isolate_data_dir(t)
 	s, c := renditionFixture(t)
 	raw := makePNG(t, 32, 16)
 	c.doc.Thumbs = []tgclient.FileThumb{{Type: "m", Width: 32, Height: 16, Size: len(raw)}}
@@ -79,6 +81,7 @@ func TestRenditionPlainThumbnailIgnoresOriginalSize(t *testing.T) {
 	}
 }
 func TestVideoRenditionAllowsOnlyBoundedThumbnail(t *testing.T) {
+	isolate_data_dir(t)
 	s, c := renditionFixture(t)
 	if _, err := s.DB.Exec(`UPDATE files SET name='clip.mp4' WHERE channel_id=? AND msg_id=?`, personalChannelID, 91); err != nil {
 		t.Fatal(err)
@@ -103,6 +106,7 @@ func TestVideoRenditionAllowsOnlyBoundedThumbnail(t *testing.T) {
 	}
 }
 func TestRenditionRevisionPinRejectsBeforeNetwork(t *testing.T) {
+	isolate_data_dir(t)
 	s, c := renditionFixture(t)
 	_, err := s.Rendition(context.Background(), personalChannelID, 91, 2, "thumbnail")
 	if !errors.Is(err, ErrRenditionStale) {
@@ -113,6 +117,7 @@ func TestRenditionRevisionPinRejectsBeforeNetwork(t *testing.T) {
 	}
 }
 func TestRenditionLastSubscriberCancelsTransfer(t *testing.T) {
+	isolate_data_dir(t)
 	s, c := renditionFixture(t)
 	started := make(chan struct{})
 	stopped := make(chan struct{})
@@ -147,6 +152,7 @@ func TestRenditionLastSubscriberCancelsTransfer(t *testing.T) {
 	}
 }
 func TestRenditionCacheIdentityIncludesContentAndAccount(t *testing.T) {
+	isolate_data_dir(t)
 	f := projection.File{ChannelID: 1, MsgID: 2, ContentMsgID: 2, Revision: 1}
 	a := renditionCacheKey("account-a", f, "thumbnail", 0)
 	if a == renditionCacheKey("account-b", f, "thumbnail", 0) {
@@ -159,6 +165,7 @@ func TestRenditionCacheIdentityIncludesContentAndAccount(t *testing.T) {
 }
 
 func TestRenditionSharedSubscriberSurvivesPeerCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	var group renditionFlightGroup
 	var calls atomic.Int32
 	started := make(chan struct{})
@@ -205,6 +212,7 @@ func TestRenditionSharedSubscriberSurvivesPeerCancellation(t *testing.T) {
 	}
 }
 func TestRenditionWriterLimitCannotBeBypassedByCopy(t *testing.T) {
+	isolate_data_dir(t)
 	dst := &renditionWriter{limit: 4}
 	_, err := io.Copy(dst, io.LimitReader(bytes.NewReader([]byte("123456")), 6))
 	if !errors.Is(err, errPreviewTooLarge) || dst.Len() > 4 {
@@ -212,12 +220,14 @@ func TestRenditionWriterLimitCannotBeBypassedByCopy(t *testing.T) {
 	}
 }
 func TestRenditionRejectsDimensionsBeforeBrowserDecode(t *testing.T) {
+	isolate_data_dir(t)
 	raw := makePNG(t, 513, 513)
 	if _, err := checkedRendition(raw, "thumbnail", false); !errors.Is(err, errPreviewTooLarge) {
 		t.Fatalf("err=%v", err)
 	}
 }
 func TestRenditionReplacementDuringTransferIsNotCached(t *testing.T) {
+	isolate_data_dir(t)
 	s, c := renditionFixture(t)
 	s.Thumbs = thumbnail.NewCache(t.TempDir(), 1<<20)
 	c.doc.Thumbs = []tgclient.FileThumb{{Type: "m", Width: 32, Height: 16}}
@@ -235,6 +245,7 @@ func TestRenditionReplacementDuringTransferIsNotCached(t *testing.T) {
 }
 
 func TestLegacyEncryptedPreviewSidecarRemainsReadableWithoutOriginal(t *testing.T) {
+	isolate_data_dir(t)
 	s, _, telegram, _ := newTestService(t)
 	s.Thumbs = thumbnail.NewCache(t.TempDir(), 1<<20)
 	key := bytes.Repeat([]byte{8}, 32)
@@ -297,6 +308,7 @@ func TestLegacyEncryptedPreviewSidecarRemainsReadableWithoutOriginal(t *testing.
 }
 
 func TestRenditionRejectsLongEdgeDespiteSmallPixelCount(t *testing.T) {
+	isolate_data_dir(t)
 	if _, err := checkedRendition(makePNG(t, 640, 100), "thumbnail", false); !errors.Is(err, errPreviewTooLarge) {
 		t.Fatalf("err=%v", err)
 	}
@@ -307,6 +319,7 @@ func TestRenditionRejectsLongEdgeDespiteSmallPixelCount(t *testing.T) {
 }
 
 func TestEncryptedThumbnailFallsBackToStoredDerivativeAfterUnlock(t *testing.T) {
+	isolate_data_dir(t)
 	s, _, telegram, _ := newTestService(t)
 	key := bytes.Repeat([]byte{7}, 32)
 	wireEncryption(s, key)
@@ -343,6 +356,7 @@ func TestEncryptedThumbnailFallsBackToStoredDerivativeAfterUnlock(t *testing.T) 
 }
 
 func TestEncryptedThumbnailPreparesBoundedDerivativeOnDemand(t *testing.T) {
+	isolate_data_dir(t)
 	s, _, telegram, _ := newTestService(t)
 	key := bytes.Repeat([]byte{9}, 32)
 	wireEncryption(s, key)
@@ -378,6 +392,7 @@ func TestEncryptedThumbnailPreparesBoundedDerivativeOnDemand(t *testing.T) {
 }
 
 func TestRenditionCacheDoesNotCrossActorsSharingDatabase(t *testing.T) {
+	isolate_data_dir(t)
 	s, c := renditionFixture(t)
 	s.Thumbs = thumbnail.NewCache(t.TempDir(), 1<<20)
 	s.CacheNamespace = "same-db"
@@ -398,6 +413,7 @@ func TestRenditionCacheDoesNotCrossActorsSharingDatabase(t *testing.T) {
 }
 
 func TestOriginalRenditionRequiresExplicitClassAndSizeAdmission(t *testing.T) {
+	isolate_data_dir(t)
 	s, c := renditionFixture(t)
 	if _, err := s.Rendition(context.Background(), personalChannelID, 91, 1, "original"); !errors.Is(err, errPreviewTooLarge) {
 		t.Fatalf("unadmitted original=%v", err)
@@ -416,6 +432,7 @@ func TestOriginalRenditionRequiresExplicitClassAndSizeAdmission(t *testing.T) {
 	}
 }
 func TestRenditionQueueHasHardBound(t *testing.T) {
+	isolate_data_dir(t)
 	group := renditionFlightGroup{flights: make(map[string]*renditionFlight)}
 	for i := range maxRenditionFlights {
 		group.flights[strconv.Itoa(i)] = &renditionFlight{}
@@ -430,6 +447,7 @@ func TestRenditionQueueHasHardBound(t *testing.T) {
 }
 
 func TestRenditionMissingReceiptIsQuarantinedButCancellationIsNot(t *testing.T) {
+	isolate_data_dir(t)
 	for _, missing := range []bool{false, true} {
 		t.Run(strconv.FormatBool(missing), func(t *testing.T) {
 			s, _, telegram, _ := newTestService(t)

@@ -24,6 +24,7 @@ func encodeDialogResponse(output bin.Decoder, response tg.MessagesDialogsClass) 
 }
 
 func TestResolveDriveChannelUsesDialogHashForBroadcastAndMegagroup(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name      string
 		folder    int
@@ -66,6 +67,7 @@ func TestResolveDriveChannelUsesDialogHashForBroadcastAndMegagroup(t *testing.T)
 }
 
 func TestResolveDriveChannelContinuesAcrossDialogPages(t *testing.T) {
+	isolate_data_dir(t)
 	pages := 0
 	api := tg.NewClient(driveDialogInvoker(func(_ context.Context, input bin.Encoder, output bin.Decoder) error {
 		request, ok := input.(*tg.MessagesGetDialogsRequest)
@@ -95,6 +97,7 @@ func TestResolveDriveChannelContinuesAcrossDialogPages(t *testing.T) {
 }
 
 func TestResolveDriveChannelRejectsInaccessibleEntities(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name   string
 		entity tg.ChatClass
@@ -122,6 +125,7 @@ func TestResolveDriveChannelRejectsInaccessibleEntities(t *testing.T) {
 }
 
 func TestResolveDriveChannelPreservesRPCFailureAndCancellation(t *testing.T) {
+	isolate_data_dir(t)
 	failure := errors.New("dialog access failed")
 	calls := 0
 	api := tg.NewClient(driveDialogInvoker(func(context.Context, bin.Encoder, bin.Decoder) error { calls++; return failure }))

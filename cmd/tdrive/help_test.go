@@ -6,6 +6,7 @@ import (
 )
 
 func TestMachineHelpTopics(t *testing.T) {
+	isolate_data_dir(t)
 	for _, topic := range []string{"version", "commands"} {
 		t.Run(topic, func(t *testing.T) {
 			key := canonicalHelpKey([]string{topic})
@@ -24,6 +25,7 @@ func TestMachineHelpTopics(t *testing.T) {
 }
 
 func TestRequestedHelpHonorsOptionTerminator(t *testing.T) {
+	isolate_data_dir(t)
 	for _, test := range []struct {
 		name string
 		args []string

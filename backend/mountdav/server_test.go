@@ -9,6 +9,7 @@ import (
 )
 
 func TestServerStartsTokenizedLoopbackWebDAV(t *testing.T) {
+	isolate_data_dir(t)
 	opener := &memoryOpener{data: []byte("server bytes")}
 	fs := testFS(t, opener)
 	server := NewServer()

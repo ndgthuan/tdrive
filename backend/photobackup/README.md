@@ -261,8 +261,8 @@ still orders files by upload time.
 
 The iOS folder path is implemented in
 [TDrivePhotoBridge.inc](../../build/ios/TDrivePhotoBridge.inc), reached through
-the [native adapter](../../frontend/src/modules/photo-backup/native-adapter.ts)
-and [backup controller](../../frontend/src/modules/photo-backup/controller.ts).
+the [native adapter](../../frontend/src/modules/photo_backup/native_adapter.ts)
+and [backup controller](../../frontend/src/modules/photo_backup/controller.ts).
 Folder access depends on the selected provider and a valid security scope;
 the presence of the bridge does not establish behavior on every physical device.
 

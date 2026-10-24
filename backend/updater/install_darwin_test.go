@@ -11,6 +11,7 @@ import (
 )
 
 func TestBundlePathFromExecutable(t *testing.T) {
+	isolate_data_dir(t)
 	got, err := bundlePathFromExecutable("/Applications/TDrive.app/Contents/MacOS/TDrive")
 	if err != nil || got != "/Applications/TDrive.app" {
 		t.Fatalf("got %q, %v", got, err)
@@ -23,6 +24,7 @@ func TestBundlePathFromExecutable(t *testing.T) {
 }
 
 func TestDarwinTargetRejectsTranslocation(t *testing.T) {
+	isolate_data_dir(t)
 	installer := darwinInstaller{executable: func() (string, error) {
 		return "/private/var/folders/xx/T/AppTranslocation/ABCD/d/TDrive.app/Contents/MacOS/TDrive", nil
 	}}
@@ -53,6 +55,7 @@ func makeBundle(t *testing.T, path, marker string) {
 }
 
 func TestDarwinInstallSwapsBundleFromDittoArchive(t *testing.T) {
+	isolate_data_dir(t)
 	work := t.TempDir()
 	// Build the payload the way release.yml does: ditto -c -k --keepParent.
 	source := filepath.Join(work, "src", "TDrive-macos-arm64.app")
@@ -98,6 +101,7 @@ func TestDarwinInstallSwapsBundleFromDittoArchive(t *testing.T) {
 }
 
 func TestDarwinInstallLeavesTargetUntouchedOnBadPayload(t *testing.T) {
+	isolate_data_dir(t)
 	work := t.TempDir()
 	installed := filepath.Join(work, "TDrive.app")
 	makeBundle(t, installed, "old")

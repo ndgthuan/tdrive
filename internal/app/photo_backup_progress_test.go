@@ -8,6 +8,7 @@ import (
 )
 
 func TestBackupProgressIsScopedAndRejectsOldCallbacks(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	scope := photobackup.Scope{AccountID: "one", DriveID: 1}
 	update, finish := a.beginPhotoBackupProgress(context.Background(), scope, "first.jpg", 100)
@@ -29,6 +30,7 @@ func TestBackupProgressIsScopedAndRejectsOldCallbacks(t *testing.T) {
 }
 
 func TestBackupProgressCancellationAndCompletionClearCurrentFile(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	scope := photobackup.Scope{AccountID: "one", DriveID: 1}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -45,6 +47,7 @@ func TestBackupProgressCancellationAndCompletionClearCurrentFile(t *testing.T) {
 }
 
 func TestBackupProgressClampsTransportValues(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	scope := photobackup.Scope{AccountID: "one", DriveID: 1}
 	update, finish := a.beginPhotoBackupProgress(context.Background(), scope, "photo.jpg", 100)
@@ -62,6 +65,7 @@ func TestBackupProgressClampsTransportValues(t *testing.T) {
 }
 
 func TestBackupProgressAggregatesBothActiveFiles(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	scope := photobackup.Scope{AccountID: "one", DriveID: 1}
 	first, finishFirst := a.beginPhotoBackupProgress(t.Context(), scope, "first.jpg", 100)
@@ -83,6 +87,7 @@ func TestBackupProgressAggregatesBothActiveFiles(t *testing.T) {
 }
 
 func TestBackupProgressOldScopeCannotClearNewScope(t *testing.T) {
+	isolate_data_dir(t)
 	a := &App{}
 	oldScope := photobackup.Scope{AccountID: "old", DriveID: 1}
 	newScope := photobackup.Scope{AccountID: "new", DriveID: 2}
