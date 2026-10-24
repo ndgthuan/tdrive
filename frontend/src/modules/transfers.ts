@@ -38,6 +38,7 @@ import { postSystemNotification } from './android_foreground';
 import { retryTransferAction } from './notification_actions';
 import { createImportProgress, reduceImportProgress } from './import_progress';
 import { TransferBatch, type UploadOutcome } from './transfer_batch';
+import { abandon_folder_upload, begin_folder_upload, expect_upload_batch, settle_upload_batch } from '../ui/transfers/upload_tray_store';
 import { activateTransferPersistence } from './transfer_persistence';
 import { acknowledgeCompletedDownload, refreshResumableDownloads } from './resumable_downloads';
 import { onDownloadRunIdle, tryBeginDownloadRun } from './download_run';
@@ -1344,6 +1345,8 @@ async function importSelection(parentID: string, paths: string[]) {
         setTransferDirectionActive('upload', true);
         importCompleteReceived = false;
         let importThrew = false;
+        // The tray row exists from here, before the backend has walked anything.
+        begin_folder_upload(paths.length === 1 ? (paths[0].split(/[/\\]/).pop() ?? '') : t('transfers.import_items', { count: paths.length }));
         try {
             const result = await importPaths(paths, parentID, encrypt, extract);
             if (!result.ok) {
@@ -1353,6 +1356,7 @@ async function importSelection(parentID: string, paths: string[]) {
         } catch (error) {
             importThrew = true;
             console.error('Import failed:', error);
+            abandon_folder_upload(humanizeBackendError(error));
             if (!state.cancelingUpload && !importCompleteReceived) {
                 notify({ level: 'error', title: t('messages.import_failed'), body: humanizeBackendError(error) });
             }
@@ -1445,6 +1449,14 @@ async function uploadPathsBatch(paths: string[], parentID: string, encrypt: bool
     if (activeTransferDriveId === null) activeTransferDriveId = state.activeChannel?.id ?? null;
     setTransferDirectionActive('upload', true);
     state.uploadBatch = { total: paths.length, done: 0, failed: 0 };
+    // Rows for every file exist before the call starts; row i is upload id i.
+    expect_upload_batch(paths.map((path) => ({
+        path,
+        name: path.split(/[/\\]/).pop() || 'Untitled',
+        parent_id: parentID,
+        encrypt,
+        drive_id: retryDriveId ?? driveId,
+    })));
 
     const aggregated = paths.length > 1;
     const nextTransfers = new Map<string | number, UploadTransfer>();
@@ -1503,6 +1515,7 @@ async function uploadPathsBatch(paths: string[], parentID: string, encrypt: bool
         }
     } finally {
         setTransferDirectionActive('upload', false);
+        settle_upload_batch({ failures, canceled: state.cancelingUpload, threw: uploadThrew });
         // Safety sweep: by the time UploadToDriveFS resolves, every upload in
         // the batch has terminated on the backend. If a Wails event was dropped,
         // an entry may still be stuck 'active' at 100% in the bell.
