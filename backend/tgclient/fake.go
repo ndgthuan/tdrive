@@ -724,6 +724,11 @@ func (f *Fake) DownloadFile(ctx context.Context, peer InputPeer, msgID int64, w 
 		return ErrNotFile
 	}
 	body := append([]byte(nil), f.fileBodies[msgID]...)
+	if peer.Kind != "" {
+		if sourceBody, ok := f.sourceBodies[sourceBodyKey{peer.PeerKind(), peer.ChannelID, msgID}]; ok {
+			body = append([]byte(nil), sourceBody...)
+		}
+	}
 	f.mu.Unlock()
 
 	if len(body) == 0 && msg.MediaSize > 0 {

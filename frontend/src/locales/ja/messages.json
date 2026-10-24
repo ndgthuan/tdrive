@@ -138,6 +138,7 @@
   "notify_login_failed": "ログインに失敗しました",
   "source_removed": "{title} を削除しました",
   "source_remove_undo_body": "Telegram からは何も削除されていません。",
+  "source_download_saved": "{path} に保存しました",
   "source_remove_failed": "{title} を削除できませんでした",
   "offline_title": "オフラインです",
   "offline_body": "保存済みのファイルは利用できます。同期するには再接続してください。",

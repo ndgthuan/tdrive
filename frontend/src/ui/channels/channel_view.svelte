@@ -10,6 +10,7 @@
     import SearchIcon from 'phosphor-svelte/lib/MagnifyingGlassIcon';
     import TriangleAlertIcon from 'phosphor-svelte/lib/WarningIcon';
     import XIcon from 'phosphor-svelte/lib/XIcon';
+    import DownloadIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
     import { setScreenProtect } from '../../api';
     import { acquireScreenProtection, bindViewOnlyGuards } from '../viewers/view_only_guards';
     import { bindLongPress } from '../file_list/touch';
@@ -26,6 +27,7 @@
     import { splitNameAndExt } from '../../utils';
     import { current_locale, t, t_store } from '../../i18n/i18n';
     import {
+        canDownloadChannelPost,
         createChannelMediaPager,
         isOpenable,
         MAX_CHANNEL_ITEMS,
@@ -59,6 +61,8 @@
         /** The phone top bar's ⋯. Desktop offers the same actions on the sidebar row. */
         onActions?: (x: number, y: number, source: ChannelSource) => void;
         onPostActions: (x: number, y: number, item: ChannelMediaItem, source: ChannelSource, posts: readonly ChannelMediaItem[]) => void;
+        /** Saves a post to a path the user picks. Desktop rows and tiles offer it on hover. */
+        onDownloadPost?: (item: ChannelMediaItem, source: ChannelSource) => void;
         /** Phone only: its top bar needs a way back, desktop leaves by the sidebar. */
         onBack?: () => void;
         /** The first page from an earlier visit, shown while the fresh one loads. */
@@ -66,7 +70,7 @@
         mobile?: boolean;
     }
 
-    let { source, fetchMedia, fetchTopics, onOpenPost, onOpenTelegram, onActions, onPostActions, onBack, recentPages, mobile = false }: Props = $props();
+    let { source, fetchMedia, fetchTopics, onOpenPost, onOpenTelegram, onActions, onPostActions, onDownloadPost, onBack, recentPages, mobile = false }: Props = $props();
 
     const KINDS: ReadonlyArray<{ value: ChannelMediaKind; label_key: string }> = [
         { value: 'all', label_key: 'sources.filter_all' },
@@ -403,6 +407,17 @@
             {/if}
             {#if label && mobile}<span class="channel-row-badge" title={label === t('sources.restriction_protected') ? t('sources.view_only_hint') : undefined}>{label}</span>{/if}
         </button>
+        {#if onDownloadPost && !mobile && canDownloadChannelPost(item, source)}
+            <button
+                class="channel-row-download"
+                type="button"
+                title={$t_store('sources.download')}
+                aria-label={$t_store('sources.download_post', { title: mediaTitle(item) })}
+                onclick={() => onDownloadPost(item, browsingSource)}
+            >
+                <DownloadIcon size={16} aria-hidden="true" />
+            </button>
+        {/if}
         {#if openable && item.telegramUrl && !mobile}
             <button
                 class="channel-row-telegram"
@@ -491,10 +506,6 @@
                             {$t_store('sources.restriction_protected')}
                         </span>
                     {/if}
-                    <span class="channel-bar-viewonly" title={$t_store('sources.view_only_hint')}>
-                        <EyeIcon size={16} aria-hidden="true" />
-                        {$t_store('sources.view_only')}
-                    </span>
                     {#if telegramUrl}
                         <button class="channel-bar-ghost" type="button" onclick={() => onOpenTelegram(telegramUrl)}>{$t_store('sources.open_in_telegram')}</button>
                     {/if}
@@ -686,22 +697,6 @@
         display: flex;
         align-items: center;
         gap: var(--space-2);
-    }
-
-    .channel-bar-viewonly {
-        flex: 0 0 auto;
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-2);
-        height: var(--control-md);
-        padding: 0 var(--space-3);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        color: var(--text-muted);
-        font-size: var(--type-sm);
-        font-weight: var(--weight-semibold);
-        white-space: nowrap;
-        cursor: default;
     }
 
     .channel-bar-ghost {
@@ -959,11 +954,40 @@
 
     .channel-row-telegram:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
+    /* Save sits beside the Telegram button and shares its hover reveal. */
+    .channel-row-download {
+        flex: 0 0 auto;
+        display: grid;
+        width: 32px;
+        height: 32px;
+        margin: 0;
+        place-items: center;
+        border: 0;
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition:
+            opacity var(--motion-fast) var(--ease-standard),
+            background-color var(--motion-fast) var(--ease-standard),
+            color var(--motion-fast) var(--ease-standard);
+    }
+
+    .channel-row-download:hover {
+        background: var(--color-surface-3);
+        color: var(--color-text);
+    }
+
+    .channel-row-download:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
     @media (hover: hover) {
-        .channel-row-telegram { opacity: 0; }
+        .channel-row-telegram,
+        .channel-row-download { opacity: 0; }
 
         .channel-row:hover .channel-row-telegram,
-        .channel-row:focus-within .channel-row-telegram { opacity: 1; }
+        .channel-row:focus-within .channel-row-telegram,
+        .channel-row:hover .channel-row-download,
+        .channel-row:focus-within .channel-row-download { opacity: 1; }
     }
 
     .channel-skeleton {
@@ -1098,6 +1122,16 @@
     .channel-view.is-grid .channel-row-telegram {
         position: absolute;
         top: 6px;
+        right: 44px;
+        width: var(--control-md);
+        height: var(--control-md);
+        margin: 0;
+        background: var(--color-surface-0);
+    }
+
+    .channel-view.is-grid .channel-row-download {
+        position: absolute;
+        top: 6px;
         right: 6px;
         width: var(--control-md);
         height: var(--control-md);
@@ -1163,14 +1197,26 @@
     }
 
     .channel-view.is-list .channel-chip {
-        width: 32px;
-        height: 32px;
-        min-width: 32px;
-        min-height: 32px;
-        max-width: 32px;
-        max-height: 32px;
+        width: var(--row-visual-size);
+        height: var(--row-visual-size);
+        min-width: var(--row-visual-size);
+        min-height: var(--row-visual-size);
+        max-width: var(--row-visual-size);
+        max-height: var(--row-visual-size);
         margin: 0;
         border-radius: var(--radius-sm);
+    }
+
+    /* A bare glyph has no tile: it keeps no fill or border, and on hover the
+       list shows its action in the accent colour. A preview keeps its own box. */
+    .channel-view.is-list .channel-chip:not(.has-preview) {
+        border-color: transparent;
+        background: none;
+    }
+
+    .channel-view.is-list .channel-row:hover .channel-chip:not(.has-preview),
+    .channel-view.is-list .channel-row.is-locked:hover .channel-chip:not(.has-preview) {
+        color: var(--accent);
     }
 
     .channel-view.is-list .channel-row-text {
@@ -1205,14 +1251,24 @@
 
     .channel-view.is-list .channel-row-badge { position: static; flex: 0 0 auto; margin-left: var(--space-2); }
 
-    /* The Telegram button floats over a reserved strip, so every row's columns
-       line up whether or not it has one. */
-    .channel-view.is-list .channel-row-main { padding-right: 48px; }
+    /* The Save and Telegram buttons float over a reserved strip, so every
+       row's columns line up whether or not it has either button. */
+    .channel-view.is-list .channel-row-main { padding-right: 84px; }
+
+    .channel-view.is-list .channel-row-download {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        width: 32px;
+        height: 32px;
+        margin: 0;
+        transform: translateY(-50%);
+    }
 
     .channel-view.is-list .channel-row-telegram {
         position: absolute;
         top: 50%;
-        right: 10px;
+        right: 46px;
         width: 28px;
         height: 28px;
         margin: 0;
@@ -1298,9 +1354,11 @@
         height: 44px;
         border-color: transparent;
         border-radius: var(--radius-lg);
-        background: var(--color-surface-2);
+        background: none;
         color: var(--color-text-muted);
     }
+
+    .is-mobile .channel-chip.has-preview { background: var(--color-surface-2); }
 
     .is-mobile .channel-row-title { font-size: var(--mobile-type-body); }
     .is-mobile .channel-row-meta { font-size: var(--mobile-type-meta); }

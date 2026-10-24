@@ -141,6 +141,7 @@
     "notify_login_failed": "Anmeldung fehlgeschlagen",
     "source_removed": "{title} entfernt",
     "source_remove_undo_body": "Auf Telegram wurde nichts entfernt.",
+    "source_download_saved": "Gespeichert unter {path}",
     "source_remove_failed": "{title} konnte nicht entfernt werden",
     "offline_title": "Keine Verbindung",
     "offline_body": "Gespeicherte Dateien sind verfügbar. Verbindung herstellen, um zu synchronisieren.",

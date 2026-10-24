@@ -141,6 +141,7 @@
   "notify_login_failed": "Oturum açma başarısız oldu",
   "source_removed": "{title} kaldırıldı",
   "source_remove_undo_body": "Telegram'dan hiçbir şey kaldırılmadı.",
+  "source_download_saved": "{path} konumuna kaydedildi",
   "source_remove_failed": "{title} kaldırılamadı",
   "offline_title": "Çevrimdışısınız",
   "offline_body": "Kaydedilmiş dosyalar kullanılabilir. Eşitlemek için yeniden bağlanın.",

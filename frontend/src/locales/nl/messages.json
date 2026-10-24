@@ -141,6 +141,7 @@
     "notify_login_failed": "Aanmelden mislukt",
     "source_removed": "{title} verwijderd",
     "source_remove_undo_body": "Er is niets van Telegram verwijderd.",
+    "source_download_saved": "Opgeslagen in {path}",
     "source_remove_failed": "{title} kon niet worden verwijderd",
     "offline_title": "Je bent offline",
     "offline_body": "Opgeslagen bestanden zijn beschikbaar. Maak verbinding om te synchroniseren.",

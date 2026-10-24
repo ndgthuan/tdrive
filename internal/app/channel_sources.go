@@ -1,12 +1,17 @@
 package app
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
+	"sync"
+	"time"
 
 	"TDrive/backend/channelsource"
 	"TDrive/backend/media"
+	fileservice "TDrive/backend/services/file"
 )
 
 func (s *DriveService) sourceService() (*channelsource.Service, error) {
@@ -163,5 +168,55 @@ func (s *MediaService) OpenChannelMedia(peerKind string, peerID, msgID, expected
 func (s *MediaService) closeExternalNativeMedia(tokens []string) {
 	for _, token := range tokens {
 		_ = s.CloseNativeMedia(token)
+	}
+}
+
+// DownloadChannelSourceMedia saves one post of a connected source to a path the
+// user picks. It takes the same single download slot as My Drive downloads, so
+// CancelDownload stops it too, and it reports progress under the request id the
+// frontend queued it with.
+func (a *App) DownloadChannelSourceMedia(peerKind string, peerID, msgID, expectedAccountID int64, expectedGeneration string, requestID string) DownloadResult {
+	if !validFrontendDownloadRequestID(requestID) || !validFrontendDownloadID(peerID) || !validFrontendDownloadID(msgID) || !validFrontendDownloadID(expectedAccountID) || strings.TrimSpace(expectedGeneration) == "" {
+		return DownloadResult{Result: operationFailure(errors.New("invalid download request identifiers"))}
+	}
+	engine := a.engine
+	if engine == nil || engine.ChannelSourceService() == nil {
+		return DownloadResult{Result: operationFailure(errBackendUnavailable)}
+	}
+	downloadCtx, finish, err := a.transfers.beginDownload(a.appContext())
+	if err != nil {
+		return DownloadResult{Result: operationFailure(err)}
+	}
+	defer finish()
+	ctx := fileservice.WithDownloadProgressID(downloadCtx, requestID)
+	saved, err := engine.ChannelSourceService().DownloadSourceMedia(ctx, peerKind, peerID, msgID, expectedAccountID, expectedGeneration,
+		a.chooseDownloadPath, a.sourceDownloadProgress(requestID))
+	if err != nil {
+		if errors.Is(err, channelsource.ErrSourceDownloadCanceled) || errors.Is(err, context.Canceled) {
+			return DownloadResult{Result: operationFailureMessage(err, "Download canceled")}
+		}
+		return DownloadResult{Result: operationFailure(err)}
+	}
+	a.emit("download_progress", 100.0, requestID)
+	return DownloadResult{Result: operationSuccess(), SavedPath: saved.SavedPath}
+}
+
+// sourceDownloadProgress reports a source download's percentage at most every
+// 100 ms, matching the My Drive progress events the frontend already consumes.
+func (a *App) sourceDownloadProgress(requestID string) func(done, total int64) {
+	var last time.Time
+	var mu sync.Mutex
+	return func(done, total int64) {
+		mu.Lock()
+		defer mu.Unlock()
+		if time.Since(last) < 100*time.Millisecond {
+			return
+		}
+		percent := 0.0
+		if total > 0 {
+			percent = min(100, float64(done)/float64(total)*100)
+		}
+		a.emit("download_progress", percent, requestID)
+		last = time.Now()
 	}
 }

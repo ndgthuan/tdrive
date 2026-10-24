@@ -141,6 +141,7 @@
   "notify_login_failed": "登入失敗",
   "source_removed": "已移除「{title}」",
   "source_remove_undo_body": "Telegram 上沒有任何內容被移除。",
+  "source_download_saved": "已儲存至 {path}",
   "source_remove_failed": "無法移除「{title}」",
   "offline_title": "你已離線",
   "offline_body": "已保存的檔案仍可使用。請重新連線以同步。",

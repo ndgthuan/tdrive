@@ -13,6 +13,8 @@ export interface FileViewerView {
     loading: boolean;
     error: string;
     readOnly: boolean;
+    /** A read-only source post that may still be saved to disk. */
+    downloadable?: boolean;
     protected?: boolean;
 }
 

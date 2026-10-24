@@ -141,6 +141,7 @@
     "notify_login_failed": "Login failed",
     "source_removed": "Removed {title}",
     "source_remove_undo_body": "Nothing was removed from Telegram.",
+    "source_download_saved": "Saved to {path}",
     "source_remove_failed": "Could not remove {title}",
     "offline_title": "You're offline",
     "offline_body": "Saved files are available. Reconnect to sync.",

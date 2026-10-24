@@ -6,8 +6,8 @@ import { t } from '../i18n/i18n';
 // hover popover via pushTransferStart/updateTransferProgress/markTransferDone.
 // Completed transfers stay in the bell's "Recent" panel until cleared.
 
-import { invalidateFolderIndex, state, setTransferDirectionActive, type DownloadQueueItem, type UploadTransfer } from '../state';
-import { createFolder, downloadFile, downloadFolder, importPaths, isAndroidPlatform, isMobilePlatform, onRuntimeEvent, planImport, selectFiles, selectFolder, uploadToDriveFs, retryUploadToDriveFs, type RuntimeEventMap, type RuntimeUnsubscribe } from '../api';
+import { invalidateFolderIndex, state, setTransferDirectionActive, type DownloadQueueItem, type SourceDownloadRef, type UploadTransfer } from '../state';
+import { createFolder, downloadChannelSourceMedia, downloadFile, downloadFolder, importPaths, isAndroidPlatform, isMobilePlatform, onRuntimeEvent, planImport, selectFiles, selectFolder, uploadToDriveFs, retryUploadToDriveFs, type RuntimeEventMap, type RuntimeUnsubscribe } from '../api';
 import { canSaveToDownloads, saveToDownloads } from './android_downloads';
 import { rememberDownloadSharePath } from '../ui/mobile/mobile_shell_store';
 import { get } from 'svelte/store';
@@ -104,7 +104,7 @@ function activateDownloadProgressEvents(): void {
 
         const clamped = Math.max(0, Math.min(100, value));
         const item = state.downloadQueue.find((entry) => entry.key === activeKey);
-        if (!item || item.kind !== 'file') return;
+        if (!item || (item.kind !== 'file' && item.kind !== 'source')) return;
         const nextProgress = Math.max(item.progress, clamped);
         replaceDownloadItem(activeKey, (current) => ({
             ...current,
@@ -258,6 +258,10 @@ async function startNextDownload() {
                     title: t('messages.folder_downloaded'),
                     body: result.savedPath ? 'Saved to ' + result.savedPath : next.name + ' saved',
                 });
+            } else if (next.kind === 'source' && result.savedPath) {
+                // The row keeps where the post went; a phone's branch above
+                // already said so through its own note.
+                setTransferNote({ id: next.key, direction: 'down', note: t('messages.source_download_saved', { path: result.savedPath }) });
             }
             if (saved && result.jobId) await acknowledgeCompletedDownload(next.channelId, result.jobId);
         } else if (result.result.error.code === 'canceled') {
@@ -300,6 +304,29 @@ export function enqueueDownload(id: unknown, name: unknown, size: unknown, sourc
         state: 'queued',
         bytesCompleted: 0,
         bytesTotal: Number(size) || 0,
+        filesCompleted: 0,
+        filesTotal: 1,
+    });
+}
+
+/** Queues one post from a connected source. The row reads through the source's own scope. */
+export function enqueueSourceDownload(source: SourceDownloadRef, msgId: number, name: unknown, size: unknown = 0) {
+    if (!Number.isSafeInteger(msgId) || msgId <= 0 || !Number.isSafeInteger(source.peerId) || source.peerId <= 0) return;
+    const storedSize = Math.max(0, Number(size) || 0);
+    const id = `${source.peerKind}:${msgId}`;
+    enqueueDownloadItem({
+        key: `source:${source.peerId}:${id}`,
+        channelId: source.peerId,
+        kind: 'source',
+        id,
+        msgId,
+        source: { peerKind: source.peerKind, peerId: source.peerId, accountId: source.accountId, generation: source.generation },
+        name: String(name || 'Telegram media'),
+        size: storedSize,
+        progress: 0,
+        state: 'queued',
+        bytesCompleted: 0,
+        bytesTotal: storedSize,
         filesCompleted: 0,
         filesTotal: 1,
     });
@@ -359,6 +386,7 @@ function finalizeDownload(key: string, status: 'done' | 'failed' | 'canceled'): 
 function notifyDownloadFailure(item: DownloadQueueItem, error: OperationError | string): void {
     const reason = humanizeBackendError(error);
     const noun = item.kind === 'folder' ? 'Folder' : 'File';
+    const requeue = requeueDownload(item);
     // The row keeps the reason; the toast is the transient copy of it.
     if (reason) setTransferNote({ id: item.key, direction: 'down', note: reason });
     if (typeof error !== 'string' && error.code === 'already_exists') {
@@ -376,10 +404,9 @@ function notifyDownloadFailure(item: DownloadQueueItem, error: OperationError | 
         action: retryTransferAction(transferKey('down', item.key)),
     }).catch(() => undefined);
 
-    // The fields are read out now rather than closed over: finalizeDownload
-    // drops the item from the queue right after this, and a Retry that
-    // referenced a removed entry would do nothing.
-    const { kind, id, name, size, channelId } = item;
+    // The item is read out now rather than closed over: finalizeDownload drops
+    // it from the queue right after this, and a Retry that referenced a
+    // removed entry would do nothing.
     const toastId = `download-retry:${item.key}`;
     notify({
         id: toastId,
@@ -395,8 +422,7 @@ function notifyDownloadFailure(item: DownloadQueueItem, error: OperationError | 
             // the queue entry's progress under it.
             run: oneShot(() => {
                 dismissNotification(toastId);
-                if (kind === 'folder') enqueueFolderDownload(id, name, size, channelId);
-                else enqueueDownload(id, name, size, channelId);
+                requeue();
             }),
         },
     });
@@ -427,6 +453,14 @@ export function downloadRetryFor(transfer: TransferEvent): (() => void) | undefi
     return undefined;
 }
 
+/** Re-queues a failed item the way it was first queued, from the fields it kept. */
+function requeueDownload(item: DownloadQueueItem): () => void {
+    const { id, name, size, channelId } = item;
+    if (item.kind === 'folder') return () => enqueueFolderDownload(id, name, size, channelId);
+    if (item.kind === 'source') return () => enqueueSourceDownload(item.source, item.msgId, name, size);
+    return () => enqueueDownload(id, name, size, channelId);
+}
+
 /** Wraps a toast action so it runs at most once, however often it is tapped. */
 function oneShot(run: () => void): () => void {
     let spent = false;
@@ -438,6 +472,7 @@ function oneShot(run: () => void): () => void {
 }
 
 function dispatchDownload(item: DownloadQueueItem, requestId: string) {
+    if (item.kind === 'source') return downloadChannelSourceMedia(item.source, item.msgId, requestId);
     return item.kind === 'folder'
         ? downloadFolder(item.channelId, item.id, requestId)
         : downloadFile(item.channelId, item.id, item.id, requestId);

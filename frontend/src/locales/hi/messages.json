@@ -141,6 +141,7 @@
   "notify_login_failed": "लॉगिन विफल रहा",
   "source_removed": "{title} हटाया गया",
   "source_remove_undo_body": "Telegram से कुछ भी नहीं हटाया गया।",
+  "source_download_saved": "{path} में सहेजा गया",
   "source_remove_failed": "{title} हटाया नहीं जा सका",
   "offline_title": "आप ऑफ़लाइन हैं",
   "offline_body": "सहेजी गई फ़ाइलें उपलब्ध हैं। सिंक करने के लिए फिर से कनेक्ट करें।",

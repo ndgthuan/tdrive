@@ -69,7 +69,24 @@ export type FolderDownloadQueueItem = DownloadQueueBase & {
     id: string;
 };
 
-export type DownloadQueueItem = FileDownloadQueueItem | FolderDownloadQueueItem;
+/** A post saved from a connected Telegram source. The source is named by the
+ * scope it was listed under, so the backend can check it is still connected. */
+export interface SourceDownloadRef {
+    peerKind: string;
+    peerId: number;
+    accountId: string;
+    generation: string;
+}
+
+export type SourceDownloadQueueItem = DownloadQueueBase & {
+    kind: 'source';
+    /** The post's Telegram message id within its source. */
+    msgId: number;
+    source: SourceDownloadRef;
+    id: string;
+};
+
+export type DownloadQueueItem = FileDownloadQueueItem | FolderDownloadQueueItem | SourceDownloadQueueItem;
 
 export interface State {
     currentFolderId: string;
