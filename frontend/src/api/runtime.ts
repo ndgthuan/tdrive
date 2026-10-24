@@ -49,6 +49,8 @@ export interface RuntimeEventMap {
     upload_complete: [id: unknown, name: unknown];
     upload_error: [id: unknown, name: unknown, message: unknown];
     resumable_upload_changed: [payload: unknown];
+    /** Byte progress of a resumed resumable upload, which has no upload id: (jobId, sentBytes, totalBytes). */
+    resumable_upload_progress: [jobId: unknown, sentBytes: unknown, totalBytes: unknown];
     import_start: [];
     import_progress: [payload: unknown];
     import_uploading: [payload: unknown];

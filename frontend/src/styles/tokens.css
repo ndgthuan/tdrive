@@ -68,6 +68,8 @@
        Stacking that is local to one component keeps its own small numbers. */
     --z-selection: 20;
     --z-popover: 300;
+    /* Above the AI panel and the page, below every modal dialog. */
+    --z-transfer-tray: 350;
     --z-modal: 400;
     --z-toast: 500;
     --z-app-state: 600;
