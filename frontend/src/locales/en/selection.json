@@ -1,0 +1,12 @@
+{
+    "count_one": "{count} selected",
+    "count_other": "{count} selected",
+    "download": "Download",
+    "move": "Move",
+    "delete": "Delete",
+    "done": "Done",
+    "too_many_title": "Too many downloads",
+    "too_many_body": "Select up to {count} items at a time.",
+    "unavailable_title": "Download unavailable",
+    "unavailable_body": "Refresh the drive and select the items again."
+}

@@ -18,7 +18,7 @@
  * multiplies the two, so a single percentage would have meant a different
  * effective opacity per theme -- the earlier 14% landed at 12% under the dark
  * palettes and was unreadable over the photo gallery. --color-surface-0 is an
- * opaque hex in every palette (asserted by theme-palettes.test.ts), so 78% of
+ * opaque hex in every palette (asserted by theme_palettes.test.ts), so 78% of
  * it is 78% everywhere.
  *
  * --glass-bg still supplies the hue, as a bounded tint layered over that
@@ -38,20 +38,17 @@
  * at 86% strength. It keeps the opaque surface instead.
  */
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    html:not(.linux-webkit) .notif-panel,
-    html:not(.linux-webkit) .profile-menu,
-    html:not(.linux-webkit) .upload-menu {
-        /* Layer order is paint order: the highlight sits on the tint, the tint
-           on the floor. */
-        --glass-tint: color-mix(in srgb, var(--glass-bg) 30%, transparent);
-        background-color: color-mix(in srgb, var(--color-surface-0) 78%, transparent);
-        background-image:
-            linear-gradient(
-                135deg,
-                color-mix(in srgb, var(--text-main) 6%, transparent),
-                transparent 44%
-            ),
-            linear-gradient(var(--glass-tint), var(--glass-tint));
+    html:not(.linux-webkit):not([data-theme^="tdrive"]) .notif-panel,
+    html:not(.linux-webkit):not([data-theme^="tdrive"]) .profile-menu,
+    html:not(.linux-webkit):not([data-theme^="tdrive"]) .upload-menu {
+        /* One flat colour, no gradient: the glass tint at 30% over the opaque
+           surface floor. The floor is the 78% surface-0 wash, so the panel
+           stays readable over the photo grid in every palette. */
+        background-color: color-mix(
+            in srgb,
+            var(--glass-bg) 30%,
+            color-mix(in srgb, var(--color-surface-0) 78%, transparent)
+        );
         -webkit-backdrop-filter: blur(16px) saturate(145%);
         backdrop-filter: blur(16px) saturate(145%);
     }
@@ -77,8 +74,10 @@ html.theme-transition-active .upload-menu,
 html.theme-transition-fallback .notif-panel,
 html.theme-transition-fallback .profile-menu,
 html.theme-transition-fallback .upload-menu {
+    /* Opaque and flat: the glass hue is left out for the wipe rather than
+       stacked as a gradient over the floor. */
     background-color: var(--color-surface-0);
-    background-image: linear-gradient(var(--glass-bg), var(--glass-bg));
+    background-image: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
 }

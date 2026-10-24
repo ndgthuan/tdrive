@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n';
 // Logout confirmation modal. Two modes:
 //   soft — drop the local Telegram session, keep the projection cache.
 //   full — revoke server-side and wipe every TDrive file on disk.
@@ -6,11 +7,11 @@
 
 import { logout } from '../../api';
 import { resetRenditions } from '../renditions/runtime';
-import { showAuthView } from '../../ui/app/app-store';
+import { showAuthView } from '../../ui/app/app_store';
 
 import { notify, dismissNotification } from '../notifications';
 import { humanizeBackendError } from '../errors';
-import { logoutModal, type LogoutMode } from '../../ui/modals/logout-modal-store';
+import { logoutModal, type LogoutMode } from '../../ui/modals/logout_modal_store';
 
 
 export function openLogoutModal() {
@@ -21,7 +22,7 @@ export async function confirmLogout(mode: LogoutMode): Promise<void> {
     const progressId = notify({
         id: 'logout-progress',
         level: 'info',
-        title: 'Logging out…',
+        title: t('messages.logout_busy'),
         spinner: true,
     });
     logoutModal.setBusy(true);
@@ -37,7 +38,7 @@ export async function confirmLogout(mode: LogoutMode): Promise<void> {
         dismissNotification(progressId);
         notify({
             level: 'error',
-            title: 'Could not log out',
+            title: t('messages.logout_failed'),
             body: humanizeBackendError(err),
         });
     } finally {

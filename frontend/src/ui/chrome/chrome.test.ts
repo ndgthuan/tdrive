@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import Avatar from './Avatar.svelte';
-import Breadcrumb from './Breadcrumb.svelte';
-import ProfileMenu from './ProfileMenu.svelte';
-import UploadMenu from './UploadMenu.svelte';
-import { breadcrumbPath, type BreadcrumbDrag } from './breadcrumb-store';
-import { encryptionEntryVisible, profileLoaded, profileUser } from './profile-store';
+import Avatar from './avatar.svelte';
+import Breadcrumb from './breadcrumb.svelte';
+import ProfileMenu from './profile_menu.svelte';
+import UploadMenu from './upload_menu.svelte';
+import { breadcrumbPath, type BreadcrumbDrag } from './breadcrumb_store';
+import { encryptionEntryVisible, profileLoaded, profileUser } from './profile_store';
 
 const noop = () => {};
 
@@ -60,10 +60,15 @@ describe('Avatar', () => {
         expect(body).toContain('data:image/jpeg;base64,Zm9v');
     });
 
-    it('falls back to initials on the deterministic palette', () => {
-        const { body } = render(Avatar, { props: { user: { displayName: 'Ada Lovelace', userId: 1 } } });
-        expect(body).toContain('>AL</span>');
-        expect(body).toContain('background: #bb9af7'); // 1 % 8 -> palette[1]
+    it('falls back to neutral initials with no hue, whatever the user id', () => {
+        const ada = render(Avatar, { props: { user: { displayName: 'Ada Lovelace', userId: 1 } } }).body;
+        const grace = render(Avatar, { props: { user: { displayName: 'Grace Hopper', userId: 2 } } }).body;
+
+        expect(ada).toContain('>AL</span>');
+        expect(grace).toContain('>GH</span>');
+        expect(ada).not.toMatch(/background(-color)?:\s*#/);
+        expect(ada).not.toContain('style=');
+        expect(grace).not.toContain('style=');
     });
 });
 
@@ -102,11 +107,12 @@ describe('ProfileMenu', () => {
         expect(body).not.toContain('id="mount-drive-button"');
     });
 
-    it('leaves out the updates entry where the updater is unavailable', () => {
+    it('lists Settings and log out, with updates and appearance moved into Settings', () => {
         const { body } = render(ProfileMenu, { props: { ...profileProps, updaterAvailable: false } });
 
+        expect(body).toContain('id="profile-menu-settings"');
         expect(body).not.toContain('id="profile-menu-updates"');
-        expect(body).toContain('id="profile-menu-appearance"');
+        expect(body).not.toContain('id="profile-menu-appearance"');
         expect(body).toContain('id="profile-menu-logout"');
     });
 });

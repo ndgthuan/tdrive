@@ -1,13 +1,20 @@
-.main-content { flex: 1; min-width: 0; min-height: 0; padding: 0; display: flex; flex-direction: column; background: var(--bg-dark); }
+/* position: relative makes the content pane the containing block of the floating
+   selection bar, which is what keeps the bar off the sidebar and the header. */
+.main-content { position: relative; flex: 1; min-width: 0; min-height: 0; padding: 0; display: flex; flex-direction: column; background: var(--bg-dark); }
 
 .main-content > header {
-    min-height: 56px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);
+    min-height: 64px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);
     padding: 0 var(--space-6); border-bottom: 1px solid var(--border);
 }
 
-.search-bar { position: relative; width: 300px; min-width: 0; flex: 0 1 300px; }
-.search-bar input { width: 100%; min-width: 0; margin: 0; padding-left: 36px; background: var(--bg-sidebar); border: none; }
-.search-icon { position: absolute; left: 10px; top: 12px; width: 16px; height: 16px; color: var(--text-muted); }
+/* The search field is a 32px control, up to 520px wide, on the surface-1 step. */
+.search-bar { position: relative; width: 520px; max-width: 100%; min-width: 0; flex: 0 1 520px; }
+.search-bar input {
+    width: 100%; height: var(--control-md); min-width: 0; margin: 0; padding: 0 var(--space-3) 0 36px;
+    background: var(--color-surface-1); border: 1px solid var(--color-border-soft); border-radius: var(--radius-sm);
+    font-size: var(--type-base);
+}
+.search-icon { position: absolute; left: 12px; top: 8px; width: 16px; height: 16px; color: var(--text-muted); pointer-events: none; }
 
 .search-empty {
     margin: 10px 12px;
@@ -66,14 +73,14 @@
     padding: 0 var(--space-8);
     border-bottom: 1px solid var(--border);
     background: color-mix(in srgb, var(--color-surface-0) 94%, transparent);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     text-transform: none;
     letter-spacing: 0;
 }
 .selection-count {
     color: var(--text-main);
-    font-weight: 700;
+    font-weight: 600;
     font-size: var(--type-sm);
     letter-spacing: 0.2px;
 }
@@ -83,7 +90,7 @@
     padding: 0 var(--space-3);
     border-radius: var(--radius-pill);
     cursor: pointer;
-    font-weight: 700;
+    font-weight: 600;
     font-size: var(--type-xs);
     background: var(--overlay-white-1);
     border: 1px solid var(--border);
@@ -114,9 +121,23 @@
     /* The rows sit inside a box padded 10px, then pad 20px themselves, with a
        12px gap between cells: the header mirrors that exactly, or its labels
        start a dozen pixels off the figures under them. */
-    display: grid; grid-template-columns: minmax(0, 2fr) minmax(96px, 1fr) minmax(84px, 1fr) minmax(100px, auto);
+    display: grid; grid-template-columns: minmax(0, 2fr) minmax(96px, 1fr) minmax(84px, 1fr) minmax(200px, auto);
     align-items: center; min-height: 32px; padding: 0 30px; column-gap: var(--space-3);
     font-size: var(--type-xs); font-weight: var(--weight-medium); color: var(--text-muted); letter-spacing: 0;
+}
+/* Column labels never wrap: a two-line header reads as two different columns,
+   and Vietnamese labels ("KÍCH THƯỚC") are longer than their English ones. */
+.file-table-header > * { min-width: 0; }
+.file-table-header .file-sort-button > span,
+.file-table-header > .col-actions > span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.4;
+    padding-block: 4px;
+    margin-block: -4px;
 }
 .col-name { padding-left: 10px; }
 
@@ -207,7 +228,7 @@
 .file-state-title {
     color: var(--text-main);
     font-size: var(--type-md);
-    font-weight: 800;
+    font-weight: 600;
 }
 .file-state-body {
     max-width: 420px;
@@ -216,6 +237,10 @@
     line-height: 1.45;
 }
 .file-state-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
     margin-top: 8px;
 }
 .file-state.is-loading {
@@ -228,7 +253,7 @@
 /* The skeleton is the real row's shape -- same height, tile and columns, and no
    dividers -- so the list does not jump when the rows land over it. */
 .file-state-skeleton { display: grid; width: 100%; }
-.file-state-skeleton-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(96px, 1fr) minmax(84px, 1fr) minmax(100px, auto); align-items: center; column-gap: var(--space-3); min-height: var(--touch-target); padding: 0 var(--space-5); border-bottom: 0; }
+.file-state-skeleton-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(96px, 1fr) minmax(84px, 1fr) minmax(200px, auto); align-items: center; column-gap: var(--space-3); min-height: 36px; padding: 0 var(--space-5); border-bottom: 0; }
 .file-state-skeleton-name { display: grid; grid-template-columns: var(--control-md) minmax(0, 1fr); align-items: center; gap: var(--space-3); min-width: 0; }
 .file-state-skeleton-icon, .file-state-skeleton-bar, .file-state-skeleton-meta, .file-state-skeleton-action { display: block; height: 10px; border-radius: var(--radius-pill); background-color: var(--surface-control); background-image: linear-gradient(100deg, transparent 25%, var(--bg-panel) 48%, transparent 70%); background-size: 240% 100%; animation: file-skeleton-shimmer 1.65s linear var(--skeleton-delay, 0ms) infinite; }
 .file-state-skeleton-icon { width: var(--control-md); height: var(--control-md); border-radius: var(--radius-sm); }
@@ -257,8 +282,8 @@
 /* A dense file-manager row: 44px tall, a 32px tile, no gap or border between
    rows so a run of selected rows reads as one continuous block. */
 .file-row {
-    display: grid; grid-template-columns: minmax(0, 2fr) minmax(96px, 1fr) minmax(84px, 1fr) minmax(100px, auto);
-    align-items: center; min-height: var(--touch-target); padding: 0 var(--space-5);
+    display: grid; grid-template-columns: minmax(0, 2fr) minmax(96px, 1fr) minmax(84px, 1fr) minmax(200px, auto);
+    align-items: center; min-height: 36px; padding: 0 var(--space-5);
     column-gap: var(--space-3); cursor: default; outline: none;
     transition: background var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
 }
@@ -273,7 +298,7 @@
 .file-row:focus-visible,
 .file-list-box:focus-within .file-row.is-keyboard-active {
     outline: none;
-    box-shadow: inset var(--focus-ring);
+    box-shadow: inset 0 0 0 2px var(--color-accent);
     border-radius: var(--radius-sm);
 }
 .drive-row.is-dragging {
@@ -798,7 +823,7 @@ html.mobile .file-state-actions {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 10px;
+    gap: var(--space-2);
     margin-top: 14px;
 }
 html.mobile .file-state-actions .secondary-btn {
@@ -890,3 +915,245 @@ html.mobile .pull-refresh.is-refreshing svg {
     html.mobile .pull-refresh.is-refreshing svg { animation: none; transform: rotate(270deg); }
     html.mobile .row-check { animation: none; }
 }
+
+/* ====================== DESKTOP LIBRARY TABLE ======================
+   The library reads as one table: a bordered box holds the header row and the
+   rows beneath it, both on one column grid, so each label sits over its
+   figures. Rows are 36px on hairlines, names are medium at 14px, and the
+   modified and size figures are 13px muted. The phone keeps its card list. */
+html:not(.mobile) {
+    /* The Actions column is 132px: three 32px icons with room between them. */
+    /* The Date column is 180px so "THỜI GIAN CÒN LẠI" (Trash) fits beside its
+       sort arrow, and the Size column is 120px: "KÍCH THƯỚC" wrapped at 100px. */
+    --library-columns: minmax(0, 1fr) 180px 120px 132px;
+}
+html:not(.mobile) .drive-breadcrumb {
+    min-height: 56px; padding: var(--space-4) var(--space-6) var(--space-2);
+    border-bottom: 0; background: none;
+}
+html:not(.mobile) .breadcrumb-path,
+html:not(.mobile) .breadcrumb-link {
+    font-size: var(--type-xl);
+    font-weight: var(--weight-semibold);
+}
+html:not(.mobile) .file-table-header {
+    margin: 0 var(--space-6);
+    height: var(--control-lg);
+    min-height: var(--control-lg);
+    padding: 0 var(--space-3);
+    grid-template-columns: var(--library-columns);
+    column-gap: var(--space-3);
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-border-soft);
+    border-bottom: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    font-size: var(--type-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+}
+html:not(.mobile) .col-name { padding-left: 0; }
+html:not(.mobile) .col-actions { text-align: center; }
+html:not(.mobile) .file-sort-button { margin: -4px -8px; }
+html:not(.mobile) .file-list-box {
+    margin: 0 var(--space-6) var(--space-6);
+    padding: 0;
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-border-soft);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+html:not(.mobile) .file-row {
+    grid-template-columns: var(--library-columns);
+    column-gap: var(--space-3);
+    position: relative;
+    height: var(--control-lg);
+    min-height: var(--control-lg);
+    /* The right edge sits 16px in, the same as the header's. */
+    padding: 0 var(--space-4) 0 var(--space-3);
+    border-bottom: 1px solid var(--color-border-soft);
+}
+html:not(.mobile) .file-row:last-child { border-bottom: 0; }
+html:not(.mobile) .file-row:hover { background: var(--color-surface-3); }
+/* The selected row keeps its accent-soft fill under the pointer too, so the
+   selection never reads as a plain hover. */
+html:not(.mobile) .drive-row.is-selected,
+html:not(.mobile) .drive-row.is-selected:hover { background: var(--overlay-accent-1); }
+html:not(.mobile) .row-meta {
+    font-size: var(--type-sm);
+    color: var(--color-text-muted);
+}
+/* A trash row whose purge is close reads its time-left figure in the danger
+   text colour; the figure itself carries the meaning, the colour only backs it. */
+html:not(.mobile) .row-meta.is-urgent { color: var(--color-danger); }
+/* The Actions column: three 32px places, spread across the 132px column so the
+   icons of every row sit under the same header label. */
+html:not(.mobile) .row-actions {
+    justify-content: space-between;
+    gap: 0;
+}
+html:not(.mobile) .row-actions.is-inline {
+    justify-content: center;
+    gap: var(--space-3);
+}
+html:not(.mobile) .row-actions .action-icon,
+html:not(.mobile) .row-actions .action-slot {
+    width: var(--control-md);
+    height: var(--control-md);
+    flex: 0 0 auto;
+}
+html:not(.mobile) .row-actions .action-slot { display: block; }
+html:not(.mobile) .file-state {
+    min-height: 320px;
+    padding: 48px var(--space-6);
+    gap: var(--space-2);
+}
+html:not(.mobile) .file-state-title { font-size: var(--type-base); }
+html:not(.mobile) .file-state-body { font-size: var(--type-sm); color: var(--text-muted); }
+
+/* Desktop multi-select. Normal browsing shows no checkboxes at all. Selection
+   mode (a press and hold, Ctrl or Shift click, Ctrl+A) puts a 16px checkbox on
+   every row, before the thumbnail, with an accent fill when ticked. The header
+   then shows the count and Select all / Clear in place of the column labels. */
+html:not(.mobile) .row-select {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    margin: 0 var(--space-3) 0 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #6E7680;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-on-accent);
+    cursor: pointer;
+    transition:
+        background-color var(--motion-fast) var(--ease-standard),
+        border-color var(--motion-fast) var(--ease-standard);
+}
+html:not(.mobile) .row-select:hover { border-color: var(--color-accent); }
+html:not(.mobile) .row-select[aria-checked="true"] {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+}
+html:not(.mobile) .row-select:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+/* The Trash lists deleted items, which cannot be selected, and a phone has its
+   own selection (long press and the bar at the bottom). */
+html:not(.mobile) .main-content.trash-mode .row-select,
+html.mobile .row-select { display: none; }
+
+/* The header while selecting: the count, then Select all and Clear as text. It
+   spans the whole header row, so it replaces the column labels for the length
+   of the mode. */
+html:not(.mobile) .col-selection {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    white-space: nowrap;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: var(--type-sm);
+    font-weight: var(--weight-semibold);
+    color: var(--color-text);
+}
+html:not(.mobile) .selection-header-count { margin-right: var(--space-2); }
+html:not(.mobile) .selection-header-btn {
+    height: 28px;
+    padding: 0 var(--space-2);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: var(--type-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+}
+html:not(.mobile) .selection-header-btn:hover {
+    background: var(--color-surface-3);
+    color: var(--color-text);
+}
+html:not(.mobile) .selection-header-btn:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+}
+
+/* The press and hold ring: a thin circle around the icon, filled over the hold. */
+html:not(.mobile) .hold-ring {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 2;
+}
+html:not(.mobile) .hold-ring-track { fill: none; stroke: var(--color-border-soft); stroke-width: 2; }
+html:not(.mobile) .hold-ring-bar { fill: none; stroke: var(--color-accent); stroke-width: 2; stroke-linecap: round; }
+
+/* Folder tile: the same 32px square as a file thumbnail, in the accent's tint
+   with a hairline in the accent, and a 16px folder glyph. */
+html:not(.mobile) .folder-chip {
+    width: var(--control-md);
+    height: var(--control-md);
+    margin-right: var(--space-3);
+    box-sizing: border-box;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+    color: var(--color-accent);
+}
+html:not(.mobile) .folder-chip svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
+/* The inline new folder row: a normal row whose name is a 28px field, with the
+   hint under it. It is taller than a row, and the rows below move down for it. */
+html:not(.mobile) .new-folder-row {
+    height: auto;
+    min-height: var(--control-lg);
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+    background: var(--color-surface-2);
+}
+html:not(.mobile) .new-folder-row:hover { background: var(--color-surface-2); }
+html:not(.mobile) .new-folder-row .row-name { align-items: flex-start; }
+html:not(.mobile) .new-folder-field {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+html:not(.mobile) .new-folder-input {
+    display: block;
+    width: 100%;
+    height: 28px;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0 6px;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-0);
+    color: var(--color-text);
+    font: inherit;
+    font-size: var(--type-base);
+    font-weight: var(--weight-regular);
+    outline: none;
+}
+html:not(.mobile) .new-folder-hint {
+    font-size: var(--type-xs);
+    line-height: 16px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+/* While anything is selected the list keeps its last rows clear of the floating
+   bar: the bar is 48px tall, 24px off the pane's bottom edge, and the list's own
+   margin is 24px, so 64px of padding clears it with room to spare. */
+html:not(.mobile) .main-content.has-selection .file-list-box { padding-bottom: 64px; }

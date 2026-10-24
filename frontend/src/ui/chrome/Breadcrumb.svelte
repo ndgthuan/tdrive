@@ -1,6 +1,7 @@
 <script lang="ts">
-    import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
-    import { breadcrumbPath, type BreadcrumbDrag } from './breadcrumb-store';
+    import ChevronLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
+    import { breadcrumbPath, type BreadcrumbDrag } from './breadcrumb_store';
+    import { t_store } from '../../i18n/i18n';
 
     interface Props {
         // index -1 targets the root ("My Drive"), otherwise a folderPath index.
@@ -18,7 +19,7 @@
     }
 
     const items = $derived<CrumbItem[]>([
-        { id: '', name: 'My Drive', index: -1 },
+        { id: '', name: $t_store('chrome.my_drive'), index: -1 },
         ...$breadcrumbPath.map((f, i) => ({ id: f.id, name: f.name, index: i })),
     ]);
     const atRoot = $derived($breadcrumbPath.length === 0);
@@ -54,13 +55,13 @@
     id="breadcrumb-back"
     class="icon-btn back-btn"
     type="button"
-    title="Back"
-    aria-label="Back"
+    title={$t_store('common.back')}
+    aria-label={$t_store('common.back')}
     disabled={atRoot}
     style={`opacity: ${atRoot ? '0.35' : '1'}`}
     onclick={onBack}
 >
-    <ChevronLeftIcon size={18} strokeWidth={2} aria-hidden="true" />
+    <ChevronLeftIcon size={18} aria-hidden="true" />
 </button>
 <div id="breadcrumb-path" class="breadcrumb-path">
     {#each items as item, idx (item.index === -1 ? 'root' : item.id)}

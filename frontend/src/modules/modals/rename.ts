@@ -1,18 +1,19 @@
+import { t } from '../../i18n/i18n';
 // Rename modal for TDrive frontend
 
 import { addTelegramFileToDrive, renameFile, renameFolder } from '../../api';
 import { invalidateFolderIndex } from '../../state';
-import { callWithPasswordRetry } from './encryption-password';
+import { callWithPasswordRetry } from './encryption_password';
 import { humanizeBackendError } from '../errors';
-import { appActions } from '../app-actions';
+import { appActions } from '../app_actions';
 import {
     closeRenameModalView,
     openRenameModalView,
     setRenameModalError,
     setRenameModalInFlight,
     type RenameModalTarget,
-} from '../../ui/modals/rename-modal-store';
-import type { FileCommandItem } from '../../ui/file-list/types';
+} from '../../ui/modals/rename_modal_store';
+import type { FileCommandItem } from '../../ui/file_list/types';
 
 async function ensureFileInTdriveSystem(target: RenameModalTarget): Promise<void> {
     if (target.type !== 'file' || target.source !== 'tg') return;
@@ -35,11 +36,11 @@ export function openRenameModal(target: FileCommandItem): void {
 export async function submitRename(target: RenameModalTarget, rawName: string): Promise<void> {
     const nextName = (rawName || '').trim();
     if (!nextName) {
-        setRenameModalError("Name can't be empty.");
+        setRenameModalError(t('messages.rename_empty'));
         return;
     }
     if (/[\\/]/.test(nextName)) {
-        setRenameModalError("Name can't include / or \\.");
+        setRenameModalError(t('messages.rename_invalid_chars'));
         return;
     }
 

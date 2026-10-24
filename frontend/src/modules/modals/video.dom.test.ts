@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushSync, mount, unmount } from "svelte";
-import VideoModal from '../../ui/video/VideoModal.svelte';
-import { DEFAULT_PLAYBACK_PREFERENCES } from '../video/playback-preferences';
-import { VideoGeometryController } from '../video/video-geometry';
-import { collectVideoDOM, type VideoDOM } from '../video/video-dom';
-import { AUTO_NEXT_STORAGE_KEY } from '../video/video-playlist';
+import VideoModal from '../../ui/video/video_modal.svelte';
+import { DEFAULT_PLAYBACK_PREFERENCES } from '../video/playback_preferences';
+import { VideoGeometryController } from '../video/video_geometry';
+import { collectVideoDOM, type VideoDOM } from '../video/video_dom';
+import { AUTO_NEXT_STORAGE_KEY } from '../video/video_playlist';
 import { updatePlaybackPreferences } from './video';
 
 const apiMocks = vi.hoisted(() => ({
@@ -200,7 +200,7 @@ afterEach(async () => {
 
 describe("video host ownership", () => {
     it("keeps a newer playlist when an older close finishes discarding prefetch", async () => {
-        const { MediaPrefetcher } = await import("../video/video-prefetch");
+        const { MediaPrefetcher } = await import("../video/video_prefetch");
         const controller = await import("./video");
         apiMocks.openMedia.mockImplementation(async (id: number) => mediaOpenResult(id, `session-${id}`));
         deactivateVideo = controller.activateVideoModal();
@@ -299,7 +299,7 @@ describe("video host ownership", () => {
     });
 
     it("releases an HLS attachment that finishes after teardown", async () => {
-        const hls = await import("../video/hls-source");
+        const hls = await import("../video/hls_source");
         const source = { destroy: vi.fn(), tracks: () => [], setAudioTrack: vi.fn(), setSubtitleTrack: vi.fn() };
         let finishAttach!: (value: typeof source) => void;
         vi.spyOn(hls, "prefersJsPlayer").mockResolvedValue(true);

@@ -1,22 +1,25 @@
 import { RuntimeUnavailableError, waitForGatewayReady } from './api';
+import { resolve_initial_preference, set_locale } from './i18n/i18n';
 import { state } from './state';
-import { configureAppActions } from './modules/app-actions';
-import { mountApplication } from './modules/app-shell';
+import { configureAppActions } from './modules/app_actions';
+import { mountApplication } from './modules/app_shell';
 import { connectAuthEvents, initializeSession } from './modules/auth';
 import { bindChannelsRenderers, refreshActiveDrive } from './modules/channels';
-import { refreshFiles } from './modules/file-list';
+import { refreshFiles } from './modules/file_list';
 import { runGlobalSearch } from './modules/search';
 import { renderSidebar } from './modules/sidebar';
-import { appView, type AppLifecycle } from './ui/app/app-store';
-import { applyMobilePlatformClasses } from './ui/mobile/platform-classes';
-import { activateSystemTextScale } from './ui/mobile/system-text-scale';
-import { initializeNativeTheme } from './ui/theme/native-theme';
-import { initializeTheme } from './ui/theme/theme-controller';
-import { deriveVideoPlaylist } from './modules/video/video-playlist';
-import { activatePhotoBackup } from './modules/photo-backup/controller';
-import { activatePhotoBackupOnDashboard } from './modules/photo-backup/activation';
-import { getInteractiveFileListRows } from './ui/file-list/file-list-store';
-import type { FileListFileRow } from './ui/file-list/types';
+import { appView, type AppLifecycle } from './ui/app/app_store';
+// Side-effect import: registers the window 'tdrive:open_settings' listener at startup.
+import './ui/settings/settings_host';
+import { applyMobilePlatformClasses } from './ui/mobile/platform_classes';
+import { activateSystemTextScale } from './ui/mobile/system_text_scale';
+import { initializeNativeTheme } from './ui/theme/native_theme';
+import { initializeTheme } from './ui/theme/theme_controller';
+import { deriveVideoPlaylist } from './modules/video/video_playlist';
+import { activatePhotoBackup } from './modules/photo_backup/controller';
+import { activatePhotoBackupOnDashboard } from './modules/photo_backup/activation';
+import { getInteractiveFileListRows } from './ui/file_list/file_list_store';
+import type { FileListFileRow } from './ui/file_list/types';
 
 // Stamp the phone classes at module load so the `?mobile=` browser/harness
 // override paints the mobile shell before mount; a no-op on a real device this
@@ -40,6 +43,9 @@ const lifecycle: AppLifecycle = {
         if (started) return;
         started = true;
 
+        // Apply the saved or system language (sets <html lang>) before any UI renders text.
+        await set_locale(resolve_initial_preference());
+
         configureAppActions({
             refreshFiles,
             triggerRefresh: async () => {
@@ -57,7 +63,7 @@ const lifecycle: AppLifecycle = {
             },
             openFile: async (target) => {
                 // Keep the media controller out of startup; it pulls in viewer-only dependencies.
-                const viewer = await import('./modules/modals/file-viewer');
+                const viewer = await import('./modules/modals/file_viewer');
                 viewer.activateFileViewerModal();
                 await viewer.openFileViewer(target);
             },

@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import EventRow from './EventRow.svelte';
-import NotifBell from './NotifBell.svelte';
-import ToastStack from './ToastStack.svelte';
-import TransferRow from './TransferRow.svelte';
-import { historyEvents, notifPanelOpen, type NoticeEvent, type TransferEvent } from './notif-store';
-import { toasts, type ToastItem } from './toast-store';
-import { cancelSingleUpload } from '../../modules/notif-bell';
+import EventRow from './event_row.svelte';
+import NotifBell from './notif_bell.svelte';
+import ToastStack from './toast_stack.svelte';
+import TransferRow from './transfer_row.svelte';
+import { historyEvents, notifPanelOpen, type NoticeEvent, type TransferEvent } from './notif_store';
+import { toasts, type ToastItem } from './toast_store';
+import { cancelSingleUpload } from '../../modules/notif_bell';
 
 // The row talks to the backend itself when it can stop just this one upload;
 // the rest of the module stays real so the stores behave as they do in the app.
-vi.mock('../../modules/notif-bell', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../../modules/notif-bell')>();
+vi.mock('../../modules/notif_bell', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../modules/notif_bell')>();
     return { ...actual, cancelSingleUpload: vi.fn() };
 });
 

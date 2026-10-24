@@ -1,5 +1,7 @@
 // Pure utility functions for TDrive frontend
 
+import { format_bytes, format_date } from './i18n/i18n';
+
 /** macOS and iOS: the command key is the accelerator and Delete is Backspace. */
 export function isApplePlatform(): boolean {
     if (typeof navigator === 'undefined') return false;
@@ -27,10 +29,10 @@ export function splitNameAndExt(filename: string): { base: string; ext: string }
     return { base, ext };
 }
 
+/** A short calendar date in the current language, e.g. "Jan 5, 2026". */
 export function formatDate(unixTimestamp: number): string {
     if (!unixTimestamp) return "-";
-    const date = new Date(unixTimestamp * 1000);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return format_date(new Date(unixTimestamp * 1000), 'medium');
 }
 
 /** "4:05" or "1:02:09", the way a player's clock reads. */
@@ -46,10 +48,7 @@ export function formatDuration(value: number): string {
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+/** "1.5 KB", or "1,5 KB" in Vietnamese. Shares the i18n formatter so the app has one size style. */
 export function formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return format_bytes(bytes);
 }

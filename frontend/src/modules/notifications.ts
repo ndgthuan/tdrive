@@ -17,14 +17,14 @@
 //   notify({ level: 'error', title: 'Could not join drive', body: 'Try again.' });
 //
 // This module owns the queue: capping, replace-by-id, and the nearest-deadline
-// expiry scheduler with its hover-pause rules. ToastStack.svelte only renders
+// expiry scheduler with its hover-pause rules. toast_stack.svelte only renders
 // the store.
 
 import { get } from 'svelte/store';
 import { isMobilePlatform } from '../api';
 import { toAppError, type AppErrorSource } from './errors';
-import { pushHistoryEvent } from './notif-bell';
-import { toasts, type ToastAction, type ToastItem, type ToastLevel } from '../ui/notifications/toast-store';
+import { pushHistoryEvent } from './notif_bell';
+import { toasts, type ToastAction, type ToastItem, type ToastLevel } from '../ui/notifications/toast_store';
 
 const MAX_VISIBLE = 3;
 // Keep the phone stack small enough to leave app content visible.

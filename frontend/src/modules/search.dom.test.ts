@@ -24,7 +24,7 @@ vi.mock('../api', () => ({
     search: mocks.search,
     isMobilePlatform: mocks.isMobilePlatform,
 }));
-vi.mock('./file-list', () => ({
+vi.mock('./file_list', () => ({
     buildFileRow: mocks.buildFileRow,
     buildFolderRow: mocks.buildFolderRow,
     renderFileListRows: mocks.renderFileListRows,
@@ -46,11 +46,11 @@ vi.mock('./transfers', () => ({
     enqueueDownload: mocks.enqueueDownload,
     enqueueFolderDownload: mocks.enqueueFolderDownload,
 }));
-vi.mock('./media-types', () => ({
+vi.mock('./media_types', () => ({
     canOpenFileViewer: vi.fn(() => false),
     isVideoFile: vi.fn(() => false),
 }));
-vi.mock('./app-actions', () => ({
+vi.mock('./app_actions', () => ({
     appActions: () => ({
         refreshFiles: mocks.refreshFiles,
         triggerRefresh: vi.fn(),
@@ -61,7 +61,7 @@ vi.mock('./app-actions', () => ({
 
 import { state } from '../state';
 import { activateSearchBar, clearSearch, runGlobalSearch } from './search';
-import { showFileListRows, showFileListState } from '../ui/file-list/file-list-store';
+import { showFileListRows, showFileListState } from '../ui/file_list/file_list_store';
 
 function deferred<T>() {
     let resolve!: (value: T) => void;

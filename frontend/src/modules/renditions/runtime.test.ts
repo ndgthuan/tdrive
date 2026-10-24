@@ -8,7 +8,7 @@ vi.mock('../../api/renditions', async () => {
     return { ...actual, openGalleryImages: mocks.open, closeGalleryImages: mocks.close, fetchRendition: mocks.fetch };
 });
 vi.mock('../../api/runtime', () => ({ onRuntimeEvent: (event: string, callback: () => void) => { mocks.callbacks.set(event, callback); return () => {}; } }));
-vi.mock('../gallery-policy', () => ({
+vi.mock('../gallery_policy', () => ({
     getGalleryPolicy: () => ({ concurrency: 2, decodedBytes: 80 * 1024 * 1024, compressedBytes: 8 * 1024 * 1024, maxQueued: 192, allowPrefetch: false, backgrounded: false }),
     subscribeGalleryPolicy: (callback: (policy: unknown) => void) => { mocks.policyListener = callback; return () => {}; },
 }));

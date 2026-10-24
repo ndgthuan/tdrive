@@ -6,8 +6,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import DeleteModal from '../../ui/modals/DeleteModal.svelte';
-import { closeDeleteModalView, deleteModalState } from '../../ui/modals/delete-modal-store';
+import DeleteModal from '../../ui/modals/delete_modal.svelte';
+import { closeDeleteModalView, deleteModalState } from '../../ui/modals/delete_modal_store';
 
 const deleteFileMock = vi.fn();
 const restoreMock = vi.fn();
@@ -16,14 +16,14 @@ vi.mock('../../../bindings/TDrive/internal/app/app', () => ({
     DeleteFile: (...args: unknown[]) => deleteFileMock(...args),
     RestoreFromTrash: (...args: unknown[]) => restoreMock(...args),
 }));
-vi.mock('../drive-data', () => ({
+vi.mock('../drive_data', () => ({
     deleteFolder: vi.fn(),
 }));
-vi.mock('../app-actions', () => ({ appActions: () => appActionMocks }));
+vi.mock('../app_actions', () => ({ appActions: () => appActionMocks }));
 
 import { confirmDelete, openDeleteModal } from './delete';
-import { busyRowIds } from '../../ui/file-list/busy-rows';
-import { toasts } from '../../ui/notifications/toast-store';
+import { busyRowIds } from '../../ui/file_list/busy_rows';
+import { toasts } from '../../ui/notifications/toast_store';
 import { get } from 'svelte/store';
 import { state } from '../../state';
 

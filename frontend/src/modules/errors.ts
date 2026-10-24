@@ -1,5 +1,7 @@
 import type { OperationErrorCode } from '../types';
 
+import { t } from '../i18n/i18n';
+
 const MAX_USER_MESSAGE_LENGTH = 240;
 const MAX_DIAGNOSTIC_MESSAGE_LENGTH = 480;
 const MAX_DIAGNOSTIC_STACK_LENGTH = 1_600;
@@ -66,140 +68,147 @@ interface ErrorPresentation {
     retryable: boolean;
 }
 
-const OPERATION_PRESENTATIONS: Record<OperationErrorCode, ErrorPresentation> = {
-    operation_failed: {
-        kind: 'unexpected',
-        title: 'Action failed',
-        message: '',
-        retryable: true,
-    },
-    backend_unavailable: {
-        kind: 'unavailable',
-        title: 'TDrive is not ready',
-        message: 'TDrive is not ready yet. Try again.',
-        retryable: true,
-    },
-    encryption_password_required: {
-        kind: 'authentication',
-        title: 'Password required',
-        message: 'Enter your encryption password first.',
-        retryable: false,
-    },
-    invalid_encryption_password: {
-        kind: 'authentication',
-        title: 'Password not accepted',
-        message: 'That encryption password is incorrect.',
-        retryable: false,
-    },
-    encryption_password_already_set: {
-        kind: 'conflict',
-        title: 'Encryption already configured',
-        message: 'Encryption is already configured.',
-        retryable: false,
-    },
-    encryption_policy_unavailable: {
-        kind: 'unavailable',
-        title: 'Encryption unavailable',
-        message: 'Encryption is unavailable for this drive.',
-        retryable: false,
-    },
-    biometric_canceled: {
-        kind: 'canceled',
-        title: 'Biometric unlock canceled',
-        message: 'Biometric unlock was canceled. Enter your password or try again.',
-        retryable: false,
-    },
-    biometric_unavailable: {
-        kind: 'unavailable',
-        title: 'Biometrics unavailable',
-        message: 'Biometrics are unavailable on this device. Use your encryption password.',
-        retryable: false,
-    },
-    biometric_invalidated: {
-        kind: 'authentication',
-        title: 'Enable biometrics again',
-        message: 'Biometric enrollment changed. Enter your password, then enable biometrics again in encryption settings.',
-        retryable: false,
-    },
-    biometric_not_enrolled: {
-        kind: 'authentication',
-        title: 'Biometrics not enabled',
-        message: 'Use your encryption password, then enable biometrics on this device in encryption settings.',
-        retryable: false,
-    },
-    biometric_busy: {
-        kind: 'conflict',
-        title: 'Biometric authentication in progress',
-        message: 'Another biometric prompt is active. Finish or cancel it, then try again.',
-        retryable: false,
-    },
-    biometric_failed: {
-        kind: 'authentication',
-        title: 'Biometric authentication failed',
-        message: 'Biometric authentication failed. Try again or use your encryption password.',
-        retryable: false,
-    },
-    biometric_cleanup_required: {
-        kind: 'storage',
-        title: 'Review biometric enrollment',
-        message: 'Biometric enrollment could not be removed. Open encryption settings and disable biometric unlock before trying again.',
-        retryable: false,
-    },
-    biometric_locked_out: {
-        kind: 'authentication',
-        title: 'Biometrics locked',
-        message: 'Biometrics are temporarily locked. Unlock your device or enter your encryption password.',
-        retryable: false,
-    },
-    canceled: {
-        kind: 'canceled',
-        title: 'Canceled',
-        message: 'Canceled.',
-        retryable: false,
-    },
-    deadline_exceeded: {
-        kind: 'timeout',
-        title: 'Request timed out',
-        message: 'The request took too long. Try again.',
-        retryable: true,
-    },
-    not_found: {
-        kind: 'not_found',
-        title: 'Item not found',
-        message: 'That item no longer exists. Refresh and try again.',
-        retryable: true,
-    },
-    permission_denied: {
-        kind: 'permission',
-        title: 'Permission denied',
-        message: "You don't have permission to do that.",
-        retryable: false,
-    },
-    already_exists: {
-        kind: 'conflict',
-        title: 'Item already exists',
-        message: 'This item is already there.',
-        retryable: false,
-    },
-    insufficient_storage: {
-        kind: 'storage',
-        title: 'Not enough storage',
-        message: 'There is not enough free disk space to finish this action.',
-        retryable: false,
-    },
-    network_unavailable: {
-        kind: 'network',
-        title: 'Telegram is unavailable',
-        message: 'Telegram is not reachable right now. Try again.',
-        retryable: true,
-    },
-    file_too_large: {
-        kind: 'validation',
-        title: 'File is too large',
-        message: 'This file is too large to upload.',
-        retryable: false,
-    },
-};
+/**
+ * Built on each call, not once at import: the copy is translated, so a
+ * module-level t() would freeze whichever language was live at import time.
+ */
+function operation_presentations(): Record<OperationErrorCode, ErrorPresentation> {
+    return {
+            operation_failed: {
+                kind: 'unexpected',
+                title: t('leftovers.error_operation_failed_title'),
+                message: '',
+                retryable: true,
+            },
+            backend_unavailable: {
+                kind: 'unavailable',
+                title: t('leftovers.error_backend_unavailable_title'),
+                message: t('leftovers.error_backend_unavailable_message'),
+                retryable: true,
+            },
+            encryption_password_required: {
+                kind: 'authentication',
+                title: t('leftovers.error_encryption_password_required_title'),
+                message: t('leftovers.error_encryption_password_required_message'),
+                retryable: false,
+            },
+            invalid_encryption_password: {
+                kind: 'authentication',
+                title: t('leftovers.error_invalid_encryption_password_title'),
+                message: t('leftovers.error_invalid_encryption_password_message'),
+                retryable: false,
+            },
+            encryption_password_already_set: {
+                kind: 'conflict',
+                title: t('leftovers.error_encryption_password_already_set_title'),
+                message: t('leftovers.error_encryption_password_already_set_message'),
+                retryable: false,
+            },
+            encryption_policy_unavailable: {
+                kind: 'unavailable',
+                title: t('leftovers.error_encryption_policy_unavailable_title'),
+                message: t('leftovers.error_encryption_policy_unavailable_message'),
+                retryable: false,
+            },
+            biometric_canceled: {
+                kind: 'canceled',
+                title: t('leftovers.error_biometric_canceled_title'),
+                message: t('leftovers.error_biometric_canceled_message'),
+                retryable: false,
+            },
+            biometric_unavailable: {
+                kind: 'unavailable',
+                title: t('leftovers.error_biometric_unavailable_title'),
+                message: t('leftovers.error_biometric_unavailable_message'),
+                retryable: false,
+            },
+            biometric_invalidated: {
+                kind: 'authentication',
+                title: t('leftovers.error_biometric_invalidated_title'),
+                message: t('leftovers.error_biometric_invalidated_message'),
+                retryable: false,
+            },
+            biometric_not_enrolled: {
+                kind: 'authentication',
+                title: t('leftovers.error_biometric_not_enrolled_title'),
+                message: t('leftovers.error_biometric_not_enrolled_message'),
+                retryable: false,
+            },
+            biometric_busy: {
+                kind: 'conflict',
+                title: t('leftovers.error_biometric_busy_title'),
+                message: t('leftovers.error_biometric_busy_message'),
+                retryable: false,
+            },
+            biometric_failed: {
+                kind: 'authentication',
+                title: t('leftovers.error_biometric_failed_title'),
+                message: t('leftovers.error_biometric_failed_message'),
+                retryable: false,
+            },
+            biometric_cleanup_required: {
+                kind: 'storage',
+                title: t('leftovers.error_biometric_cleanup_required_title'),
+                message: t('leftovers.error_biometric_cleanup_required_message'),
+                retryable: false,
+            },
+            biometric_locked_out: {
+                kind: 'authentication',
+                title: t('leftovers.error_biometric_locked_out_title'),
+                message: t('leftovers.error_biometric_locked_out_message'),
+                retryable: false,
+            },
+            canceled: {
+                kind: 'canceled',
+                title: t('leftovers.error_canceled_title'),
+                message: t('leftovers.error_canceled_message'),
+                retryable: false,
+            },
+            deadline_exceeded: {
+                kind: 'timeout',
+                title: t('leftovers.error_deadline_exceeded_title'),
+                message: t('leftovers.error_deadline_exceeded_message'),
+                retryable: true,
+            },
+            not_found: {
+                kind: 'not_found',
+                title: t('leftovers.error_not_found_title'),
+                message: t('leftovers.error_not_found_message'),
+                retryable: true,
+            },
+            permission_denied: {
+                kind: 'permission',
+                title: t('leftovers.error_permission_denied_title'),
+                message: t('leftovers.error_permission_denied_message'),
+                retryable: false,
+            },
+            already_exists: {
+                kind: 'conflict',
+                title: t('leftovers.error_already_exists_title'),
+                message: t('leftovers.error_already_exists_message'),
+                retryable: false,
+            },
+            insufficient_storage: {
+                kind: 'storage',
+                title: t('leftovers.error_insufficient_storage_title'),
+                message: t('leftovers.error_insufficient_storage_message'),
+                retryable: false,
+            },
+            network_unavailable: {
+                kind: 'network',
+                title: t('leftovers.error_network_unavailable_title'),
+                message: t('leftovers.error_network_unavailable_message'),
+                retryable: true,
+            },
+            file_too_large: {
+                kind: 'validation',
+                title: t('leftovers.error_file_too_large_title'),
+                message: t('leftovers.error_file_too_large_message'),
+                retryable: false,
+            },
+
+    };
+}
 
 const APP_ERROR_KINDS: Record<AppErrorKind, true> = {
     authentication: true,
@@ -300,7 +309,7 @@ function rawMessage(chain: readonly unknown[]): string {
 function knownOperationCode(chain: readonly unknown[]): OperationErrorCode | undefined {
     for (const item of chain) {
         const code = textProperty(item, 'code');
-        if (code && Object.prototype.hasOwnProperty.call(OPERATION_PRESENTATIONS, code)) {
+        if (code && Object.prototype.hasOwnProperty.call(operation_presentations(), code)) {
             return code as OperationErrorCode;
         }
     }
@@ -333,15 +342,16 @@ function safeDetails(chain: readonly unknown[], raw: string): SafeErrorDetails {
     });
 }
 
+/** Telegram's own refusal codes, mapped to the locale key of the sentence shown for each. */
 const TELEGRAM_CODES = new Map<string, string>([
-    ['FILE_REFERENCE_EXPIRED', 'Telegram needs a fresh reference for this file. Try again.'],
-    ['MESSAGE_ID_INVALID', 'Telegram no longer has this file.'],
-    ['CHAT_WRITE_FORBIDDEN', "You can't add to this drive."],
-    ['CHAT_ADMIN_REQUIRED', 'Only an admin of this drive can do that.'],
-    ['USER_BANNED_IN_CHANNEL', 'You were removed from this drive.'],
-    ['CHANNEL_PRIVATE', 'This drive is no longer available to you.'],
-    ['FILE_PARTS_INVALID', 'Telegram rejected the upload. Try again.'],
-    ['MEDIA_EMPTY', 'Telegram received an empty file.'],
+    ['FILE_REFERENCE_EXPIRED', 'leftovers.error_telegram_file_reference_expired'],
+    ['MESSAGE_ID_INVALID', 'leftovers.error_telegram_message_id_invalid'],
+    ['CHAT_WRITE_FORBIDDEN', 'leftovers.error_telegram_chat_write_forbidden'],
+    ['CHAT_ADMIN_REQUIRED', 'leftovers.error_telegram_chat_admin_required'],
+    ['USER_BANNED_IN_CHANNEL', 'leftovers.error_telegram_user_banned'],
+    ['CHANNEL_PRIVATE', 'leftovers.error_telegram_channel_private'],
+    ['FILE_PARTS_INVALID', 'leftovers.error_telegram_file_parts_invalid'],
+    ['MEDIA_EMPTY', 'leftovers.error_telegram_media_empty'],
 ]);
 
 function telegramPresentation(code: string): ErrorPresentation {
@@ -349,9 +359,12 @@ function telegramPresentation(code: string): ErrorPresentation {
     const forbidden = code.includes('FORBIDDEN') || code.includes('ADMIN_REQUIRED') || code.includes('BANNED');
     return {
         kind: forbidden ? 'permission' : 'unavailable',
-        title: forbidden ? 'Not allowed' : 'Telegram refused that',
-        message: known ?? `Telegram answered ${code.toLowerCase().replace(/_/g, ' ')}. Try again.`,
-        retryable: !forbidden && !known?.startsWith('Telegram no longer'),
+        title: forbidden ? t('leftovers.error_telegram_forbidden_title') : t('leftovers.error_telegram_refused_title'),
+        message: known
+            ? t(known)
+            : t('leftovers.error_telegram_answered', { code: code.toLowerCase().replace(/_/g, ' ') }),
+        // Only a message that says the file is gone is not worth another try.
+        retryable: !forbidden && code !== 'MESSAGE_ID_INVALID',
     };
 }
 
@@ -362,85 +375,85 @@ function classifyMessage(raw: string, source: AppErrorSource): ErrorPresentation
     if (source === 'render') {
         return {
             kind: 'render',
-            title: 'This screen needs a reset',
-            message: "TDrive couldn't finish drawing this screen. Your stored files are safe.",
+            title: t('leftovers.error_render_title'),
+            message: t('leftovers.error_render_message'),
             retryable: true,
         };
     }
     if (lower.includes('move would create cycle') || lower.includes('own subfolder')) {
         return {
             kind: 'validation',
-            title: 'Folder cannot be moved there',
-            message: "Can't move a folder into itself or one of its subfolders.",
+            title: t('leftovers.error_move_cycle_title'),
+            message: t('leftovers.error_move_cycle_message'),
             retryable: false,
         };
     }
     if (lower.includes('only the uploader can')) {
-        return { kind: 'permission', title: 'Uploader permission required', message, retryable: false };
+        return { kind: 'permission', title: t('leftovers.error_uploader_only_title'), message, retryable: false };
     }
     if (lower.includes('file is already in this folder') || lower.includes('folder is already here')) {
-        return OPERATION_PRESENTATIONS.already_exists;
+        return operation_presentations().already_exists;
     }
     if (lower.includes('invalid target') || lower.includes('target folder not found')) {
         return {
             kind: 'validation',
-            title: 'Destination unavailable',
-            message: 'Choose a valid destination folder.',
+            title: t('leftovers.error_destination_title'),
+            message: t('leftovers.error_destination_message'),
             retryable: false,
         };
     }
-    if (lower.includes('not found')) return OPERATION_PRESENTATIONS.not_found;
+    if (lower.includes('not found')) return operation_presentations().not_found;
     if (lower.includes('encryption password required')) {
-        return OPERATION_PRESENTATIONS.encryption_password_required;
+        return operation_presentations().encryption_password_required;
     }
     if (lower.includes('phone_number_invalid') || lower.includes('invalid phone')) {
         return {
             kind: 'validation',
-            title: 'Check the phone number',
-            message: 'Enter a valid phone number, including the country code.',
+            title: t('leftovers.error_phone_title'),
+            message: t('leftovers.error_phone_message'),
             retryable: false,
         };
     }
     if (lower.includes('phone_code_invalid') || lower.includes('invalid code')) {
         return {
             kind: 'authentication',
-            title: 'Code not accepted',
-            message: 'That code was incorrect. Check it and try again.',
+            title: t('leftovers.error_code_title'),
+            message: t('leftovers.error_code_message'),
             retryable: false,
         };
     }
     if (lower.includes('password_hash_invalid') || lower.includes('invalid password')) {
         return {
             kind: 'authentication',
-            title: 'Password not accepted',
-            message: 'That two-step verification password was incorrect.',
+            title: t('leftovers.error_two_step_title'),
+            message: t('leftovers.error_two_step_message'),
             retryable: false,
         };
     }
     if (lower.includes('flood_wait') || lower.includes('flood wait') || lower.includes('too many requests')) {
         return {
             kind: 'network',
-            title: 'Try again shortly',
-            message: 'Telegram is temporarily limiting requests. Wait a moment and try again.',
+            title: t('leftovers.error_flood_title'),
+            message: t('leftovers.error_flood_message'),
             retryable: true,
         };
     }
     if (lower.includes('auth_key_unregistered') || lower.includes('session expired')) {
         return {
             kind: 'authentication',
-            title: 'Sign in again',
-            message: 'Your Telegram session expired. Sign in again.',
+            title: t('leftovers.error_session_title'),
+            message: t('leftovers.error_session_message'),
             retryable: false,
         };
     }
     if (lower.includes('permission denied') || lower.includes('not authorized')) {
-        return OPERATION_PRESENTATIONS.permission_denied;
+        return operation_presentations().permission_denied;
     }
     if (lower.includes('no space left') || lower.includes('disk full')) {
-        return OPERATION_PRESENTATIONS.insufficient_storage;
+        return operation_presentations().insufficient_storage;
     }
     if (lower.includes('deadline exceeded') || lower.includes('timed out') || lower.includes('timeout')) {
-        return OPERATION_PRESENTATIONS.deadline_exceeded;
+        return operation_presentations().deadline_exceeded;
     }
     // Telegram answers a refused RPC with a bare code ("rpc error code 400:
     // FILE_REFERENCE_EXPIRED"), and the backend passes it up as it is. The
@@ -453,45 +466,45 @@ function classifyMessage(raw: string, source: AppErrorSource): ErrorPresentation
     if (lower.includes('database is locked') || lower.includes('sqlite')) {
         return {
             kind: 'unavailable',
-            title: 'Catalog is busy',
-            message: "TDrive's local catalog is busy. Try again in a moment.",
+            title: t('leftovers.error_catalog_title'),
+            message: t('leftovers.error_catalog_message'),
             retryable: true,
         };
     }
     if (lower.includes('connection dead') || lower.includes('engine forcibly closed') || lower.includes('engine was closed')) {
-        return OPERATION_PRESENTATIONS.network_unavailable;
+        return operation_presentations().network_unavailable;
     }
     if (lower.includes('context canceled') || lower.includes('forcibly closed')) {
         return {
             kind: 'unexpected',
-            title: 'Interrupted',
-            message: 'That was interrupted before it finished. Try again.',
+            title: t('leftovers.error_interrupted_title'),
+            message: t('leftovers.error_interrupted_message'),
             retryable: true,
         };
     }
     if (lower.includes('tg client') || lower.includes('telegram') || lower.includes('network')) {
-        return OPERATION_PRESENTATIONS.network_unavailable;
+        return operation_presentations().network_unavailable;
     }
     if (source === 'startup') {
         return {
             kind: 'unavailable',
-            title: 'TDrive could not start',
-            message: 'TDrive could not finish starting. Reload the app and try again.',
+            title: t('leftovers.error_startup_title'),
+            message: t('leftovers.error_startup_message'),
             retryable: true,
         };
     }
     if (source === 'runtime') {
         return {
             kind: 'unavailable',
-            title: 'Desktop services unavailable',
-            message: 'TDrive lost access to its desktop services. Reload the app and try again.',
+            title: t('leftovers.error_runtime_title'),
+            message: t('leftovers.error_runtime_message'),
             retryable: true,
         };
     }
     return {
         kind: 'unexpected',
-        title: 'Something went wrong',
-        message: message || 'Something went wrong. Try again.',
+        title: t('leftovers.error_generic_title'),
+        message: message || t('leftovers.error_generic_message'),
         retryable: true,
     };
 }
@@ -519,7 +532,7 @@ export function toAppError(error: unknown, options: AppErrorOptions = {}): AppEr
     let presentation = classifyMessage(raw, source);
 
     if (source !== 'render' && code) {
-        const operationPresentation = OPERATION_PRESENTATIONS[code];
+        const operationPresentation = operation_presentations()[code];
         presentation = operationPresentation.message
             ? operationPresentation
             : {
@@ -551,7 +564,7 @@ export function humanizeBackendError(error: unknown): string {
 export function isEncryptionPasswordRequired(error: unknown): boolean {
     const normalized = toAppError(error, { source: 'backend' });
     return normalized.code === 'encryption_password_required'
-        || (normalized.kind === 'authentication' && normalized.title === 'Password required');
+        || (normalized.kind === 'authentication' && normalized.title === t('leftovers.error_encryption_password_required_title'));
 }
 
 /** Formats only already-redacted fields; the original cause is deliberately excluded. */

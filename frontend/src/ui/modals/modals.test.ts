@@ -1,29 +1,29 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render } from 'svelte/server';
-import DeleteModal from './DeleteModal.svelte';
-import EncryptionPasswordModal from './EncryptionPasswordModal.svelte';
-import ImportOptionsModal from './ImportOptionsModal.svelte';
-import JoinRequestsModal from './JoinRequestsModal.svelte';
-import LeaveDriveModal from './LeaveDriveModal.svelte';
-import LogoutModal from './LogoutModal.svelte';
-import MoveModal from './MoveModal.svelte';
-import RenameModal from './RenameModal.svelte';
-import UploadOptionsModal from './UploadOptionsModal.svelte';
-import { closeDeleteModalView, openDeleteModalView } from './delete-modal-store';
+import DeleteModal from './delete_modal.svelte';
+import EncryptionPasswordModal from './encryption_password_modal.svelte';
+import ImportOptionsModal from './import_options_modal.svelte';
+import JoinRequestsModal from './join_requests_modal.svelte';
+import LeaveDriveModal from './leave_drive_modal.svelte';
+import LogoutModal from './logout_modal.svelte';
+import MoveModal from './move_modal.svelte';
+import RenameModal from './rename_modal.svelte';
+import UploadOptionsModal from './upload_options_modal.svelte';
+import { closeDeleteModalView, openDeleteModalView } from './delete_modal_store';
 import {
     closeRenameModalView,
     openRenameModalView,
     setRenameModalError,
     setRenameModalInFlight,
-} from './rename-modal-store';
-import { encryptionPasswordModal } from './encryption-password-modal-store';
-import { importOptionsModal, type ImportOptionsPlan } from './import-options-modal-store';
-import { joinRequestsList, joinRequestsModal } from './join-requests-modal-store';
-import { logoutModal } from './logout-modal-store';
-import { closeLeaveDriveModalView, openLeaveDriveModalView } from './leave-drive-modal-store';
-import { moveBrowse, moveModal, resetMoveBrowse } from './move-modal-store';
-import { sidebarState } from '../sidebar/sidebar-store';
-import { uploadOptionsModal } from './upload-options-modal-store';
+} from './rename_modal_store';
+import { encryptionPasswordModal } from './encryption_password_modal_store';
+import { importOptionsModal, type ImportOptionsPlan } from './import_options_modal_store';
+import { joinRequestsList, joinRequestsModal } from './join_requests_modal_store';
+import { logoutModal } from './logout_modal_store';
+import { closeLeaveDriveModalView, openLeaveDriveModalView } from './leave_drive_modal_store';
+import { moveBrowse, moveModal, resetMoveBrowse } from './move_modal_store';
+import { sidebarState } from '../sidebar/sidebar_store';
+import { uploadOptionsModal } from './upload_options_modal_store';
 
 const noop = () => {};
 

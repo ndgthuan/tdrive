@@ -10,10 +10,11 @@
 .trash-title {
     display: none;
     align-items: center;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: 0.01em;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
 }
 .main-content.trash-mode .trash-title { display: flex; }
 
@@ -33,20 +34,23 @@
     margin-left: auto;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
-    border: 1px solid var(--overlay-danger-2);
+    height: var(--control-md);
+    padding: 0 var(--space-3);
+    box-sizing: border-box;
+    white-space: nowrap;
+    border: 1px solid var(--color-border-soft);
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--color-danger);
-    font-size: 0.82rem;
-    font-weight: 600;
+    font-size: var(--type-sm);
+    font-weight: var(--weight-medium);
     cursor: pointer;
     transition: background var(--motion-fast) var(--ease-standard),
                 border-color var(--motion-fast) var(--ease-standard);
 }
 .main-content.trash-mode .trash-empty-btn { display: inline-flex; }
-.trash-empty-btn:hover { background: var(--overlay-danger-1); border-color: var(--color-danger); }
-.trash-empty-btn:active { background: var(--overlay-danger-2); }
+.trash-empty-btn:hover { background: var(--color-surface-3); }
+.trash-empty-btn:active { background: var(--color-surface-3); }
 .trash-empty-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .trash-empty-btn[disabled] { opacity: 0.5; cursor: default; }
 
@@ -61,4 +65,56 @@
 
 @media (prefers-reduced-motion: reduce) {
     .trash-empty-btn { transition: none; }
+}
+
+/* ----- Trash, desktop: the Trash design -----
+   A plain table: 36px rows on hairlines, a muted uppercase header, the time
+   left as a neutral chip, and the two row actions as 32px chips. */
+html:not(.mobile) .main-content.trash-mode .file-table-header {
+    height: var(--control-lg);
+    font-size: var(--type-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border-soft);
+}
+html:not(.mobile) .main-content.trash-mode .drive-row {
+    min-height: var(--control-lg);
+    height: var(--control-lg);
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: 1px solid var(--color-border-soft);
+    font-size: var(--type-base);
+}
+html:not(.mobile) .main-content.trash-mode .drive-row .row-name {
+    font-weight: var(--weight-medium);
+    color: var(--color-text);
+}
+/* Time left is a neutral chip; the purge warning colours the text only. */
+html:not(.mobile) .main-content.trash-mode .drive-row > .row-meta:nth-child(2) {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
+    font-size: var(--type-xs);
+    font-weight: var(--weight-semibold);
+    white-space: nowrap;
+}
+/* A countdown inside three days is drawn in the danger text colour. */
+html:not(.mobile) .main-content.trash-mode .drive-row > .row-meta.is-urgent { color: var(--color-danger); }
+html:not(.mobile) .main-content.trash-mode .drive-row > .row-meta:nth-child(3) {
+    color: var(--color-text-muted);
+    font-size: var(--type-sm);
+}
+/* Restore and Delete forever are 32px icon buttons in the Actions column, the
+   same column the live rows use. Their names are on title and aria-label. */
+html:not(.mobile) .main-content.trash-mode .action-icon.row-purge { color: var(--color-danger); }
+html:not(.mobile) .main-content.trash-mode .action-icon.row-purge:hover {
+    background: var(--overlay-danger-1);
+    color: var(--color-danger);
 }

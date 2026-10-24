@@ -1,15 +1,17 @@
+import { t } from '../../i18n/i18n';
 // New folder modal for TDrive frontend
 
 import { invalidateFolderIndex, state } from '../../state';
-import { createFolder } from '../../api';
+import { createFolder, isMobilePlatform } from '../../api';
 import { notify } from '../notifications';
 import { humanizeBackendError } from '../errors';
-import { appActions } from '../app-actions';
+import { appActions } from '../app_actions';
+import { open_inline_folder_row } from '../../ui/file_list/new_folder_draft_store';
 import {
     closeFolderModalView,
     openFolderModalView,
     setFolderModalInFlight,
-} from '../../ui/modals/folder-modal-store';
+} from '../../ui/modals/folder_modal_store';
 let inFlight = false;
 
 
@@ -38,7 +40,7 @@ export async function submitFolder(name: string): Promise<void> {
     } catch (err) {
         notify({
             level: 'error',
-            title: 'Could not create folder',
+            title: t('messages.folder_create_failed'),
             body: humanizeBackendError(err),
         });
     } finally {
@@ -57,6 +59,14 @@ export async function submitFolder(name: string): Promise<void> {
     }
 }
 
+/**
+ * Every "New folder" entry point comes here. On the desktop the name is typed in
+ * a row at the top of the list; the phone still asks in the modal.
+ */
 export function openNewFolderModal() {
+    if (!isMobilePlatform()) {
+        open_inline_folder_row();
+        return;
+    }
     openFolderModalView();
 }

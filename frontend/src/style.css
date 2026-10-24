@@ -1,4 +1,4 @@
-@import './ui/theme/theme-palettes.css';
+@import './ui/theme/theme_palettes.css';
 @import './styles/tokens.css';
 @import './styles/base.css';
 @import './styles/auth.css';
@@ -7,17 +7,18 @@
 @import './styles/activity.css';
 @import './styles/files.css';
 @import './styles/modals.css';
-@import './styles/document-viewers.css';
+@import './styles/document_viewers.css';
 @import './styles/account.css';
-@import './styles/file-dialogs.css';
+@import './styles/file_dialogs.css';
 @import './styles/gallery.css';
 @import './styles/trash.css';
-@import './styles/video-viewer.css';
+@import './styles/video_viewer.css';
 @import './styles/uploads.css';
 @import './styles/updates.css';
-@import './styles/video-popover.css';
-@import './styles/video-settings.css';
+@import './styles/video_popover.css';
+@import './styles/video_settings.css';
 @import './styles/glass.css';
 @import './styles/accessibility.css';
+@import './styles/calm.css';
 /* Phone shell, scoped to html.mobile; last so it can adjust shared chrome. */
 @import './styles/mobile.css';

@@ -12,7 +12,7 @@ Reading paths: [metadata](#metadata-summary-first-anchors-second),
 [budgets](#budgets-and-environmental-policy),
 [derivative loading](#binary-transport-and-backend-rendition-selection) and
 [original viewing](#explicit-original-viewing-and-teardown).
-Video playback has a separate [media architecture guide](../../../../docs/architecture/media-streaming.md).
+Video playback has a separate [media architecture guide](../../../../docs/architecture/media_streaming.md).
 
 ## Layers and ownership
 
@@ -35,9 +35,9 @@ flowchart TD
 ```
 
 The [gallery module](../../modules/gallery.ts) owns entry, mode changes, refresh
-and teardown. [GallerySource](gallery-source.ts) owns metadata, not image bytes.
-[Gallery.svelte](Gallery.svelte) owns visible layout; cells register with the
-[thumbnail controller](../renditions/thumbnail-controller.ts). The
+and teardown. [GallerySource](gallery_source.ts) owns metadata, not image bytes.
+[gallery.svelte](gallery.svelte) owns visible layout; cells register with the
+[thumbnail controller](../renditions/thumbnail_controller.ts). The
 [rendition runtime](../../modules/renditions/runtime.ts) scopes image access by
 account and drive. The [image viewer](../../modules/modals/preview.ts) owns its
 active original stream. No component should independently cache the entire
@@ -94,7 +94,7 @@ constant-memory with respect to library size.
 
 ## Metadata scheduler and stale snapshots
 
-[GallerySource](gallery-source.ts) maintains a page Map in LRU order, one request
+[GallerySource](gallery_source.ts) maintains a page Map in LRU order, one request
 per page start, a pinned viewport set and at most two active bridge reads.
 `ensureRange` replaces queued viewport intent after scrolling. Explicit viewer
 or keyboard requests receive priority. Repeated requests share work, and queued
@@ -124,7 +124,7 @@ positional anchor because drive-wide ranks are not folder-local ranks.
 
 ## Virtual layout and the browser height limit
 
-[`gallery-layout.ts`](gallery-layout.ts) computes geometry per month bucket,
+[`gallery_layout.ts`](gallery_layout.ts) computes geometry per month bucket,
 not one row object for every offscreen photo. Binary search finds the month at
 an offset, then the window builds visible rows plus two buffer rows per side.
 The lookup/window work is approximately `O(log(months) + visible rows)`; building
@@ -155,8 +155,8 @@ end unreachable in browsers that clamp element height.
 media children by parent folder. It returns counts and covers in one query;
 branch folders containing only subfolders do not become albums. More than one
 media folder selects the folder grid by default; otherwise Photos uses the
-single timeline. [AlbumGrid](AlbumGrid.svelte) windows rows through the shared
-[file-list row-window helper](../file-list/row-window.ts).
+single timeline. [AlbumGrid](album_grid.svelte) windows rows through the shared
+[file-list row-window helper](../file_list/row_window.ts).
 
 Album covers use the same thumbnail identity and leases as other file surfaces.
 Unusable covers, including unsupported/video covers, fall back to a glyph or
@@ -216,7 +216,7 @@ images from fitting under a byte budget while consuming unbounded bookkeeping.
 
 ## Budgets and environmental policy
 
-Values come from [gallery-policy.ts](../../modules/gallery-policy.ts), the broker,
+Values come from [gallery_policy.ts](../../modules/gallery_policy.ts), the broker,
 [media image admission](../../../../backend/media/image_admission.go) and the
 [thumbnail cache](../../../../backend/thumbnail/cache.go).
 
@@ -349,7 +349,7 @@ file service with the original file ID and retains original quality. Image-sessi
 failure can leave the thumbnail visible with an error
 and download action.
 
-Encrypted photos show an [inline unlock card](../../modules/modals/preview-unlock-card.ts)
+Encrypted photos show an [inline unlock card](../../modules/modals/preview_unlock_card.ts)
 with password fallback and an explicit biometric action for an available,
 enrolled device. Authentication unlocks the current session and reloads the
 selected photo; paging itself never launches a native prompt. The card cancels
@@ -399,11 +399,11 @@ history. Bounded gallery images do not make all application storage disposable.
 
 | Concern | Existing coverage |
 | --- | --- |
-| Paging, anchors, stale results and folder walks | [gallery-source.test.ts](gallery-source.test.ts), [gallery-module.dom.test.ts](gallery-module.dom.test.ts) |
-| Geometry, scroll cap and resize anchors | [gallery-layout.test.ts](gallery-layout.test.ts), [gallery-mobile.dom.test.ts](gallery-mobile.dom.test.ts) |
-| Albums and cover fallbacks | [albums.dom.test.ts](albums.dom.test.ts), [album-view.test.ts](album-view.test.ts) |
+| Paging, anchors, stale results and folder walks | [gallery_source.test.ts](gallery_source.test.ts), [gallery_module.dom.test.ts](gallery_module.dom.test.ts) |
+| Geometry, scroll cap and resize anchors | [gallery_layout.test.ts](gallery_layout.test.ts), [gallery_mobile.dom.test.ts](gallery_mobile.dom.test.ts) |
+| Albums and cover fallbacks | [albums.dom.test.ts](albums.dom.test.ts), [album_view.test.ts](album_view.test.ts) |
 | Lease priority, budgets and URL lifetime | [broker.test.ts](../../modules/renditions/broker.test.ts), [runtime.test.ts](../../modules/renditions/runtime.test.ts) |
-| Original stream ownership and late navigation | [preview-renditions.dom.test.ts](../../modules/modals/preview-renditions.dom.test.ts) |
+| Original stream ownership and late navigation | [preview_renditions.dom.test.ts](../../modules/modals/preview_renditions.dom.test.ts) |
 | Keyset index usage and bounded timeline cache | [gallery_scale_test.go](../../../../backend/projection/gallery_scale_test.go) |
 | Encrypted/remote derivatives and failure handling | [rendition_test.go](../../../../backend/services/file/rendition_test.go), [rendition_failures_test.go](../../../../backend/services/file/rendition_failures_test.go) |
 | Binary session isolation and revocation | [server_test.go](../../../../backend/galleryimage/server_test.go) |

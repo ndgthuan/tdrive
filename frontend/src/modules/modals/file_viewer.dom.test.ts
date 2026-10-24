@@ -1,0 +1,293 @@
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { flushSync, mount, unmount } from 'svelte';
+import FileViewerModal from '../../ui/viewers/file_viewer_modal.svelte';
+import { get } from 'svelte/store';
+import { fileViewerState } from '../../ui/viewers/file_viewer_store';
+import { activateFileViewerModal, closeFileViewer, downloadActiveFile, openFileViewer, teardownFileViewerModal } from './file_viewer';
+import { canOpenFileViewer } from '../media_types';
+
+const mocks = vi.hoisted(() => ({
+    openStream: vi.fn(),
+    isMobilePlatform: vi.fn(() => false),
+    setScreenProtect: vi.fn(),
+    closeMedia: vi.fn(),
+    events: new Map<string, () => void>(),
+    eventsOn: vi.fn(),
+    enqueueDownload: vi.fn(),
+    notify: vi.fn(),
+    accessEncryptedResource: vi.fn(async (_encrypted: boolean, open: () => Promise<unknown>) => open()),
+}));
+
+vi.mock('../../api', () => ({
+    openStream: mocks.openStream,
+    closeMedia: mocks.closeMedia,
+    isMobilePlatform: mocks.isMobilePlatform,
+    setScreenProtect: mocks.setScreenProtect,
+    onRuntimeEvent: (name: string, callback: () => void) => {
+        mocks.eventsOn(name, callback);
+        mocks.events.set(name, callback);
+        return vi.fn();
+    },
+}));
+vi.mock('../../ui/viewers/pdf_frame', () => ({ pdfViewerFrameSrc: () => 'about:blank', isPdfFrameMessage: () => false }));
+vi.mock('../transfers', () => ({ enqueueDownload: mocks.enqueueDownload }));
+vi.mock('../notifications', () => ({ notify: mocks.notify }));
+vi.mock('../encryption', () => ({ accessEncryptedResource: mocks.accessEncryptedResource }));
+
+
+function opened(token: string, encrypted = true, name = 'secret.txt') {
+    return {
+        token,
+        url: `http://127.0.0.1/media/${token}`,
+        name,
+        mimeType: 'text/plain',
+        info: { encrypted, plaintextSize: 6, storedSize: 6 },
+    };
+}
+
+function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((done) => {
+        resolve = done;
+    });
+    return { promise, resolve };
+}
+
+function lock() {
+    mocks.events.get('encrypted_media_sessions_closed')?.();
+}
+
+let host: HTMLElement;
+let viewerComponent: Record<string, unknown>;
+
+beforeAll(() => {
+    host = document.createElement('div');
+        host.id = 'viewer-modal';
+        document.body.appendChild(host);
+        viewerComponent = mount(FileViewerModal, {
+                    target: host,
+                    props: { onClose: closeFileViewer, onDownload: downloadActiveFile },
+                });
+    host = document.getElementById('viewer-modal')!;
+    activateFileViewerModal();
+});
+
+afterAll(async () => {
+    teardownFileViewerModal();
+    await unmount(viewerComponent);
+});
+
+beforeEach(() => { mocks.openStream.mockReset();
+mocks.isMobilePlatform.mockReset().mockReturnValue(false);
+mocks.setScreenProtect.mockClear();
+mocks.closeMedia.mockReset().mockResolvedValue(undefined);
+mocks.accessEncryptedResource.mockImplementation(async (_encrypted: boolean, open: () => Promise<unknown>) => open());
+vi.stubGlobal('fetch', vi.fn(async () => new Response('secret', { status: 200 }))); });
+
+afterEach(() => {
+    closeFileViewer();
+    flushSync();
+    vi.unstubAllGlobals();
+});
+
+describe('encrypted file viewer lifecycle', () => {
+    it('rejects unsupported file types and identifies supported formats', async () => {
+        expect(canOpenFileViewer('a.pdf')).toBe(true);
+        expect(canOpenFileViewer('a.zip')).toBe(false);
+        await openFileViewer({ id: 1, name: 'a.zip', size: 1 });
+        expect(mocks.openStream).not.toHaveBeenCalled();
+        expect(mocks.notify).toHaveBeenCalled();
+    });
+
+    it('reports stream errors without restoring a closed viewer', async () => {
+        mocks.openStream.mockRejectedValueOnce(new Error('stream failed'));
+        await openFileViewer({ id: 1, name: 'a.txt', size: 1 });
+        expect(get(fileViewerState)).toMatchObject({ loading: false, error: 'Error: stream failed' });
+        mocks.openStream.mockRejectedValueOnce('');
+        await openFileViewer({ id: 1, name: 'a.txt', size: 1 });
+        expect(get(fileViewerState).error).toBe('Could not open file');
+        const pending = deferred<ReturnType<typeof opened>>();
+        mocks.openStream.mockReturnValue(pending.promise.then(() => {
+            throw new Error('late failure');
+        }));
+        const opening = openFileViewer({ id: 1, name: 'a.txt', size: 1, encrypted: true });
+        await Promise.resolve();
+        lock();
+        pending.resolve(opened('unused'));
+        await opening;
+        expect(get(fileViewerState)).toMatchObject({ open: false, error: '' });
+    });
+
+    it('keeps a pending plain stream and its download target across lock', async () => {
+        const pending = deferred<ReturnType<typeof opened>>();
+        mocks.openStream.mockReturnValue(pending.promise);
+        const opening = openFileViewer({ id: 4, name: 'plain.txt', size: 10 });
+        await Promise.resolve();
+        lock();
+        pending.resolve({
+            ...opened('plain', false, ''),
+            info: { encrypted: false, plaintextSize: 0, storedSize: 0 },
+        });
+        await opening;
+        flushSync();
+        expect(get(fileViewerState)).toMatchObject({ open: true, title: 'plain.txt' });
+        host.querySelector<HTMLButtonElement>('[aria-label="Download"]')?.click();
+        expect(mocks.enqueueDownload).toHaveBeenCalledWith(4, 'plain.txt', 10);
+    });
+
+    it('uses an explicit channel source for audio and leaves it read-only', async () => {
+        const openChannelAudio = vi.fn().mockResolvedValue(opened('channel-audio', false, 'field-note.mp3'));
+
+        await openFileViewer({ id: 4, name: 'field-note.mp3', size: 10 }, openChannelAudio);
+        flushSync();
+
+        expect(openChannelAudio).toHaveBeenCalledOnce();
+        expect(mocks.openStream).not.toHaveBeenCalled();
+        expect(get(fileViewerState)).toMatchObject({ open: true, readOnly: true });
+        expect(get(fileViewerState).token).toBe('channel-audio');
+        expect(host.querySelector<HTMLButtonElement>('[aria-label="Download"]')).toBeNull();
+        mocks.enqueueDownload.mockClear();
+        downloadActiveFile();
+        expect(mocks.enqueueDownload).not.toHaveBeenCalled();
+    });
+
+    it.each(['image', 'pdf', 'text'] as const)('opens a source %s by its admitted kind with no drive operations', async (kind) => {
+        const opener = vi.fn().mockResolvedValue({ ...opened(`source-${kind}`, false, 'Attachment'), kind });
+        await openFileViewer({ id: 4, name: 'Attachment', size: 10, kind }, opener);
+        flushSync();
+        expect(get(fileViewerState)).toMatchObject({ open: true, readOnly: true, kind, token: `source-${kind}` });
+        expect(mocks.openStream).not.toHaveBeenCalled();
+        expect(host.querySelector('[aria-label="Download"]')).toBeNull();
+        closeFileViewer();
+        await vi.waitFor(() => expect(mocks.closeMedia).toHaveBeenCalledWith(`source-${kind}`));
+    });
+
+    it('shows an image decode error and clears it for the next source image', async () => {
+        const opener = vi.fn().mockResolvedValue({ ...opened('bad-image', false, 'image.jpg'), kind: 'image' });
+        await openFileViewer({ id: 4, name: 'image.jpg', size: 10, kind: 'image' }, opener);
+        flushSync();
+        host.querySelector('img')?.dispatchEvent(new Event('error'));
+        flushSync();
+        expect(host.querySelector('[role="alert"]')?.textContent).toBe('Could not load this image');
+        opener.mockResolvedValue({ ...opened('good-image', false, 'image.jpg'), kind: 'image' });
+        await openFileViewer({ id: 5, name: 'image.jpg', size: 10, kind: 'image' }, opener);
+        flushSync();
+        expect(host.querySelector('[role="alert"]')).toBeNull();
+        expect(host.querySelector('img')?.getAttribute('src')).toContain('good-image');
+    });
+
+    it('reports source connection failures without leaking the raw Telegram error', async () => {
+        const opener = vi.fn().mockRejectedValue(new Error('telegram get message: rpcDoRequest: connection dead'));
+        await openFileViewer({ id: 4, name: 'image.jpg', size: 10, kind: 'image' }, opener);
+        expect(get(fileViewerState)).toMatchObject({ error: 'Telegram is not reachable right now. Try again.', loading: false });
+    });
+
+    it('closes a source capability when the post changed to a different viewer kind', async () => {
+        const opener = vi.fn().mockResolvedValue({ ...opened('changed-source', false, 'note.txt'), kind: 'text' });
+        await openFileViewer({ id: 4, name: 'image.jpg', size: 10, kind: 'image' }, opener);
+        expect(get(fileViewerState).error).toContain('This post changed');
+        expect(get(fileViewerState).token).toBe('');
+        expect(mocks.closeMedia).toHaveBeenCalledWith('changed-source');
+    });
+
+    it('uses authoritative protection metadata before exposing source content', async () => {
+        const opener = vi.fn().mockResolvedValue({ ...opened('protected-source', false, 'image.jpg'), kind: 'image', info: { protected: true } });
+        await openFileViewer({ id: 4, name: 'image.jpg', size: 10, kind: 'image' }, opener);
+        flushSync();
+        expect(get(fileViewerState)).toMatchObject({ protected: true, readOnly: true });
+        const image = host.querySelector('img')!;
+        for (const name of ['contextmenu', 'copy', 'dragstart']) {
+            expect(image.dispatchEvent(new Event(name, { bubbles: true, cancelable: true }))).toBe(false);
+        }
+        expect(image.dispatchEvent(new KeyboardEvent('keydown', { key: 's', ctrlKey: true, bubbles: true, cancelable: true }))).toBe(false);
+        expect(host.querySelector('[title="View only. Saving and forwarding are disabled."]')).not.toBeNull();
+    });
+
+    it('releases native protection after a protected source open fails', async () => {
+        mocks.isMobilePlatform.mockReturnValue(true);
+        const opener = vi.fn().mockRejectedValue(new Error('connection dead'));
+        await openFileViewer({ id: 4, name: 'image.jpg', size: 10, kind: 'image', protected: true }, opener);
+        expect(mocks.setScreenProtect.mock.calls).toEqual([[true], [false]]);
+        expect(get(fileViewerState).error).toBe('Telegram is not reachable right now. Try again.');
+    });
+
+    it('registers the lock listener only once', () => {
+        activateFileViewerModal();
+        expect(mocks.eventsOn.mock.calls.filter(([name]) => name === 'encrypted_media_sessions_closed')).toHaveLength(1);
+    });
+
+    it('clears loaded decrypted text even when session cleanup fails', async () => {
+        mocks.openStream.mockResolvedValue(opened('text'));
+        await openFileViewer({ id: 1, name: 'secret.txt', size: 6, encrypted: true });
+        await vi.waitFor(() => {
+            flushSync();
+            expect(host.querySelector('.text-viewer-body')?.textContent).toBe('secret');
+        });
+        mocks.closeMedia.mockRejectedValue(new Error('cleanup failed'));
+        lock();
+        flushSync();
+        expect(get(fileViewerState)).toMatchObject({ open: false, url: '', token: '', kind: null });
+        expect(host.querySelector('.text-viewer-body')).toBeNull();
+        expect(mocks.closeMedia).toHaveBeenCalledWith('text');
+    });
+
+    it.each(['secret.pdf', 'secret.mp3'])('removes the encrypted media element for %s', async (name) => {
+        mocks.openStream.mockResolvedValue(opened('media', true, name));
+        await openFileViewer({ id: 1, name, size: 6, encrypted: true });
+        flushSync();
+        expect(host.querySelector('iframe, audio')).not.toBeNull();
+        lock();
+        flushSync();
+        expect(host.querySelector('iframe, audio')).toBeNull();
+    });
+
+    it('uses authoritative encryption metadata and preserves plain viewers', async () => {
+        mocks.openStream.mockResolvedValueOnce(opened('encrypted')).mockResolvedValueOnce(opened('plain', false));
+        await openFileViewer({ id: 1, name: 'secret.txt', size: 6 });
+        lock();
+        expect(get(fileViewerState).open).toBe(false);
+        await openFileViewer({ id: 2, name: 'plain.txt', size: 6 });
+        lock();
+        expect(get(fileViewerState)).toMatchObject({ open: true, token: 'plain' });
+        expect(mocks.closeMedia).not.toHaveBeenCalledWith('plain');
+    });
+
+    it.each([true, undefined])('rejects an encrypted stream completing after lock (hint: %s)', async (encrypted) => {
+        const pending = deferred<ReturnType<typeof opened>>();
+        mocks.openStream.mockReturnValue(pending.promise);
+        const opening = openFileViewer({ id: 1, name: 'secret.txt', size: 6, encrypted });
+        await vi.waitFor(() => expect(mocks.openStream).toHaveBeenCalled());
+        lock();
+        pending.resolve(opened('late'));
+        await opening;
+        expect(get(fileViewerState).open).toBe(false);
+        expect(mocks.closeMedia).toHaveBeenCalledWith('late');
+    });
+
+    it('invalidates an encrypted open while the prior session is closing', async () => {
+        mocks.openStream.mockResolvedValue(opened('plain', false));
+        await openFileViewer({ id: 1, name: 'plain.txt', size: 6 });
+        const closing = deferred<void>();
+        mocks.closeMedia.mockReturnValue(closing.promise);
+        const opening = openFileViewer({ id: 2, name: 'secret.txt', size: 6, encrypted: true });
+        lock();
+        closing.resolve();
+        await opening;
+        expect(mocks.openStream).toHaveBeenCalledTimes(1);
+        expect(get(fileViewerState).open).toBe(false);
+    });
+
+    it('does not let an older open replace a newer viewer after delayed cleanup', async () => {
+        mocks.openStream.mockResolvedValue(opened('first', false));
+        await openFileViewer({ id: 1, name: 'first.txt', size: 6 });
+        const closing = deferred<void>();
+        mocks.closeMedia.mockReturnValue(closing.promise);
+        const oldOpen = openFileViewer({ id: 2, name: 'old.txt', size: 6 });
+        mocks.openStream.mockResolvedValue(opened('new', false, 'new.txt'));
+        await openFileViewer({ id: 3, name: 'new.txt', size: 6 });
+        closing.resolve();
+        await oldOpen;
+        expect(get(fileViewerState)).toMatchObject({ open: true, token: 'new', title: 'new.txt' });
+        expect(mocks.openStream.mock.calls.map(([id]) => id)).toEqual([1, 3]);
+    });
+});

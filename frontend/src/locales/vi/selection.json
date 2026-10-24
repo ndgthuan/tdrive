@@ -1,0 +1,12 @@
+{
+    "count_one": "{count} đã chọn",
+    "count_other": "{count} đã chọn",
+    "download": "Tải xuống",
+    "move": "Di chuyển",
+    "delete": "Xóa",
+    "done": "Xong",
+    "too_many_title": "Quá nhiều tệp để tải xuống",
+    "too_many_body": "Chọn tối đa {count} mục mỗi lần.",
+    "unavailable_title": "Không thể tải xuống",
+    "unavailable_body": "Làm mới ổ rồi chọn lại các mục."
+}

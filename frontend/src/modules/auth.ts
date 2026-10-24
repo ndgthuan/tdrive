@@ -1,6 +1,7 @@
+import { t } from '../i18n/i18n';
 // Authentication flows for TDrive frontend.
 //
-// AuthScreens.svelte owns rendering while this module orchestrates the login
+// auth_screens.svelte owns rendering while this module orchestrates the login
 // state machine, personal-drive recovery, dashboard bring-up, and the Telegram
 // event stream that advances the typed application view.
 
@@ -26,9 +27,9 @@ import {
 import { renderBreadcrumb } from './navigation';
 import { loadChannels } from './channels';
 import { loadEncryptionStatus } from './encryption';
-import { loadSelfUser } from './profile-menu';
+import { loadSelfUser } from './profile_menu';
 import { notify } from './notifications';
-import { appActions } from './app-actions';
+import { appActions } from './app_actions';
 import { humanizeBackendError, toAppError } from './errors';
 import {
     authHint,
@@ -39,7 +40,7 @@ import {
     finishAuthSubmission,
     resetAuthSubmissions,
     type AuthFlow,
-} from '../ui/auth/auth-store';
+} from '../ui/auth/auth_store';
 import {
     authScreen,
     showAuthView,
@@ -47,8 +48,8 @@ import {
     showFatalView,
     showLoadingView,
     appView,
-} from '../ui/app/app-store';
-import { parseDriveScanProgress, personalDriveSetup } from '../ui/auth/personal-drive-store';
+} from '../ui/app/app_store';
+import { parseDriveScanProgress, personalDriveSetup } from '../ui/auth/personal_drive_store';
 
 let personalDriveFlowVersion = 0;
 
@@ -96,8 +97,8 @@ async function showDashboardForFlow(flowVersion: number): Promise<void> {
         console.error('Drive list load failed:', err);
         notify({
             level: 'error',
-            title: 'Could not load your drive',
-            body: 'Your TDrive is configured, but its local view could not be opened. Try refreshing.',
+            title: t('messages.notify_load_drive_failed'),
+            body: t('messages.notify_load_drive_failed_body'),
         });
         return;
     }
@@ -117,8 +118,8 @@ async function showDashboardForFlow(flowVersion: number): Promise<void> {
         console.warn('Initial drive refresh failed:', err);
         notify({
             level: 'warning',
-            title: 'Drive refresh is unavailable',
-            body: 'Showing the local view. Check your connection and refresh again.',
+            title: t('messages.notify_refresh_unavailable'),
+            body: t('messages.notify_refresh_unavailable_body'),
         });
     }
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;
@@ -144,8 +145,8 @@ async function showDashboardForFlow(flowVersion: number): Promise<void> {
         console.warn('Encryption status load failed:', err);
         notify({
             level: 'warning',
-            title: 'Encryption status is unavailable',
-            body: 'Uploads stay unavailable until the drive status can be refreshed.',
+            title: t('messages.notify_status_unavailable'),
+            body: t('messages.notify_status_unavailable_body'),
         });
     }
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;
@@ -167,7 +168,7 @@ async function discoverPersonalDrives(flowVersion: number): Promise<void> {
     } catch (err) {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive discovery failed:', err);
-        personalDriveSetup.discoveryError('Could not look up your Telegram channels.', errorText(err));
+        personalDriveSetup.discoveryError(t('leftovers.auth_discovery_failed'), errorText(err));
         return;
     }
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;
@@ -198,7 +199,7 @@ export async function preparePersonalDriveAndContinue(): Promise<void> {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive preparation failed:', err);
         showDriveSetupScreen();
-        personalDriveSetup.discoveryError('Could not open your saved drive.', errorText(err));
+        personalDriveSetup.discoveryError(t('leftovers.auth_saved_drive_failed'), errorText(err));
         return;
     }
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;
@@ -213,15 +214,15 @@ export async function preparePersonalDriveAndContinue(): Promise<void> {
         return;
     }
     personalDriveSetup.discoveryError(
-        'TDrive could not prepare your personal drive.',
-        `Unexpected setup status "${setup.status}".`,
+        t('leftovers.auth_prepare_failed'),
+        t('leftovers.auth_unexpected_status', { status: setup.status }),
     );
 }
 
 export async function selectPersonalDrive(channelID: string): Promise<void> {
     const flowVersion = startPersonalDriveFlow();
     if (!/^[1-9]\d*$/.test(channelID)) {
-        personalDriveSetup.recoveryError('Could not recover that channel. Choose a channel from the list and try again.');
+        personalDriveSetup.recoveryError(t('leftovers.auth_recover_channel_invalid'));
         return;
     }
     personalDriveSetup.recovering({ createRetry: false });
@@ -231,7 +232,7 @@ export async function selectPersonalDrive(channelID: string): Promise<void> {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive recovery failed:', err);
         personalDriveSetup.recoveryError(
-            'Could not recover this channel. Nothing was changed on Telegram.',
+            t('leftovers.auth_recover_channel_failed'),
             { detail: errorText(err) },
         );
         return;
@@ -249,7 +250,7 @@ export async function createPersonalDrive(): Promise<void> {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive creation failed:', err);
         personalDriveSetup.recoveryError(
-            'Could not finish TDrive setup. Retry continues the previous attempt without creating a duplicate channel.',
+            t('leftovers.auth_setup_failed'),
             { detail: errorText(err), createRetry: true },
         );
         return;
@@ -302,11 +303,11 @@ async function submitSetup(apiIdRaw: string, apiHashRaw: string): Promise<void> 
     const apiHash = apiHashRaw.trim();
     const apiId = Number(apiIdText);
     if (!/^\d+$/.test(apiIdText) || !Number.isSafeInteger(apiId) || apiId <= 0) {
-        failAuthSubmission('setup', 'Enter the numeric API ID from my.telegram.org/apps.');
+        failAuthSubmission('setup', t('leftovers.auth_api_id_invalid'));
         return;
     }
     if (!apiHash) {
-        failAuthSubmission('setup', 'Enter the API hash from my.telegram.org/apps.');
+        failAuthSubmission('setup', t('leftovers.auth_api_hash_missing'));
         return;
     }
 
@@ -328,7 +329,7 @@ async function submitPhone(phoneRaw: string): Promise<void> {
 
     const phone = phoneRaw.trim();
     if (!phone) {
-        failAuthSubmission('phone', 'Enter the phone number for your Telegram account.');
+        failAuthSubmission('phone', t('leftovers.auth_phone_missing'));
         return;
     }
 
@@ -351,7 +352,7 @@ async function submitCode(codeRaw: string): Promise<void> {
 
     const code = codeRaw.trim();
     if (!code) {
-        failAuthSubmission('code', 'Enter the login code Telegram sent you.');
+        failAuthSubmission('code', t('leftovers.auth_code_missing'));
         return;
     }
 
@@ -369,7 +370,7 @@ async function submitPassword(passwordRaw: string): Promise<void> {
 
     const password = passwordRaw.trim();
     if (!password) {
-        failAuthSubmission('password', 'Enter your Telegram password.');
+        failAuthSubmission('password', t('leftovers.auth_password_missing'));
         return;
     }
 
@@ -415,19 +416,19 @@ export function connectAuthEvents(): () => void {
             showAuthView('password');
         }),
         onRuntimeEvent('login-error', (msg) => {
-            const message = humanizeBackendError(msg || 'Try again.');
+            const message = humanizeBackendError(msg || t('leftovers.try_again'));
             const flow = currentAuthFlow();
             if (flow) {
                 failAuthSubmission(flow, message);
                 return;
             }
-            notify({ level: 'error', title: 'Login failed', body: message });
+            notify({ level: 'error', title: t('messages.notify_login_failed'), body: message });
         }),
         // The backend keeps this login attempt alive. Keep the entered code
         // visible so the user can correct it without requesting another code.
         onRuntimeEvent('login-code-invalid', () => {
             showAuthView('code');
-            failAuthSubmission('code', 'That code was incorrect. Check the Telegram message and try again.');
+            failAuthSubmission('code', t('leftovers.auth_code_incorrect'));
         }),
         onRuntimeEvent('gothint', (hint) => {
             const text = (hint ?? '').toString().trim();

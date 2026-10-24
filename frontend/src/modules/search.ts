@@ -1,5 +1,6 @@
 import { state } from '../state';
 import { formatBytes } from '../utils';
+import { t } from '../i18n/i18n';
 import { clearSelection, deselectRow, handleRowSelection, isRowSelected, selectRow } from './selection';
 import { renderBreadcrumb } from './navigation';
 import {
@@ -10,17 +11,17 @@ import {
     resetFileListScrollRestore,
     resolveUploaderChipsForRows,
     syncDriveRowTabStops,
-} from './file-list';
-import { getInteractiveFileListRows } from '../ui/file-list/file-list-store';
+} from './file_list';
+import { getInteractiveFileListRows } from '../ui/file_list/file_list_store';
 import { setPhotosMode } from './gallery';
 import { setTrashMode } from './trash/view';
-import { closeChannel } from '../ui/channels/channel-store';
-import { getFolderIndexDriveKey, refreshFolderIndex } from './folder-index';
-import { canOpenFileViewer, isVideoFile } from './media-types';
+import { closeChannel } from '../ui/channels/channel_store';
+import { getFolderIndexDriveKey, refreshFolderIndex } from './folder_index';
+import { canOpenFileViewer, isVideoFile } from './media_types';
 import { enqueueDownload, enqueueFolderDownload } from './transfers';
-import { appActions } from './app-actions';
-import type { FileListAction, FileListRow } from '../ui/file-list/types';
-import { fileListColumnMode } from '../ui/file-list/column-mode-store';
+import { appActions } from './app_actions';
+import type { FileListAction, FileListRow } from '../ui/file_list/types';
+import { fileListColumnMode } from '../ui/file_list/column_mode_store';
 import { getFileList, isMobilePlatform, search } from '../api';
 import type { RootFile, SearchHit } from '../types';
 
@@ -89,7 +90,7 @@ function renderSearchResults(results: SearchHit[], query: string) {
 
     const resultRows = results;
     if (!resultRows.length) {
-        renderFileState(list, "empty", `No results for "${String(query || "")}"`);
+        renderFileState(list, "empty", t("leftovers.no_results", { query: String(query || "") }));
         return;
     }
 
@@ -102,14 +103,14 @@ function renderSearchResults(results: SearchHit[], query: string) {
             rows.push(buildFolderRow(result, String(result.parentId || ""), {
                 key: `search:folder:${id}`,
                 channelId: sourceChannelId,
-                metaLabel: String(result.path || "My Drive"),
+                metaLabel: String(result.path || t("leftovers.my_drive")),
                 sizeLabel: "—",
                 actions: [{
                     kind: "download",
                     className: "download-folder",
-                    title: "Download",
-                    label: "Download folder",
-                    onClick: () => enqueueFolderDownload(id, String(result?.name || "Folder"), 0, sourceChannelId),
+                    title: t("files.download"),
+                    label: t("files.download_folder"),
+                    onClick: () => enqueueFolderDownload(id, String(result?.name || t("leftovers.folder")), 0, sourceChannelId),
                 }],
                 onDoubleClick: () => openFolderResult(id),
                 onClick: (event) => {
@@ -164,24 +165,24 @@ function renderSearchResults(results: SearchHit[], query: string) {
                 actions.push({
                     kind: "play",
                     className: "play-video",
-                    title: "Play",
-                    label: "Play video",
+                    title: t("files.play"),
+                    label: t("files.play_video"),
                     onClick: () => { void appActions().playVideo({ id, name, size, encrypted }); },
                 });
             } else if (canOpenFileViewer(name)) {
                 actions.push({
                     kind: "open",
                     className: "open-file",
-                    title: "Open",
-                    label: "Open file",
+                    title: t("files.open"),
+                    label: t("files.open_file"),
                     onClick: () => { void appActions().openFile({ id, name, size, encrypted }); },
                 });
             }
             actions.push({
                 kind: "download",
                 className: "download",
-                title: "Download",
-                label: "Download",
+                title: t("files.download"),
+                label: t("files.download"),
                 onClick: () => enqueueDownload(id, name, size, sourceChannelId),
             });
             rows.push(buildFileRow({
@@ -197,7 +198,7 @@ function renderSearchResults(results: SearchHit[], query: string) {
             }, String(result.parentId || ""), {
                 key: `search:file:${String(result.source || "fs")}:${id}`,
                 channelId: sourceChannelId,
-                metaLabel: String(result.path || "My Drive"),
+                metaLabel: String(result.path || t("leftovers.my_drive")),
                 sizeLabel: formatBytes(size),
                 actions,
                 onDoubleClick: () => {
@@ -341,7 +342,7 @@ export async function runGlobalSearch() {
     const driveKey = getFolderIndexDriveKey() ?? 'none';
     setHeaderMode(true);
     clearSelection();
-    renderFileState(list, 'loading', 'Searching files');
+    renderFileState(list, 'loading', t('leftovers.searching'));
 
     try {
         // GetFileList already returns only raw openable Telegram attachments.
@@ -375,14 +376,14 @@ export async function runGlobalSearch() {
                 uploaderId: file.uploaderId ?? 0,
                 encrypted: false,
                 plaintextSize: 0,
-                path: 'My Drive',
+                path: t('leftovers.my_drive'),
                 source: 'tg',
             }));
 
         renderSearchResults([...fs, ...tgMatches], query);
     } catch (err) {
         if (token !== activeToken || (getFolderIndexDriveKey() ?? 'none') !== driveKey) return;
-        renderFileState(list, 'error', 'Search failed', 'Try again or refine your query.');
+        renderFileState(list, 'error', t('leftovers.search_failed'), t('leftovers.search_failed_body'));
         console.error('Search failed:', err);
     }
 }

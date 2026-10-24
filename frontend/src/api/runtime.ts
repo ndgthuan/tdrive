@@ -229,7 +229,7 @@ export async function isFullscreen(): Promise<boolean> {
 
 // Wails v3 has no titlebar light/dark theme API (window.ts exposes no
 // equivalent of v2's WindowSetLightTheme/WindowSetDarkTheme). These stay as
-// no-ops so native-theme.ts's call sites keep working; only the
+// no-ops so native_theme.ts's call sites keep working; only the
 // background-colour sync below still applies.
 export function setNativeLightTheme(): void {}
 export function setNativeDarkTheme(): void {}

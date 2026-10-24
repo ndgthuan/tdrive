@@ -1161,7 +1161,7 @@ html.mobile .toast {
     box-shadow: var(--shadow-sm);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    /* The whole surface is a drag target (see swipe-dismiss.ts); without this
+    /* The whole surface is a drag target (see swipe_dismiss.ts); without this
        the page underneath scrolls instead. */
     touch-action: none;
     /* backwards, not both: a filled-forwards animation keeps its final
@@ -1221,7 +1221,7 @@ html.mobile .topbar-menu-item:focus-visible {
 }
 
 /* ============================ ITEM STATUS ============================ */
-/* The offline/sync badge at a row's trailing edge (ui/mobile/item-state.ts).
+/* The offline/sync badge at a row's trailing edge (ui/mobile/item_state.ts).
    It sits in its own cell between the name and the overflow button, so it can
    never take width from the name: a long filename ellipsises against a column
    that is always the same width, rather than jumping as a transfer starts and

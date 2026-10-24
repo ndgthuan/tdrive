@@ -1,12 +1,13 @@
 <script lang="ts">
     import { onMount, tick, untrack } from 'svelte';
-    import ImageIcon from '@lucide/svelte/icons/image';
+    import ImageIcon from 'phosphor-svelte/lib/ImageIcon';
     import { isMobilePlatform } from '../../api';
-    import { appActions } from '../../modules/app-actions';
+    import { appActions } from '../../modules/app_actions';
     import { chooseFilesForCurrentFolder } from '../../modules/transfers';
-    import GalleryCell from './GalleryCell.svelte';
-    import { galleryView } from './gallery-store';
-    import { createGalleryLayout, createGalleryScrollSpace, galleryWindow, indexAtOffset, offsetForIndex } from './gallery-layout';
+    import GalleryCell from './gallery_cell.svelte';
+    import { galleryView } from './gallery_store';
+    import { createGalleryLayout, createGalleryScrollSpace, galleryWindow, indexAtOffset, offsetForIndex } from './gallery_layout';
+    import { current_locale, t_store } from '../../i18n/i18n';
 
     const mobile = isMobilePlatform();
     const skeletonCells = Array.from({ length: 12 }, (_, index) => index);
@@ -21,7 +22,12 @@
     let source = $derived($galleryView.status === 'ready' ? $galleryView.source : null);
     let layout = $derived(createGalleryLayout(source?.timeline.buckets ?? [], width, mobile));
     let scrollSpace = $derived(createGalleryScrollSpace(layout.height, height));
-    let visible = $derived(galleryWindow(layout, scrollTop, height));
+    // Month headers are worded in the current language, so the window is
+    // recomputed when the language changes.
+    let visible = $derived.by(() => {
+        void $current_locale;
+        return galleryWindow(layout, scrollTop, height);
+    });
     let rows = $derived.by(() => {
         void version;
         return visible.rows.map((row) => ({ ...row, cells: row.indices.map((index) => ({ index, item: source?.peek(index) })) }));
@@ -143,33 +149,33 @@
 
 {#if $galleryView.status === 'loading'}
     {#if mobile}
-        <div class="gallery-grid gallery-skeleton" role="status" aria-label="Loading photos" aria-busy="true">
+        <div class="gallery-grid gallery-skeleton" role="status" aria-label={$t_store('photos.loading_photos_label')} aria-busy="true">
             {#each skeletonCells as index (index)}
                 <div class="gallery-skeleton-cell" style={`--skeleton-delay: ${index * 45}ms`} aria-hidden="true"></div>
             {/each}
         </div>
     {:else}
-        <div class="gallery-status" role="status">Loading photos…</div>
+        <div class="gallery-status" role="status">{$t_store('photos.loading_photos')}</div>
     {/if}
 {:else if $galleryView.status === 'error'}
     <div class="gallery-empty" role="alert">
-        <div class="gallery-empty-title">Could not load photos.</div>
-        <div class="gallery-empty-sub">Check your connection and try again.</div>
-        <div class="gallery-empty-actions"><button class="primary-btn" type="button" onclick={() => appActions().refreshFiles()}>Retry</button></div>
+        <div class="gallery-empty-title">{$t_store('photos.could_not_load_photos')}</div>
+        <div class="gallery-empty-sub">{$t_store('photos.check_connection')}</div>
+        <div class="gallery-empty-actions"><button class="primary-btn" type="button" onclick={() => appActions().refreshFiles()}>{$t_store('photos.retry')}</button></div>
     </div>
 {:else if $galleryView.status === 'empty'}
     <div class="gallery-empty">
-        <div class="gallery-empty-icon"><ImageIcon size={48} strokeWidth={1.5} aria-hidden="true" /></div>
-        <div class="gallery-empty-title">{mobile ? 'No photos in this drive.' : 'No photos yet'}</div>
+        <div class="gallery-empty-icon"><ImageIcon size={48} aria-hidden="true" /></div>
+        <div class="gallery-empty-title">{mobile ? $t_store('photos.no_photos_in_drive') : $t_store('photos.no_photos_yet')}</div>
         {#if mobile}
-            <div class="gallery-empty-actions"><button class="primary-btn" type="button" onclick={() => chooseFilesForCurrentFolder()}>Upload photos</button></div>
+            <div class="gallery-empty-actions"><button class="primary-btn" type="button" onclick={() => chooseFilesForCurrentFolder()}>{$t_store('photos.upload_photos')}</button></div>
         {:else}
-            <div class="gallery-empty-sub">Images you upload to this drive show up here.</div>
+            <div class="gallery-empty-sub">{$t_store('photos.images_upload_hint')}</div>
         {/if}
     </div>
 {:else}
     {#key $galleryView.source.timeline.channelId}
-    <div class="gallery-virtual" role="grid" aria-label="Photos" aria-rowcount={layout.rowCount} aria-colcount={layout.columns} style:height={`${scrollSpace.physicalHeight}px`}>
+    <div class="gallery-virtual" role="grid" aria-label={$t_store('photos.photos_grid_label')} aria-rowcount={layout.rowCount} aria-colcount={layout.columns} style:height={`${scrollSpace.physicalHeight}px`}>
         {#each rows as row (row.key)}
             <div class="gallery-grid gallery-virtual-row" role="row" aria-rowindex={row.rowIndex} style:top={`${scrollSpace.project(row.top, physicalScrollTop)}px`} style:height={`${layout.cellSize}px`} style:grid-template-columns={`repeat(${layout.columns}, minmax(0, 1fr))`}>
                 {#each row.cells as cell (cell.item?.msgId ?? `pending:${cell.index}`)}
@@ -177,7 +183,7 @@
                         {#if cell.item}
                             <GalleryCell item={cell.item} index={cell.index} tabindex={cell.index === tabIndex ? 0 : -1} />
                         {:else}
-                            <div class="gallery-cell gallery-pending" aria-label="Loading photo" aria-busy="true"></div>
+                            <div class="gallery-cell gallery-pending" aria-label={$t_store('photos.loading_photo_label')} aria-busy="true"></div>
                         {/if}
                     </div>
                 {/each}
@@ -188,5 +194,5 @@
         {/each}
     </div>
     {/key}
-    {#if pageError}<div class="gallery-page-error" role="status">{pageError} <button class="secondary-btn" type="button" onclick={() => appActions().refreshFiles()}>Retry</button></div>{/if}
+    {#if pageError}<div class="gallery-page-error" role="status">{pageError} <button class="secondary-btn" type="button" onclick={() => appActions().refreshFiles()}>{$t_store('photos.retry')}</button></div>{/if}
 {/if}

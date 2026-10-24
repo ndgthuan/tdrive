@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n';
 // Move modal for TDrive frontend
 
 import { get } from 'svelte/store';
@@ -9,22 +10,22 @@ import {
     type OperationResult,
 } from '../../api';
 import { invalidateFolderIndex } from '../../state';
-import { callWithPasswordRetry } from './encryption-password';
+import { callWithPasswordRetry } from './encryption_password';
 import { clearSelection } from '../selection';
-import { buildFolderIndex, collectDescendants } from '../folder-index';
+import { buildFolderIndex, collectDescendants } from '../folder_index';
 import { humanizeBackendError } from '../errors';
-import { appActions } from '../app-actions';
+import { appActions } from '../app_actions';
 import {
     moveBrowse,
     moveModal,
     resetMoveBrowse,
     type MoveFolderEntry,
-} from '../../ui/modals/move-modal-store';
+} from '../../ui/modals/move_modal_store';
 import type {
     FileCommandItem,
     FileCommandTarget,
     FolderCommandItem,
-} from '../../ui/file-list/types';
+} from '../../ui/file_list/types';
 let pendingTarget: FileCommandTarget | null = null;
 let browseEpoch = 0;
 
@@ -48,10 +49,12 @@ async function ensureFileInTdriveSystem(target: FileCommandItem): Promise<void> 
 
 function moveTitle(target: FileCommandTarget): string {
     if (target.type === 'bulk') {
-        return target.items.length === 1 ? 'Move 1 item' : `Move ${target.items.length} items`;
+        return target.items.length === 1
+        ? t('messages.move_bulk_title_one')
+        : t('messages.move_bulk_title', { count: target.items.length });
     }
     const name = target.name.trim();
-    return name ? `Move "${name}"` : 'Move item';
+    return name ? t('messages.move_named', { name }) : t('messages.move_item');
 }
 
 async function browseTo(path: MoveFolderEntry[]): Promise<void> {
@@ -62,7 +65,7 @@ async function browseTo(path: MoveFolderEntry[]): Promise<void> {
     try {
         const contents = await getFolderContents(path[path.length - 1]?.id ?? '');
         folders = contents.folders
-            .map((folder) => ({ id: folder.id, name: folder.name || 'Folder' }))
+            .map((folder) => ({ id: folder.id, name: folder.name || t('messages.move_folder_default') }))
             .sort((left, right) => left.name.localeCompare(right.name));
     } catch {
         folders = [];

@@ -18,10 +18,9 @@
     background: var(--overlay-accent-1);
     color: var(--color-accent);
     font-size: 0.68rem;
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: 0.02em;
 }
-.profile-menu.updates-view { min-width: min(348px, calc(100vw - 32px)); }
 
 /* Login-screen update hint. */
 .auth-update-footer {
@@ -53,5 +52,5 @@
 }
 .auth-update-footer button:hover { color: var(--color-text); border-color: var(--color-accent); }
 .auth-update-footer button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.auth-update-footer .auth-update-accent { color: var(--color-accent); font-weight: 800; }
+.auth-update-footer .auth-update-accent { color: var(--color-accent); font-weight: 600; }
 

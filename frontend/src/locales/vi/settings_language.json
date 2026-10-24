@@ -1,0 +1,10 @@
+{
+    "title": "Ngôn ngữ",
+    "option_system": "Theo hệ thống ({language})",
+    "option_vi": "Tiếng Việt",
+    "option_en": "English",
+    "note": "Thay đổi có hiệu lực ngay, không cần khởi động lại.",
+    "date_format_label": "Định dạng ngày",
+    "interface_label": "Ngôn ngữ giao diện",
+    "date_format_note": "Ví dụ cách hiển thị ngày và giờ theo ngôn ngữ này."
+}

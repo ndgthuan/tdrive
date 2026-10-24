@@ -31,7 +31,7 @@ vi.mock('../api', () => authApi);
 vi.mock('./navigation', () => ({ renderBreadcrumb: collaborators.renderBreadcrumb }));
 vi.mock('./channels', () => ({ loadChannels: collaborators.loadChannels }));
 vi.mock('./encryption', () => ({ loadEncryptionStatus: collaborators.loadEncryptionStatus }));
-vi.mock('./profile-menu', () => ({ loadSelfUser: collaborators.loadSelfUser }));
+vi.mock('./profile_menu', () => ({ loadSelfUser: collaborators.loadSelfUser }));
 vi.mock('./notifications', () => ({
     notify: collaborators.notify,
     dismissNotification: collaborators.dismissNotification,
@@ -43,8 +43,8 @@ import {
     preparePersonalDriveAndContinue,
     selectPersonalDrive,
 } from './auth';
-import { appView, authScreen, showAuthView, showStartupView } from '../ui/app/app-store';
-import { personalDriveSetup } from '../ui/auth/personal-drive-store';
+import { appView, authScreen, showAuthView, showStartupView } from '../ui/app/app_store';
+import { personalDriveSetup } from '../ui/auth/personal_drive_store';
 import { state } from '../state';
 
 function deferred<T>() {

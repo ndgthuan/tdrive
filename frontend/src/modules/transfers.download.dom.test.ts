@@ -28,7 +28,7 @@ const eventsOn = vi.hoisted(() => vi.fn((eventName: string, callback: (event: { 
 
 vi.mock('../../bindings/TDrive/internal/app/app', () => bindings);
 vi.mock('@wailsio/runtime', () => ({ Events: { On: eventsOn } }));
-vi.mock('./notif-bell', () => ({
+vi.mock('./notif_bell', () => ({
     forgetResumableUpload: vi.fn(),
     setTransferNote: vi.fn(),
     transferKey: (direction: string, id: string | number) => `xfer:${direction}:${id}`,
@@ -44,10 +44,10 @@ vi.mock('./notifications', () => ({
     dismissNotification: notifications.dismissNotification,
 }));
 vi.mock('./encryption', () => ({ loadEncryptionStatus: vi.fn(async () => undefined) }));
-vi.mock('./modals/upload-options', () => ({ openUploadOptionsModal: vi.fn() }));
-vi.mock('./modals/import-options', () => ({ openImportOptionsModal: vi.fn() }));
-vi.mock('./modals/encryption-setup', () => ({ openEncryptionSetupModal: vi.fn() }));
-vi.mock('./modals/encryption-password', () => ({ openEncryptionPasswordModal: passwordModal }));
+vi.mock('./modals/upload_options', () => ({ openUploadOptionsModal: vi.fn() }));
+vi.mock('./modals/import_options', () => ({ openImportOptionsModal: vi.fn() }));
+vi.mock('./modals/encryption_setup', () => ({ openEncryptionSetupModal: vi.fn() }));
+vi.mock('./modals/encryption_password', () => ({ openEncryptionPasswordModal: passwordModal }));
 
 type Deferred<T> = {
     promise: Promise<T>;
@@ -115,8 +115,8 @@ describe('download checkpoint recovery', () => {
             }],
         });
         await loadModule();
-        const { activateResumableDownloads, resumableDownloads } = await import('./resumable-downloads');
-        const { sidebarState } = await import('../ui/sidebar/sidebar-store');
+        const { activateResumableDownloads, resumableDownloads } = await import('./resumable_downloads');
+        const { sidebarState } = await import('../ui/sidebar/sidebar_store');
         const { get } = await import('svelte/store');
         const stop = activateResumableDownloads();
         try {
@@ -147,8 +147,8 @@ describe('download checkpoint recovery', () => {
         const activeDownload = deferred<DownloadBindingResult>();
         bindings.DownloadFile.mockReturnValueOnce(activeDownload.promise);
         const { mod } = await loadModule();
-        const { activateResumableDownloads, resumableDownloads } = await import('./resumable-downloads');
-        const { sidebarState } = await import('../ui/sidebar/sidebar-store');
+        const { activateResumableDownloads, resumableDownloads } = await import('./resumable_downloads');
+        const { sidebarState } = await import('../ui/sidebar/sidebar_store');
         const { get } = await import('svelte/store');
         const stop = activateResumableDownloads();
         try {
@@ -171,7 +171,7 @@ describe('download checkpoint recovery', () => {
         const activeDownload = deferred<DownloadBindingResult>();
         bindings.DownloadFile.mockReturnValueOnce(activeDownload.promise);
         const { mod } = await loadModule();
-        const { resumePausedDownload, resumableDownloads } = await import('./resumable-downloads');
+        const { resumePausedDownload, resumableDownloads } = await import('./resumable_downloads');
         resumableDownloads.set([{
             jobId: 'resume-42', channelId: 101, logicalMsgId: 42, name: 'plan.pdf',
             status: 'paused', verifiedBytes: 300, totalBytes: 1000,
@@ -189,7 +189,7 @@ describe('download checkpoint recovery', () => {
         const activeResume = deferred<DownloadBindingResult>();
         bindings.ResumeDownload.mockReturnValueOnce(activeResume.promise);
         const { mod } = await loadModule();
-        const { resumePausedDownload, resumableDownloads } = await import('./resumable-downloads');
+        const { resumePausedDownload, resumableDownloads } = await import('./resumable_downloads');
         resumableDownloads.set([{
             jobId: 'resume-42', channelId: 101, logicalMsgId: 42, name: 'plan.pdf',
             status: 'paused', verifiedBytes: 300, totalBytes: 1000,

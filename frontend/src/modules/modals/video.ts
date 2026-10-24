@@ -1,5 +1,6 @@
-import { acquireScreenProtection, bindViewOnlyGuards } from '../../ui/viewers/view-only-guards';
-import { htmlPictureStyle, loadPlaybackPreferences, normalizePlaybackPreferences, savePlaybackPreferences, type PlaybackPreferences, type PictureMode } from "../video/playback-preferences";
+import { t } from '../../i18n/i18n';
+import { acquireScreenProtection, bind_no_save_guards, bindViewOnlyGuards } from '../../ui/viewers/view_only_guards';
+import { htmlPictureStyle, loadPlaybackPreferences, normalizePlaybackPreferences, savePlaybackPreferences, type PlaybackPreferences, type PictureMode } from "../video/playback_preferences";
 import {
     attachNativeMedia,
     closeMedia,
@@ -20,17 +21,17 @@ import {
 } from "../../api";
 
 import { formatBytes } from "../../utils";
-import { isIOSPlayableVideo, isRemuxableVideo, isWebviewDirectVideo, videoFormatLabel } from "../media-types";
-import { appActions } from "../app-actions";
+import { isIOSPlayableVideo, isRemuxableVideo, isWebviewDirectVideo, videoFormatLabel } from "../media_types";
+import { appActions } from "../app_actions";
 import { accessEncryptedResource } from "../encryption";
-import { prefersNativePlayer, rememberNativePlayer } from "../video/native-memory";
+import { prefersNativePlayer, rememberNativePlayer } from "../video/native_memory";
 import {
     SerialPlaybackTransitions,
     capturePlaybackIntent,
     shouldFallbackFromHtmlMediaError,
     type PlaybackIntent,
-} from "../video/playback-lifecycle";
-import { type NativeMediaTrack } from "../video/media-tracks";
+} from "../video/playback_lifecycle";
+import { type NativeMediaTrack } from "../video/media_tracks";
 import {
     EMPTY_PLAYER_STATE,
     HtmlVideoAdapter,
@@ -39,17 +40,17 @@ import {
     type PlayerAdapter,
     type PlayerState,
     type TrackSwitching,
-} from "../video/player-adapters";
-import { errorDetail, errorMessage } from "../video/playback-errors";
-import { handleMenuKeydown } from "../video/menu-keyboard";
+} from "../video/player_adapters";
+import { errorDetail, errorMessage } from "../video/playback_errors";
+import { handleMenuKeydown } from "../video/menu_keyboard";
 import {
     nextPresetRate,
     parseCustomPlaybackRate,
     speedMenuMarkup,
     syncSpeedControls,
-} from "../video/speed-menu-view";
-import { StreamActivityMonitor } from "../video/stream-activity";
-import { TrackPicker, type TrackPickerHost } from "../video/track-picker";
+} from "../video/speed_menu_view";
+import { StreamActivityMonitor } from "../video/stream_activity";
+import { TrackPicker, type TrackPickerHost } from "../video/track_picker";
 import {
     createActivePlaylist,
     normalizeVideoTarget,
@@ -58,16 +59,16 @@ import {
     type ActiveVideoPlaylist,
     type VideoOpenTarget,
     type VideoPlaylistLaunch,
-} from "../video/video-queue";
-import { attachHls, prefersJsPlayer, type HlsSource } from "../video/hls-source";
-import { MediaPrefetcher, readyToPrefetch, warmMediaEdges } from "../video/video-prefetch";
-import { VideoGeometryController } from "../video/video-geometry";
-import { SEEK_STEP_SECONDS, VOLUME_STEP, VideoTransportController } from "../video/video-transport";
-import { bindVideoDOM, collectVideoDOM, videoDOMLive, type VideoDOM } from "../video/video-dom";
-import { activateModalOwnership, deactivateModalOwnership, installModalA11y } from "../../ui/modals/modal-a11y";
-import { bindTouchGestures, type TouchGestureHandlers } from "../../ui/preview/touch-gestures";
-import { videoPlaybackPreferences } from "../../ui/video/video-preferences-store";
-import { loadAutoNextPreference } from "../video/video-playlist";
+} from "../video/video_queue";
+import { attachHls, prefersJsPlayer, type HlsSource } from "../video/hls_source";
+import { MediaPrefetcher, readyToPrefetch, warmMediaEdges } from "../video/video_prefetch";
+import { VideoGeometryController } from "../video/video_geometry";
+import { SEEK_STEP_SECONDS, VOLUME_STEP, VideoTransportController } from "../video/video_transport";
+import { bindVideoDOM, collectVideoDOM, videoDOMLive, type VideoDOM } from "../video/video_dom";
+import { activateModalOwnership, deactivateModalOwnership, installModalA11y } from "../../ui/modals/modal_a11y";
+import { bindTouchGestures, type TouchGestureHandlers } from "../../ui/preview/touch_gestures";
+import { videoPlaybackPreferences } from "../../ui/video/video_preferences_store";
+import { loadAutoNextPreference } from "../video/video_playlist";
 import {
     resetVideoPlaylist,
     setVideoPlaylist,
@@ -75,9 +76,9 @@ import {
     setVideoPlaylistCurrentIndex,
     setVideoPlaylistOpen,
     setVideoPlaylistSwitching,
-} from "../../ui/video/video-playlist-store";
+} from "../../ui/video/video_playlist_store";
 
-export type { VideoOpenTarget, VideoPlaylistLaunch } from "../video/video-queue";
+export type { VideoOpenTarget, VideoPlaylistLaunch } from "../video/video_queue";
 
 const CHROME_HIDE_DELAY_MS = 2500;
 const LOADING_DEBOUNCE_MS = 250;
@@ -227,19 +228,19 @@ function updateLoadingStatus() {
         return;
     }
     if (!activeAdapter) {
-        videoDOM.loadingStatus.textContent = "Opening video";
+        videoDOM.loadingStatus.textContent = t('messages.video_opening');
         return;
     }
     const activity = streamActivity.label;
     if (activity === "Rate-limited") {
-        videoDOM.loadingStatus.textContent = "Buffering · Rate-limited";
+        videoDOM.loadingStatus.textContent = t('messages.video_buffering_rate_limited');
         return;
     }
     if (activity.startsWith("Streaming ")) {
-        videoDOM.loadingStatus.textContent = `Buffering · ${activity.slice("Streaming ".length)}`;
+        videoDOM.loadingStatus.textContent = t('messages.video_buffering_detail', { detail: activity.slice("Streaming ".length) });
         return;
     }
-    videoDOM.loadingStatus.textContent = "Buffering";
+    videoDOM.loadingStatus.textContent = t('messages.video_buffering');
 }
 
 function setLoadingStatusOverride(message: string) {
@@ -264,7 +265,7 @@ function setError(message: string, primary: ErrorAction | null = null) {
     releaseScreenProtection = null;
     hasError = true;
     errorPrimaryAction = primary;
-    if (videoDOM.errorRetryButton) videoDOM.errorRetryButton.textContent = primary ? primary.label : "Retry";
+    if (videoDOM.errorRetryButton) videoDOM.errorRetryButton.textContent = primary ? primary.label : t('common.retry');
     loadingStatusOverride = "";
     setLoading(false);
     streamActivity.stop();
@@ -280,7 +281,7 @@ function clearError() {
     const restoreFocus = Boolean(videoDOM.error?.contains(document.activeElement));
     hasError = false;
     errorPrimaryAction = null;
-    if (videoDOM.errorRetryButton) videoDOM.errorRetryButton.textContent = "Retry";
+    if (videoDOM.errorRetryButton) videoDOM.errorRetryButton.textContent = t('common.retry');
     videoDOM.errorMessage?.replaceChildren();
     if (videoDOM.error) videoDOM.error.style.display = "none";
     videoDOM.modal?.classList.remove("is-video-error");
@@ -301,7 +302,7 @@ function retryVideoOpen() {
 
 function handleHtmlPlaybackError(detail: string) {
     console.error("HTML video playback failed:", detail);
-    setError("The embedded player could not continue playing this video. Try again.");
+    setError(t('messages.video_embedded_failed'));
 }
 
 
@@ -357,20 +358,29 @@ export function updatePlaybackPreferences(value: PlaybackPreferences): void {
 }
 
 const PICTURE_MODES: PictureMode[] = ["fit", "fill", "original", "16:9", "4:3"];
-const PICTURE_LABELS: Record<PictureMode, string> = { fit: "Fit", fill: "Fill", original: "Original", "16:9": "16:9", "4:3": "4:3" };
+function pictureLabel(mode: PictureMode): string {
+    switch (mode) {
+        case "fit": return t('messages.video_picture_fit');
+        case "fill": return t('messages.video_picture_fill');
+        case "original": return t('messages.video_picture_original');
+        default: return mode;
+    }
+}
 // A phone's control row is a few hundred pixels wide and every pill on it
 // competes for the same space. "Original" alone is wide enough to push the row
 // onto a second line, so the pill says the short form and the description the
 // button announces stays the full one.
-const PICTURE_PILL_LABELS: Record<PictureMode, string> = { ...PICTURE_LABELS, original: "Orig" };
+function pictureLabelPill(mode: PictureMode): string {
+    return mode === "original" ? t('messages.video_picture_original_short') : pictureLabel(mode);
+}
 
 function syncAspectButton() {
     const button = byID("video-aspect-button");
     if (!button) return;
     const mode = playbackPreferences.pictureMode;
-    const label = PICTURE_LABELS[mode];
-    button.textContent = isMobilePlatform() ? PICTURE_PILL_LABELS[mode] : label;
-    button.title = `Video fit: ${label}. Click to cycle`;
+    const label = pictureLabel(mode);
+    button.textContent = isMobilePlatform() ? pictureLabelPill(mode) : label;
+    button.title = t('messages.video_fit_title', { label });
     button.setAttribute("aria-label", button.title);
 }
 
@@ -773,12 +783,18 @@ function setProtectedPlayback(protectedContent: boolean): void {
     if (videoDOM.modal) videoDOM.modal.dataset.protected = String(protectedContent);
     const shell = byID<HTMLElement>("video-shell");
     if (shell) shell.dataset.protected = String(protectedContent);
-    if (protectedContent) videoDOM.video?.setAttribute('controlslist', 'nodownload');
+    // Channel posts are view-only in TDrive even when Telegram lets them be saved.
+    if (protectedContent || channel_playback()) videoDOM.video?.setAttribute('controlslist', 'nodownload');
     else videoDOM.video?.removeAttribute('controlslist');
 }
 
+/** True while the open video is a Telegram channel post, which is never saved from TDrive. */
+function channel_playback(): boolean {
+    return Boolean(activeOpenAttempt?.target.open);
+}
+
 function updateMediaText(name: string, size: number, title = "") {
-    if (videoDOM.filename) videoDOM.filename.textContent = title || name || "Video";
+    if (videoDOM.filename) videoDOM.filename.textContent = title || name || t('messages.video_default_title');
     mediaMetaBaseText = `${videoFormatLabel(name)}${size ? ` · ${formatBytes(size)}` : ""}`;
     mediaMetaBytes = size || 0;
     renderMediaMeta();
@@ -797,8 +813,8 @@ function syncPlaylistButton() {
     if (!button) return;
     button.hidden = !available;
     const position = available ? activePlaylist!.currentIndex + 1 : 0;
-    button.setAttribute("aria-label", available ? `Playlist, ${position} of ${count}` : "Playlist");
-    button.title = available ? `Playlist (${position} of ${count})` : "Playlist";
+    button.setAttribute("aria-label", available ? t('messages.video_playlist_position_aria', { position, count }) : t('messages.video_playlist'));
+    button.title = available ? t('messages.video_playlist_position', { position, count }) : t('messages.video_playlist');
 }
 
 function syncPlaylistSnapshot() {
@@ -911,7 +927,7 @@ async function openHtmlPlayback(attempt: VideoOpenAttempt, isCurrent: () => bool
         if (!opened.url || !opened.token) {
             await safelyCloseMedia(opened.token);
             opened = null;
-            throw new Error("media session did not return a playable URL");
+            throw new Error(t('messages.video_no_playable_url'));
         }
 
         // Android's Chromium can neither list a file's soundtracks nor switch
@@ -934,7 +950,7 @@ async function openHtmlPlayback(attempt: VideoOpenAttempt, isCurrent: () => bool
             return;
         }
 
-        const displayName = opened.info.name || opened.name || attempt.target.name || "Video";
+        const displayName = opened.info.name || opened.name || attempt.target.name || t('messages.video_default_title');
         const displaySize = opened.info.plaintextSize || opened.info.storedSize || attempt.target.size || 0;
         updateMediaText(displayName, displaySize, attempt.target.title);
         setProtectedPlayback(Boolean(attempt.target.protected || opened.info.protected));
@@ -969,7 +985,7 @@ async function openHtmlPlayback(attempt: VideoOpenAttempt, isCurrent: () => bool
         }
         if (!isCurrent()) return;
         console.error("OpenMedia failed:", err);
-        setError(errorMessage(err, "Could not open this video. Try again."));
+        setError(errorMessage(err, t('messages.video_open_failed')));
     }
 }
 
@@ -996,17 +1012,17 @@ function handleHtmlMediaError(
         rememberNativePlayer(attempt.target);
         attempt.nativeFallbackRequested = true;
         const intent = capturePlaybackIntent(state, attempt.pausedByUser);
-        setLoadingStatusOverride("Switching to a compatible player...");
+        setLoadingStatusOverride(t('messages.video_switching_player'));
         setLoading(true);
         void promoteHtmlToNative(attempt, adapter, intent);
         return;
     }
 
     const message = code === 2
-        ? "The video stream was interrupted. Check your connection and try again."
+        ? t('messages.video_stream_interrupted')
         : undecodable
-            ? "This video can't be played on this device."
-            : "The embedded player could not continue playing this video. Try again.";
+            ? t('messages.video_unsupported_device')
+            : t('messages.video_embedded_failed');
     // A repackaged container that still will not decode has nothing left to
     // retry: the streams inside are ones this device has no decoder for. Point
     // at the one thing that can still work rather than at a button that cannot.
@@ -1023,7 +1039,7 @@ function handleHtmlMediaError(
 // sheet hands it to an app that can.
 function downloadInstead(target: VideoOpenTarget): ErrorAction {
     return {
-        label: "Download",
+        label: t('messages.video_download'),
         run: () => {
             appActions().downloadFile({ id: target.id, name: target.name, size: target.size || 0 });
             void closeVideoModal();
@@ -1041,7 +1057,7 @@ async function promoteHtmlToNative(
         const existing = detachHtmlForNative(adapter);
         if (!existing) return;
 
-        setLoadingStatusOverride("Switching to a compatible player...");
+        setLoadingStatusOverride(t('messages.video_switching_player'));
         setLoading(true);
         if (!isCurrent() || !isOpen()) {
             await safelyCloseMedia(existing.token);
@@ -1127,10 +1143,10 @@ async function openNativePlayback(
         // handoff can race a dead token; report that as the interruption it is.
         const sessionLost = Boolean(existing) && /session not found/i.test(errorDetail(err));
         setError(sessionLost
-            ? "The video stream was interrupted. Check your connection and try again."
+            ? t('messages.video_stream_interrupted')
             : errorMessage(err, existing
-                ? "The compatible player could not open this video. Try again."
-                : "Could not open this video. Try again."));
+                ? t('messages.video_compat_open_failed')
+                : t('messages.video_open_failed')));
     }
 }
 
@@ -1147,7 +1163,7 @@ function handleNativeMediaError(attempt: VideoOpenAttempt, token: string, detail
     void playbackTransitions.run(attempt.generation, async (isCurrent) => {
         if (!isCurrent() || activeNative?.token !== token) return;
         if (isOpen()) {
-            setError("The compatible player stopped unexpectedly. Try again.");
+            setError(t('messages.video_compat_stopped'));
         }
         await releaseActive();
     });
@@ -1175,7 +1191,7 @@ function activateNativePlayback(
     activeNative = opened;
     activeMediaToken = opened.token;
     activeMediaEncrypted = Boolean(opened.info.encrypted);
-    const displayName = opened.info.name || opened.name || attempt.target.name || "Video";
+    const displayName = opened.info.name || opened.name || attempt.target.name || t('messages.video_default_title');
     const displaySize = opened.info.plaintextSize || opened.info.storedSize || attempt.target.size || 0;
     updateMediaText(displayName, displaySize, attempt.target.title);
     setProtectedPlayback(Boolean(attempt.target.protected || opened.info.protected));
@@ -1227,7 +1243,7 @@ async function openVideoTarget(target: VideoOpenTarget, playbackIntent: Playback
     // The old player may remain visible until its asynchronous close completes.
     setProtectedPlayback(Boolean(activeMediaProtected || target.protected));
 
-    updateMediaText(target.name || "Video", target.size || 0, target.title);
+    updateMediaText(target.name || t('messages.video_default_title'), target.size || 0, target.title);
     videoDOM.video.removeAttribute("poster");
     clearError();
     setLoadingStatusOverride("");
@@ -1257,7 +1273,9 @@ async function openVideoTarget(target: VideoOpenTarget, playbackIntent: Playback
         if (isIOSPlatform() && !isIOSPlayableVideo(target.name) && !isRemuxableVideo(target.name)) {
             const format = videoFormatLabel(target.name);
             setError(
-                target.open || target.protected ? `iOS cannot open ${format} files.` : `iOS cannot open ${format} files. Download it to play in another app.`,
+                target.open || target.protected
+                    ? t('messages.video_ios_cannot_open', { format })
+                    : t('messages.video_ios_cannot_open_download', { format }),
                 target.open || target.protected ? null : downloadInstead(target),
             );
             return;
@@ -1622,12 +1640,12 @@ export function activateVideoModal(): () => void {
 
     videoDOM = collectVideoDOM(host);
     controlListeners = new AbortController();
-    audioPicker = new TrackPicker("Audio", null, (player, id) => {
+    audioPicker = new TrackPicker(t('messages.video_audio'), null, (player, id) => {
         if (id !== null) player.setAudioTrack(id);
     }, videoDOM.audioPicker, trackPickerHost, controlListeners.signal);
     subtitlePicker = new TrackPicker(
-        "Subtitles",
-        "Off",
+        t('messages.video_subtitles'),
+        t('messages.video_off'),
         (player, id) => player.setSubtitleTrack(id),
         videoDOM.subtitlePicker,
         trackPickerHost,
@@ -1648,7 +1666,7 @@ export function activateVideoModal(): () => void {
         isOpen,
         getActivePanel: getActiveVideoPanel,
         revealChrome,
-        reportSurfaceError: () => setError("Could not prepare the video player. Try again."),
+        reportSurfaceError: () => setError(t('messages.video_prepare_failed')),
     });
     transport = new VideoTransportController({
         dom: videoDOM,
@@ -1691,6 +1709,8 @@ export function activateVideoModal(): () => void {
     bindEncryptedMediaLifecycle();
     const unbindProtected = bindViewOnlyGuards(videoDOM.modal, () => activeMediaProtected);
     controlListeners.signal.addEventListener("abort", unbindProtected, { once: true });
+    const unbind_no_save = bind_no_save_guards(videoDOM.modal, channel_playback);
+    controlListeners.signal.addEventListener("abort", unbind_no_save, { once: true });
     nativeStateRouter.bind();
     if (videoDOM.speedMenu) videoDOM.speedMenu.innerHTML = speedMenuMarkup();
     transport.bind();

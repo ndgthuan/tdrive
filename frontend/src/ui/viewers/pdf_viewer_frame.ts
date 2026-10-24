@@ -1,0 +1,125 @@
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import workerSrc from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url';
+import { bind_no_save_guards, bindViewOnlyGuards } from './view_only_guards';
+import { PDF_VIEWER_FRAME_SOURCE } from './pdf_frame';
+import { resolve_initial_preference, set_locale, t } from '../../i18n/i18n';
+import './pdf_viewer_frame.css';
+
+type PdfViewerModule = typeof import('pdfjs-dist/web/pdf_viewer.mjs');
+
+interface FrameRuntime {
+    destroy: () => Promise<void>;
+}
+
+const statusEl = document.getElementById('status');
+const viewerContainer = document.getElementById('viewerContainer');
+const viewerEl = document.getElementById('viewer');
+const protectedContent = new URLSearchParams(window.location.search).get('protected') === '1';
+document.body.classList.toggle('is-protected', protectedContent);
+const unbindProtectedGuards = bindViewOnlyGuards(document.body, () => protectedContent);
+// Read-only sources (Telegram channels) may be viewed but not saved from here.
+const no_save_content = new URLSearchParams(window.location.search).get('no_save') === '1';
+const unbind_no_save_guards = bind_no_save_guards(document.body, () => no_save_content);
+
+function setStatus(message: string, visible = true): void {
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    statusEl.hidden = !visible;
+}
+
+function postFrameMessage(payload: { type: 'loaded'; pages: number } | { type: 'error'; message: string }): void {
+    window.parent?.postMessage({ source: PDF_VIEWER_FRAME_SOURCE, ...payload }, '*');
+}
+
+function fileURLFromSearch(): string {
+    const file = new URLSearchParams(window.location.search).get('file')?.trim() || '';
+    if (!file) throw new Error(t('viewer.pdf_missing_url'));
+    return file;
+}
+
+async function createRuntime(fileURL: string): Promise<FrameRuntime> {
+    if (!(viewerContainer instanceof HTMLDivElement) || !(viewerEl instanceof HTMLDivElement)) {
+        throw new Error(t('viewer.pdf_host_missing'));
+    }
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+    (globalThis as typeof globalThis & { pdfjsLib?: typeof pdfjsLib }).pdfjsLib = pdfjsLib;
+
+    const { EventBus, PDFLinkService, PDFViewer } = (await import('pdfjs-dist/web/pdf_viewer.mjs')) as PdfViewerModule;
+
+    const eventBus = new EventBus();
+    const linkService = new PDFLinkService({ eventBus });
+    const pdfViewer = new PDFViewer({
+        container: viewerContainer,
+        viewer: viewerEl,
+        eventBus,
+        linkService,
+        textLayerMode: protectedContent ? 0 : 1,
+        annotationMode: protectedContent ? pdfjsLib.AnnotationMode.DISABLE : pdfjsLib.AnnotationMode.ENABLE_FORMS,
+        removePageBorders: false,
+    });
+
+    linkService.setViewer(pdfViewer);
+
+    const loadingTask = pdfjsLib.getDocument({
+        url: fileURL,
+        disableRange: false,
+        disableStream: false,
+        disableAutoFetch: false,
+        enableXfa: false,
+        rangeChunkSize: 1024 * 1024,
+    });
+    const pdfDocument = await loadingTask.promise;
+
+    pdfViewer.setDocument(pdfDocument);
+    linkService.setDocument(pdfDocument, null);
+
+    const applyPageWidth = (): void => {
+        pdfViewer.currentScaleValue = 'page-width';
+    };
+
+    let announcedReady = false;
+    eventBus.on('pagesinit', () => {
+        applyPageWidth();
+        if (!announcedReady) {
+            announcedReady = true;
+            setStatus('', false);
+            postFrameMessage({ type: 'loaded', pages: pdfDocument.numPages });
+        }
+    });
+
+    window.addEventListener('resize', applyPageWidth);
+
+        return {
+        destroy: async () => {
+            window.removeEventListener('resize', applyPageWidth);
+            await pdfDocument.cleanup();
+            await loadingTask.destroy();
+        },
+    };
+}
+
+let runtime: FrameRuntime | null = null;
+
+async function boot(): Promise<void> {
+    // This frame is its own page, so it takes the language the app saved.
+    await set_locale(resolve_initial_preference());
+    setStatus(t('viewer.opening_pdf_more'));
+    try {
+        const fileURL = fileURLFromSearch();
+        runtime = await createRuntime(fileURL);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : t('viewer.pdf_open_failed');
+        setStatus(message, true);
+        postFrameMessage({ type: 'error', message });
+    }
+}
+
+window.addEventListener('pagehide', () => {
+    unbindProtectedGuards();
+    unbind_no_save_guards();
+    void runtime?.destroy();
+    runtime = null;
+});
+
+void boot();

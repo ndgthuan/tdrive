@@ -1,0 +1,73 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ContextMenuItem } from '../ui/menus/context_menu_store';
+
+const transferMocks = vi.hoisted(() => ({
+    enqueueFolderDownload: vi.fn(),
+    importFolderWithParentID: vi.fn(),
+    uploadWithParentID: vi.fn(),
+}));
+
+vi.mock('./transfers', () => transferMocks);
+vi.mock('./selection', () => ({
+    clearSelection: vi.fn(),
+    ensureRowSelectedForContextMenu: vi.fn(),
+    getSelectionPayload: vi.fn(() => []),
+}));
+vi.mock('./modals/delete', () => ({ openDeleteModal: vi.fn() }));
+vi.mock('./modals/rename', () => ({ openRenameModal: vi.fn() }));
+vi.mock('./modals/move', () => ({ openMoveModal: vi.fn() }));
+vi.mock('./navigation', () => ({ navigateToFolder: vi.fn() }));
+vi.mock('./media_types', () => ({ isVideoFile: vi.fn(() => false) }));
+vi.mock('./modals/file_viewer', () => ({
+    canOpenFileViewer: vi.fn(() => false),
+    openFileViewer: vi.fn(),
+}));
+vi.mock('../ui/menus/context_menu.svelte', () => ({ default: {} }));
+vi.mock('../ui/menus/context_menu_store', () => ({
+    hideContextMenu: vi.fn(),
+    showContextMenu: vi.fn(),
+}));
+vi.mock('../ui', () => ({ mountSvelte: vi.fn() }));
+
+beforeEach(() => {
+    vi.clearAllMocks();
+});
+
+describe('folder context menu download', () => {
+    it('places an exact Download action immediately after Open and preserves the remaining actions', async () => {
+        const { buildFolderContextMenuItems } = await import('./context_menu');
+        const items = buildFolderContextMenuItems('d:screenshots', 'Screenshots');
+        const labels = items
+            .filter((item): item is Extract<ContextMenuItem, { label: string }> => item.type !== 'divider')
+            .map((item) => item.label);
+
+        expect(labels).toEqual([
+            'Open',
+            'Download',
+            'Upload files to this folder',
+            'Upload folder to this folder',
+            'Rename…',
+            'Move to…',
+            'Delete',
+        ]);
+
+        const download = items.find((item): item is Extract<ContextMenuItem, { label: string }> =>
+            item.type !== 'divider' && item.label === 'Download');
+        if (!download) throw new Error('download menu item missing');
+        download.action();
+        expect(transferMocks.enqueueFolderDownload).toHaveBeenCalledWith('d:screenshots', 'Screenshots', 0, undefined);
+    });
+
+    it('keeps the folder drive on a delayed Delete menu action', async () => {
+        const { buildFolderContextMenuItems } = await import('./context_menu');
+        const { openDeleteModal } = await import('./modals/delete');
+        const deletion = buildFolderContextMenuItems('d:screenshots', 'Screenshots', {}, 5)
+            .find((item): item is Extract<ContextMenuItem, { label: string }> =>
+                item.type !== 'divider' && item.label === 'Delete');
+
+        deletion?.action();
+        expect(openDeleteModal).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'folder', id: 'd:screenshots', channelId: 5,
+        }));
+    });
+});

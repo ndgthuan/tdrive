@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TransferItem } from '../ui/notifications/notif-store';
+import type { TransferItem } from '../ui/notifications/notif_store';
 import { idleTransferActivity, state } from '../state';
-import { sidebarState } from '../ui/sidebar/sidebar-store';
+import { sidebarState } from '../ui/sidebar/sidebar_store';
 
 const mocks = vi.hoisted(() => ({
     dismissNotification: vi.fn(),
@@ -40,8 +40,8 @@ const app = vi.hoisted(() => ({
 vi.mock('../../bindings/TDrive/internal/app/app', () => app);
 vi.mock('@wailsio/runtime', () => ({ Events: { On: eventsOn } }));
 vi.mock('./notifications', () => ({ notify: mocks.notify, dismissNotification: mocks.dismissNotification }));
-vi.mock('./app-actions', () => ({ appActions: () => ({ refreshFiles: mocks.refreshFiles }) }));
-vi.mock('./notif-bell', () => ({
+vi.mock('./app_actions', () => ({ appActions: () => ({ refreshFiles: mocks.refreshFiles }) }));
+vi.mock('./notif_bell', () => ({
     forgetResumableUpload: vi.fn(),
     setTransferNote: vi.fn(),
     markTransferDone: mocks.markTransferDone,
@@ -51,17 +51,17 @@ vi.mock('./notif-bell', () => ({
     wasUploadCanceled: mocks.wasUploadCanceled,
 }));
 vi.mock('./encryption', () => ({ loadEncryptionStatus: vi.fn() }));
-vi.mock('./modals/import-options', () => ({
+vi.mock('./modals/import_options', () => ({
     openImportOptionsModal: mocks.openImportOptionsModal,
 }));
-vi.mock('./modals/upload-options', () => ({ openUploadOptionsModal: vi.fn() }));
-vi.mock('./modals/encryption-setup', () => ({ openEncryptionSetupModal: vi.fn() }));
-vi.mock('./modals/encryption-password', () => ({ openEncryptionPasswordModal: vi.fn() }));
-vi.mock('../ui/chrome/UploadMenu.svelte', () => ({ default: {} }));
+vi.mock('./modals/upload_options', () => ({ openUploadOptionsModal: vi.fn() }));
+vi.mock('./modals/encryption_setup', () => ({ openEncryptionSetupModal: vi.fn() }));
+vi.mock('./modals/encryption_password', () => ({ openEncryptionPasswordModal: vi.fn() }));
+vi.mock('../ui/chrome/upload_menu.svelte', () => ({ default: {} }));
 vi.mock('../ui/mount', () => ({ mountSvelte: vi.fn() }));
 
 import { activateTransferSurfaces, importFolderWithParentID, uploadWithParentID } from './transfers';
-import { activateResumableUploads, resumeUpload } from './resumable-uploads';
+import { activateResumableUploads, resumeUpload } from './resumable_uploads';
 
 interface TestNotice {
     level?: string;
@@ -699,7 +699,7 @@ describe('safe failed-file retry', () => {
         const notice = mocks.notify.mock.calls.map(([value]) => value).find((value) => value.title === 'Upload failed');
         deactivateTransfers();
         const { get } = await import('svelte/store');
-        const { failedUploadReports } = await import('../ui/modals/failed-uploads-store');
+        const { failedUploadReports } = await import('../ui/modals/failed_uploads_store');
         expect(get(failedUploadReports)).toEqual([]);
         notice.action.run();
         const { retryFailedUploads } = await import('./transfers');

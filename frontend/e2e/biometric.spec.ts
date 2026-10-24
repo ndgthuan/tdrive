@@ -1,6 +1,6 @@
-import { bootTDrive, deferred, expect, resolves, test } from './wails-mock';
+import { bootTDrive, deferred, expect, resolves, test } from './wails_mock';
 import type { Page } from '@playwright/test';
-import { FIRST_PHOTO, SECOND_PHOTO, galleryPlans, previewImageContents, routeRenditions } from './gallery-fixtures';
+import { FIRST_PHOTO, SECOND_PHOTO, galleryPlans, previewImageContents, routeRenditions } from './gallery_fixtures';
 
 const locked = { available: true, password_set: true, password_remembered: false, hint: 'My hint' };
 const biometric = { available: true, enrolled: false, kind: 'touch_id', reason: '' };

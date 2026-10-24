@@ -1,0 +1,296 @@
+/* Settings dialog. Every rule is prefixed settings- or sits on the dialog card,
+   so the panes share one vocabulary without each pane restyling the controls. */
+
+#settings-modal .modal-card.settings-card {
+    width: 880px;
+    max-width: calc(100vw - 48px);
+    height: 640px;
+    max-height: calc(100vh - 48px);
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--color-surface-2);
+}
+
+.settings-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.settings-shell {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: none;
+    width: 200px;
+    padding: 16px 12px;
+    background: var(--color-surface-0);
+    border-right: 1px solid var(--color-border-soft);
+}
+
+.settings-nav-title {
+    padding: 0 8px 12px;
+    color: var(--color-text);
+    font-size: var(--type-md);
+    font-weight: var(--weight-semibold);
+}
+
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: var(--control-md);
+    padding: 0 8px;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+    font-size: var(--type-base);
+    font-weight: var(--weight-medium);
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.settings-nav-item:hover { color: var(--color-text); background: var(--overlay-white-1); }
+.settings-nav-item.on { color: var(--color-text); background: var(--overlay-accent-1); }
+.settings-nav-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.settings-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-4) var(--space-6) var(--space-6);
+    overflow-y: auto;
+}
+
+.settings-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-md);
+    height: var(--control-md);
+    padding: 0;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.settings-close:hover { color: var(--color-text); background: var(--overlay-white-1); }
+.settings-close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Pane frame: a title, a one-line description, then the pane's own content. */
+.settings-pane {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+.settings-pane-header { display: flex; flex-direction: column; gap: var(--space-1); padding-right: 40px; }
+
+.settings-pane-title {
+    margin: 0;
+    color: var(--color-text);
+    font-size: var(--type-xl);
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
+    line-height: var(--leading-tight);
+}
+
+.settings-pane-sub {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--type-sm);
+    line-height: var(--leading-snug);
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.settings-label {
+    color: var(--color-text-muted);
+    font-size: var(--type-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.settings-note {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--type-xs);
+    line-height: var(--leading-snug);
+}
+
+.settings-note.error { color: var(--color-danger); }
+.settings-note.ok { color: var(--color-success); }
+
+/* Controls: 32px high, one weight step per role, nothing wraps. */
+.settings-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: var(--control-md);
+    padding: 0 12px;
+    color: var(--color-text);
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    font-size: var(--type-base);
+    font-weight: var(--weight-medium);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.settings-btn:hover:not(:disabled) { border-color: var(--color-border); }
+.settings-btn.primary {
+    color: var(--color-on-accent);
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    font-weight: var(--weight-semibold);
+}
+.settings-btn.primary:hover:not(:disabled) { background: var(--color-accent-hover); border-color: var(--color-accent-hover); }
+.settings-btn.ghost { color: var(--color-text-muted); background: transparent; border-color: transparent; }
+.settings-btn.ghost:hover:not(:disabled) { color: var(--color-text); background: var(--overlay-white-1); }
+.settings-btn.danger { color: var(--color-danger); }
+.settings-btn:disabled { opacity: 0.5; cursor: default; }
+.settings-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.settings-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: var(--control-md);
+    height: var(--control-md);
+    padding: 0;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.settings-icon-btn:hover { color: var(--color-text); background: var(--overlay-white-1); }
+.settings-icon-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.settings-input {
+    width: 100%;
+    min-width: 0;
+    height: var(--control-md);
+    padding: 0 10px;
+    color: var(--color-text);
+    background: var(--color-canvas);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--type-base);
+}
+
+/* The modal's own input rule is more specific than a class, so the settings
+   controls take their border under the dialog id. */
+#settings-modal .settings-input {
+    height: var(--control-md);
+    padding: 0 10px;
+    background: var(--color-canvas);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: var(--type-base);
+    line-height: 1;
+}
+
+#settings-modal .settings-input:focus {
+    border-color: var(--color-accent);
+    box-shadow: var(--focus-ring);
+    outline: none;
+}
+
+.settings-input::placeholder { color: var(--color-text-subtle); }
+.settings-input:focus { outline: none; border-color: var(--color-accent); box-shadow: var(--focus-ring); }
+.settings-input:disabled { opacity: 0.6; }
+
+.settings-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.settings-field-label {
+    color: var(--color-text-muted);
+    font-size: var(--type-2xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.settings-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: var(--control-md);
+    color: var(--color-text);
+    font-size: var(--type-base);
+}
+
+.settings-switch {
+    position: relative;
+    flex: none;
+    width: 32px;
+    height: 18px;
+    padding: 0;
+    background: var(--color-surface-3);
+    border: 0;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+}
+
+.settings-switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--color-text-muted);
+    border-radius: 50%;
+    transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.settings-switch[aria-checked="true"] { background: var(--color-accent); }
+.settings-switch[aria-checked="true"]::after { transform: translateX(14px); background: var(--color-on-accent); }
+.settings-switch:disabled { opacity: 0.5; cursor: default; }
+.settings-switch:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+@media (max-width: 760px) {
+    #settings-modal .modal-card.settings-card { width: calc(100vw - 32px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .settings-switch::after { transition: none; }
+}

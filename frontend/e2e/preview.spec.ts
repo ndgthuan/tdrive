@@ -13,14 +13,14 @@
  * a real browser.
  */
 
-import { bootTDrive, expect, test } from './wails-mock';
+import { bootTDrive, expect, test } from './wails_mock';
 import {
     FIRST_PHOTO,
     SECOND_PHOTO,
     galleryPlans,
     previewImageContents,
     routeRenditions,
-} from './gallery-fixtures';
+} from './gallery_fixtures';
 import type { Page } from '@playwright/test';
 
 async function openGallery(page: Page): Promise<void> {

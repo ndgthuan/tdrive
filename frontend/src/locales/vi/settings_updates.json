@@ -1,0 +1,13 @@
+{
+    "title": "Cập nhật",
+    "subtitle": "Giữ TDrive ở phiên bản mới nhất.",
+    "current_version": "Phiên bản hiện tại",
+    "check_button": "Kiểm tra cập nhật",
+    "auto_update_label": "Tự động tải bản cập nhật",
+    "download": "Tải xuống",
+    "restart": "Khởi động lại để cập nhật",
+    "restart_confirm": "Vẫn khởi động lại",
+    "downloading": "Đang tải {version}…",
+    "ready_detail": "Khởi động lại TDrive để cài đặt {version}.",
+    "available_detail": "Đã có phiên bản mới để tải về."
+}

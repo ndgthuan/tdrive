@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n';
 // Update orchestration: hydrate the version banner, subscribe to backend
 // update-state events, schedule silent checks, and apply the auto-download /
 // announcement policy. Mechanism lives in Go (backend/updater); this module
@@ -20,13 +21,13 @@ import {
 import { state } from '../state';
 import { notify } from './notifications';
 import { humanizeBackendError } from './errors';
-import { isVersionSkipped, type UpdateState } from '../ui/updates/update-model';
+import { isVersionSkipped, type UpdateState } from '../ui/updates/update_model';
 import {
     appVersionInfo,
     requestUpdatesPanel,
     updatePrefs,
     updateState,
-} from '../ui/updates/update-store';
+} from '../ui/updates/update_store';
 
 // Silent background cadence. The first check trails dashboard bring-up so it
 // never competes with the initial Telegram sync; then once a day, because a
@@ -143,14 +144,14 @@ function maybeAnnounce(next: UpdateState): void {
     if (next.phase === 'ready') {
         notify({
             level: 'info',
-            title: `TDrive ${next.latest.version} is ready`,
-            body: 'Restart to update from the account menu.',
+            title: t('messages.update_ready_title', { version: next.latest.version }),
+            body: t('messages.update_restart_body'),
         });
     } else {
         notify({
             level: 'info',
-            title: `TDrive ${next.latest.version} is available`,
-            body: 'Open the account menu to update.',
+            title: t('messages.update_available_title', { version: next.latest.version }),
+            body: t('messages.update_open_menu_body'),
         });
     }
 }
@@ -166,11 +167,11 @@ export async function checkForUpdates(options: { explicit?: boolean } = {}): Pro
         applyState(result);
         if (options.explicit) {
             if (result.error && result.errorStage === 'check') {
-                notify({ level: 'error', title: 'Update check failed', body: humanizeBackendError(result.error) });
+                notify({ level: 'error', title: t('messages.update_check_failed'), body: humanizeBackendError(result.error) });
             } else if (result.phase === 'up_to_date') {
-                notify({ level: 'success', title: 'TDrive is up to date' });
+                notify({ level: 'success', title: t('messages.update_up_to_date') });
             } else if (result.phase === 'disabled') {
-                notify({ level: 'info', title: 'Updates are off for this build' });
+                notify({ level: 'info', title: t('messages.update_off') });
             }
         }
     } catch (err) {
@@ -180,7 +181,7 @@ export async function checkForUpdates(options: { explicit?: boolean } = {}): Pro
             current.phase === 'checking' ? { ...current, phase: 'idle', error: humanizeBackendError(err), errorStage: 'check' } : current
         ));
         if (options.explicit) {
-            notify({ level: 'error', title: 'Update check failed', body: humanizeBackendError(err) });
+            notify({ level: 'error', title: t('messages.update_check_failed'), body: humanizeBackendError(err) });
         } else {
             console.warn('update check failed:', err);
         }
@@ -191,7 +192,7 @@ export async function downloadUpdate(): Promise<void> {
     try {
         await requestDownloadUpdate();
     } catch (err) {
-        notify({ level: 'error', title: 'Could not start the download', body: humanizeBackendError(err) });
+        notify({ level: 'error', title: t('messages.update_download_failed'), body: humanizeBackendError(err) });
     }
 }
 
@@ -205,7 +206,7 @@ export async function installUpdate(): Promise<void> {
     } catch (err) {
         notify({
             level: 'error',
-            title: 'Could not install the update',
+            title: t('messages.update_install_failed'),
             body: humanizeBackendError(err),
         });
     }

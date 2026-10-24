@@ -18,7 +18,7 @@ import { normalizeOperationResult, requireOperationSuccess } from "./operation";
 import { asRecord, boundedText } from "./shared";
 import { invokeBackend } from "./gateway";
 
-export const MOUNT_LABEL = "Tdrive personal" as const;
+export const MOUNT_LABEL = "Telegram Drive" as const;
 
 const UNSAFE_MOUNT_DETAIL = /(?:https?:\/\/|webdav:\/\/|dav:\/\/|tdrive-[a-f\d]{8,}|mount_webdav|\bnet\s+use\b|\bgio\s+mount\b)/i;
 const LOOPBACK_LOCATION = /(?:127\.0\.0\.1|\blocalhost\b|\[::1\])/i;

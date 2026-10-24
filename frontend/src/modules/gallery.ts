@@ -10,22 +10,22 @@ import {
     getMediaFolderTimeline, getMediaTimelineAnchors, getMediaTimelineSummary,
     listMediaFolderPage, listMediaFolders, locateMedia, type GalleryItem,
 } from '../api/gallery';
-import { GallerySource } from '../ui/gallery/gallery-source';
+import { GallerySource } from '../ui/gallery/gallery_source';
 import { clearSearch } from './search';
-import { appActions } from './app-actions';
-import { canOwnerActOnFile } from './file-list';
+import { appActions } from './app_actions';
+import { canOwnerActOnFile } from './file_list';
 import { startSelectionMode, updateSelectionBar } from './selection';
-import { beginRender, cachedThumb, rearmLocked, setActive, setRoot, teardown as teardownGalleryController } from '../ui/gallery/gallery-controller';
-import { albumsView, galleryView, photosMode, type PhotosMode } from '../ui/gallery/gallery-store';
-import { albumsWorthShowing, buildAlbumTiles, type AlbumTile } from '../ui/gallery/album-view';
-import { bindLongPress, bindPullToRefresh } from '../ui/file-list/touch';
-import { pushSheet, type SheetHandle } from '../ui/modals/sheet-stack';
-import { clearSidebarVirtualView, setSidebarVirtualView } from '../ui/sidebar/sidebar-store';
-import { closeChannel } from '../ui/channels/channel-store';
+import { beginRender, cachedThumb, rearmLocked, setActive, setRoot, teardown as teardownGalleryController } from '../ui/gallery/gallery_controller';
+import { albumsView, galleryView, photosMode, type PhotosMode } from '../ui/gallery/gallery_store';
+import { albumsWorthShowing, buildAlbumTiles, type AlbumTile } from '../ui/gallery/album_view';
+import { bindLongPress, bindPullToRefresh } from '../ui/file_list/touch';
+import { pushSheet, type SheetHandle } from '../ui/modals/sheet_stack';
+import { clearSidebarVirtualView, setSidebarVirtualView } from '../ui/sidebar/sidebar_store';
+import { closeChannel } from '../ui/channels/channel_store';
 import type { PreviewNavigationItem } from './modals/preview';
-import { setFileThumbnailsActive } from '../ui/file-list/file-thumbnail-controller';
-import { isVideoFile } from './media-types';
-import { selectionBarState } from '../ui/selection/selection-bar-store';
+import { setFileThumbnailsActive } from '../ui/file_list/file_thumbnail_controller';
+import { isVideoFile } from './media_types';
+import { selectionBarState } from '../ui/selection/selection_bar_store';
 
 let galleryEl: HTMLElement | null = null;
 let renderToken = 0;

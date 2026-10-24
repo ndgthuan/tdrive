@@ -12,14 +12,15 @@
 // what a row is, free to drift from the first.
 import { state } from '../../state';
 import type { TrashEntry } from '../../api/trash';
-import { buildFileRow, buildFolderRow, fileThumbnailIdentity, renderFileListRows, renderFileState } from '../file-list';
+import { buildFileRow, buildFolderRow, fileThumbnailIdentity, renderFileListRows, renderFileState } from '../file_list';
 import { askPurgeTrashEntry, loadTrash, restoreEntry, trashEntries } from './controller';
-import { entryOrigin, purgeCountdown } from '../../ui/trash/trash-view';
-import type { FileListAction, FileListFileRow, FolderListRow } from '../../ui/file-list/types';
-import { setFileThumbnailsActive } from '../../ui/file-list/file-thumbnail-controller';
-import { fileListColumnMode } from '../../ui/file-list/column-mode-store';
-import { clearSidebarVirtualView, setSidebarVirtualView } from '../../ui/sidebar/sidebar-store';
+import { entryOrigin, purgeCountdown } from '../../ui/trash/trash_view';
+import type { FileListAction, FileListFileRow, FolderListRow } from '../../ui/file_list/types';
+import { setFileThumbnailsActive } from '../../ui/file_list/file_thumbnail_controller';
+import { fileListColumnMode } from '../../ui/file_list/column_mode_store';
+import { clearSidebarVirtualView, setSidebarVirtualView } from '../../ui/sidebar/sidebar_store';
 import { get } from 'svelte/store';
+import { t } from '../../i18n/i18n';
 
 /** "f:2615" -> 2615. Anything else is a folder id and has no message. */
 function fileMsgId(objectId: string): number {
@@ -38,8 +39,9 @@ function trashActions(entry: TrashEntry): FileListAction[] {
         {
             kind: 'restore',
             className: 'row-restore',
-            title: `Restore ${entry.name}`,
-            label: `Restore ${entry.name}`,
+            title: t('trash.restore_named', { name: entry.name }),
+            label: t('trash.restore_named', { name: entry.name }),
+            text: t('trash.restore'),
             onClick: (event) => {
                 event.stopPropagation();
                 void restoreEntry(entry.objectId);
@@ -48,8 +50,9 @@ function trashActions(entry: TrashEntry): FileListAction[] {
         {
             kind: 'purge',
             className: 'row-purge',
-            title: `Delete ${entry.name} permanently`,
-            label: `Delete ${entry.name} permanently`,
+            title: t('trash.delete_permanently_named', { name: entry.name }),
+            label: t('trash.delete_permanently_named', { name: entry.name }),
+            text: t('trash.delete_forever'),
             onClick: (event) => {
                 event.stopPropagation();
                 askPurgeTrashEntry(entry);
@@ -74,6 +77,7 @@ export function trashRow(entry: TrashEntry, now: number, channelId: number): Fol
         parentId: '',
         channelId,
         metaLabel: countdown.label,
+        metaUrgent: countdown.urgent,
         // The phone composes its own one-line "type · size · time"; this is the
         // time part, so both shells report the countdown rather than one of them
         // quietly falling back to the file's age.
@@ -100,7 +104,7 @@ export function trashRow(entry: TrashEntry, now: number, channelId: number): Fol
             ...shared,
             modifiedTime: sortTime,
             sizeLabel: '—',
-            ariaLabel: `Folder: ${entry.name}, from ${origin}, ${countdown.label}`,
+            ariaLabel: t('trash.aria_folder', { name: entry.name, origin, countdown: countdown.label }),
         });
     }
     const msgId = fileMsgId(entry.objectId);
@@ -122,7 +126,7 @@ export function trashRow(entry: TrashEntry, now: number, channelId: number): Fol
         // A trashed file has no uploader chip. The chip answers "who put this
         // here", which is not the question a trash row is asked.
         uploaderChip: null,
-        ariaLabel: `File: ${entry.name}, from ${origin}, ${countdown.label}`,
+        ariaLabel: t('trash.aria_file', { name: entry.name, origin, countdown: countdown.label }),
     });
 }
 
@@ -141,8 +145,8 @@ export function renderTrashRows(): void {
         renderFileState(
             list,
             'empty',
-            'Nothing in the trash',
-            'Anything you delete waits here until its time runs out, so you can put it back.',
+            t('trash.empty_title'),
+            t('trash.empty_body'),
         );
         return;
     }
@@ -158,8 +162,8 @@ export function renderTrashRows(): void {
 export function renderTrashError(message: string): void {
     const list = document.getElementById('file-list');
     if (!list) return;
-    renderFileState(list, 'error', 'The trash could not be opened', message, {
-        label: 'Retry',
+    renderFileState(list, 'error', t('trash.load_failed_title'), message, {
+        label: t('trash.retry'),
         onClick: () => void loadTrash(),
     });
 }

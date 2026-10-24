@@ -1,0 +1,15 @@
+{
+    "ok": "OK",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "delete": "Xóa",
+    "close": "Đóng",
+    "retry": "Thử lại",
+    "done": "Xong",
+    "back": "Quay lại",
+    "loading": "Đang tải…",
+    "search_placeholder": "Tìm kiếm",
+    "error_generic": "Đã xảy ra lỗi.",
+    "items_one": "{count} mục",
+    "items_other": "{count} mục"
+}

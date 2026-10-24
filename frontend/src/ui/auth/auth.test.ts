@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'svelte/server';
-import AuthScreens from './AuthScreens.svelte';
-import { showAuthView, showStartupView } from '../app/app-store';
+import AuthScreens from './auth_screens.svelte';
+import { showAuthView, showStartupView } from '../app/app_store';
 import {
     authHint,
     authPhone,
     beginAuthSubmission,
     failAuthSubmission,
     resetAuthSubmissions,
-} from './auth-store';
+} from './auth_store';
 
 const noop = () => {};
 const props = {
@@ -54,6 +54,8 @@ describe('AuthScreens', () => {
         expect(body).toContain('name="api-hash"');
         expect(body).toContain('type="password"');
         expect(body).toContain('my.telegram.org/apps');
+        expect(body).toContain('class="auth-steps');
+        expect(body).toContain('Choose API development tools');
         expect(body).toContain("private app-data folder on this device");
         expect(body).toContain('no analytics or external tracking');
         expect(body).toContain('type="submit"');
@@ -74,6 +76,8 @@ describe('AuthScreens', () => {
         expect(body).toContain('autocomplete="one-time-code"');
         expect(body).toContain('inputmode="numeric"');
         expect(body).toContain('Verify');
+        expect(body).toContain('class="otp-cells');
+        expect(body.match(/class="otp-cell[" ]/g)?.length).toBe(5);
     });
 
     it('associates the escaped 2FA hint with the password field', () => {

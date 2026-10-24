@@ -27,10 +27,10 @@ import {
     syncChannel,
 } from '../api';
 import type { DriveChannel, JoinDriveResult, JoinRequest, PendingJoin } from '../types';
-import { closeChannel } from '../ui/channels/channel-store';
+import { closeChannel } from '../ui/channels/channel_store';
 import { runGlobalSearch } from './search';
-import type { RefreshFilesOptions } from './app-actions';
-import { driveSyncStatus, type DriveSyncState } from '../ui/mobile/mobile-shell-store';
+import type { RefreshFilesOptions } from './app_actions';
+import { driveSyncStatus, type DriveSyncState } from '../ui/mobile/mobile_shell_store';
 
 // The phone's drive header shows a live sync ring; desktop never reads this
 // store, so the updates are gated to keep desktop free of stray timers.

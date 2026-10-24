@@ -139,12 +139,12 @@ describe("api normalizers", () => {
         expect(normalized.location).toBe("");
         expect(normalized.error).toBe("The drive could not be mounted. Try again.");
         expect(normalized.drive).toEqual({ id: 0, title: "x", kind: "unknown" });
-        expect(normalized.label).toBe("Tdrive personal");
+        expect(normalized.label).toBe("Telegram Drive");
     });
 
     it("keeps bounded safe mount labels for shared drives", () => {
         expect(normalizeMountStatus({ label: "Tdrive - Family", mounted: true }).label).toBe("Tdrive - Family");
-        expect(normalizeMountStatus({ label: "http://127.0.0.1:7777/tdrive-secret", mounted: true }).label).toBe("Tdrive personal");
+        expect(normalizeMountStatus({ label: "http://127.0.0.1:7777/tdrive-secret", mounted: true }).label).toBe("Telegram Drive");
     });
 
     it("repairs contradictory mount phases at the API boundary", () => {

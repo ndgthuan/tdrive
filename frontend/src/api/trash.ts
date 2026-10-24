@@ -1,5 +1,5 @@
 // Public boundary for the trash: what deletion moved aside, and the two ways
-// back out of it. The namespace access mirrors api/photo-backup: the generated
+// back out of it. The namespace access mirrors api/photo_backup: the generated
 // Wails bindings arrive with the backend change, while this module stays the
 // single typed frontend boundary and fails loudly on a build that lacks them.
 import * as appBindings from '../../bindings/TDrive/internal/app/app';
