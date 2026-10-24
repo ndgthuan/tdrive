@@ -65,6 +65,11 @@ type fake_drive struct {
 	moves       []fake_move
 	created     []string
 	drive_name  string
+	// Fields used by the agent tests (see agent_fakes_test.go).
+	trashed     map[string]bool
+	write_err   map[string]error
+	calls       []string
+	thumb_calls int
 }
 
 type fake_move struct {
@@ -91,13 +96,13 @@ func (d *fake_drive) ListFolder(ctx context.Context, channel_id int64, folder_id
 	defer d.mu.Unlock()
 	var folders []FolderNode
 	for _, folder := range d.folders {
-		if folder.ParentID == folder_id {
+		if folder.ParentID == folder_id && !d.trashed[folder.ID] {
 			folders = append(folders, folder)
 		}
 	}
 	var files []FileNode
 	for _, file := range d.files {
-		if file.ParentID == folder_id {
+		if file.ParentID == folder_id && !d.trashed[fmt.Sprint(file.ID)] {
 			files = append(files, file)
 		}
 	}
@@ -107,6 +112,7 @@ func (d *fake_drive) ListFolder(ctx context.Context, channel_id int64, folder_id
 func (d *fake_drive) Thumbnail(ctx context.Context, channel_id int64, file_id int64) ([]byte, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	d.thumb_calls++
 	raw, ok := d.thumbs[file_id]
 	if !ok {
 		return nil, errors.New("no preview")

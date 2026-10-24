@@ -1,13 +1,22 @@
-// Chat turns: sessions, messages, the streamed reply and inline errors. Organize
-// requests are handed to ai_organize.ts.
+// Chat turns: sessions, messages, the streamed reply, tool-call activity and
+// inline errors. Organize suggestion chips are handed to ai_organize.ts; the
+// model decides on its own when a typed message needs a tool.
 import { get } from 'svelte/store';
 import * as api from './ai_api';
-import type { ChatMessage, MessageDeltaPayload, SessionSummary } from './ai_api';
+import type { ActionDonePayload, ActionRequestPayload, ChatMessage, MessageDeltaPayload, SessionSummary } from './ai_api';
 import { classify_ai_error, subscribe_ai_event } from './ai_api';
 import { build_scope } from './ai_scope';
 import { adopt_new_chat_choice, refresh_configured_models, reset_new_chat_choice, selected_model_id } from './ai_models_store';
-import { is_organize_request, title_from_text } from './ai_intent';
+import { title_from_text } from './ai_intent';
 import { start_organize } from './ai_organize';
+import {
+    add_approval,
+    expired_approval_items,
+    record_action_done,
+    rows_from_records,
+    timeline_for_reply,
+    type TurnActions,
+} from './ai_actions';
 import {
     active_session_id,
     busy,
@@ -16,6 +25,7 @@ import {
     sessions,
     sessions_loading,
     streaming_text,
+    tools_running,
     transcript,
     view,
     type TranscriptItem,
@@ -25,14 +35,18 @@ function sort_sessions(list: SessionSummary[]): SessionSummary[] {
     return [...list].sort((a, b) => b.updated_at - a.updated_at);
 }
 
-function message_item(message: ChatMessage): TranscriptItem {
-    return {
+/** A stored message becomes its timeline (when it has tool calls) followed by its text. */
+function message_items(message: ChatMessage): TranscriptItem[] {
+    const text_item: TranscriptItem = {
         kind: 'text',
         id: message.id || next_item_id('msg'),
         role: message.role === 'user' ? 'user' : 'assistant',
         text: message.text,
         created_at: message.created_at,
     };
+    const rows = rows_from_records(message.actions);
+    if (message.role === 'user' || rows.length === 0) return [text_item];
+    return [{ kind: 'actions', id: next_item_id('actions'), rows }, text_item];
 }
 
 function push(item: TranscriptItem): void {
@@ -74,7 +88,8 @@ export async function open_session(id: string): Promise<void> {
     try {
         const session = await api.get_session(id);
         if (get(active_session_id) !== id) return;
-        transcript.set((session.messages ?? []).map(message_item));
+        const items = (session.messages ?? []).flatMap(message_items);
+        transcript.set([...items, ...expired_approval_items(id)]);
     } catch (error) {
         if (get(active_session_id) !== id) return;
         transcript.set([{ kind: 'error', id: next_item_id('err'), error: classify_ai_error(error), retry_text: '' }]);
@@ -85,10 +100,6 @@ export async function open_session(id: string): Promise<void> {
 export async function send_text(raw: string): Promise<void> {
     const text = raw.trim();
     if (!text || get(busy)) return;
-    if (get(mode) === 'agent' && is_organize_request(text)) {
-        await start_organize(text);
-        return;
-    }
     await send_chat_turn(text);
 }
 
@@ -97,7 +108,9 @@ async function send_chat_turn(text: string): Promise<void> {
     streaming_text.set('');
     push({ kind: 'text', id: next_item_id('user'), role: 'user', text, created_at: Date.now() });
     const scope = build_scope();
-    let unsubscribe: () => void = () => {};
+    const turn_mode = get(mode);
+    const turn: TurnActions = { timeline_id: null };
+    const unsubscribers: Array<() => void> = [];
     try {
         let session_id = get(active_session_id);
         if (!session_id) {
@@ -107,11 +120,26 @@ async function send_chat_turn(text: string): Promise<void> {
             active_session_id.set(session_id);
         }
         const active = session_id;
-        unsubscribe = subscribe_ai_event<MessageDeltaPayload>('ai:message_delta', (payload) => {
+        unsubscribers.push(subscribe_ai_event<MessageDeltaPayload>('ai:message_delta', (payload) => {
             if (payload.session_id !== active) return;
             streaming_text.update((value) => value + payload.delta);
+        }));
+        unsubscribers.push(subscribe_ai_event<ActionDonePayload>('ai:action_done', (payload) => {
+            if (payload.session_id !== active) return;
+            record_action_done(turn, payload);
+        }));
+        unsubscribers.push(subscribe_ai_event<ActionRequestPayload>('ai:action_request', (payload) => {
+            if (payload.session_id !== active) return;
+            add_approval(payload);
+        }));
+        const reply = await api.send_message({
+            session_id: active,
+            text,
+            scope,
+            model_id: get(selected_model_id),
+            mode: turn_mode,
         });
-        const reply = await api.send_message({ session_id: active, text, scope, model_id: get(selected_model_id) });
+        for (const item of timeline_for_reply(turn, reply)) push(item);
         push({
             kind: 'text',
             id: reply.id || next_item_id('reply'),
@@ -123,8 +151,9 @@ async function send_chat_turn(text: string): Promise<void> {
     } catch (error) {
         push({ kind: 'error', id: next_item_id('err'), error: classify_ai_error(error), retry_text: text });
     } finally {
-        unsubscribe();
+        unsubscribers.forEach((unsubscribe) => unsubscribe());
         streaming_text.set('');
+        tools_running.set(false);
         busy.set(false);
     }
 }

@@ -18,6 +18,8 @@ vi.mock('../../../bindings/TDrive/internal/app/aiservice', () => ({
     PlanOrganize: vi.fn(),
     ApplyPlan: vi.fn(),
     UndoApply: vi.fn(),
+    ResolveAction: vi.fn(),
+    UndoAction: vi.fn(),
 }));
 
 vi.mock('@wailsio/runtime', () => ({
@@ -215,10 +217,12 @@ describe('AI panel', () => {
         view.set('chat');
         render_panel();
 
-        await type_and_send('Organize my photos by character');
-        await vi.waitFor(() => expect(document.querySelector('.ai-plan')).not.toBeNull());
+        // The organize chip starts the plan; typed text no longer does (the model decides).
+        button_with_text(document.body, 'Organize photos by topic').click();
+        flushSync();
+        await vi.waitFor(() => expect(document.querySelector('.ai-plan')?.textContent).toContain('Goku'));
         const card = document.querySelector<HTMLElement>('.ai-plan')!;
-        expect(mocked.PlanOrganize).toHaveBeenCalledWith(expect.objectContaining({ instruction: 'Organize my photos by character', model_id: '' }));
+        expect(mocked.PlanOrganize).toHaveBeenCalledWith(expect.objectContaining({ instruction: 'Organize photos by topic', model_id: '' }));
         expect(card.textContent).toContain('Goku');
         expect(card.textContent).toContain('New');
 
@@ -247,8 +251,9 @@ describe('AI panel', () => {
         view.set('chat');
         render_panel();
 
-        await type_and_send('Sort my photos');
-        await vi.waitFor(() => expect(document.querySelector('.ai-plan')).not.toBeNull());
+        button_with_text(document.body, 'Organize photos by topic').click();
+        flushSync();
+        await vi.waitFor(() => expect(document.querySelector('.ai-plan')?.textContent).toContain('Goku'));
         button_with_text(document.querySelector('.ai-plan')!, 'Apply').click();
         flushSync();
         await vi.waitFor(() => expect(mocked.ApplyPlan).toHaveBeenCalledWith('plan-1', []));
@@ -259,9 +264,22 @@ describe('AI panel', () => {
         expect(notify_mock).toHaveBeenCalledWith(expect.objectContaining({ level: 'success' }));
     });
 
-    it('does not treat chat-only mode as an organize request', async () => {
+    it('sends typed organize text as chat in Agent mode; the model decides on tools', async () => {
         mocked.CreateSession.mockResolvedValue({ id: 's2', title: 'x', scope: { channel_id: 0, folder_id: '' }, created_at: 1, updated_at: 1, messages: [] });
         mocked.SendMessage.mockResolvedValue({ id: 'r3', role: 'assistant', text: 'ok', created_at: 4 });
+        panel_open.set(true);
+        view.set('chat');
+        render_panel();
+
+        await type_and_send('Organize my photos');
+        await vi.waitFor(() => expect(mocked.SendMessage).toHaveBeenCalled());
+        expect(mocked.SendMessage).toHaveBeenCalledWith(expect.objectContaining({ mode: 'agent' }));
+        expect(mocked.PlanOrganize).not.toHaveBeenCalled();
+    });
+
+    it('passes Ask mode to the backend and never plans from chat text', async () => {
+        mocked.CreateSession.mockResolvedValue({ id: 's3', title: 'x', scope: { channel_id: 0, folder_id: '' }, created_at: 1, updated_at: 1, messages: [] });
+        mocked.SendMessage.mockResolvedValue({ id: 'r4', role: 'assistant', text: 'ok', created_at: 4 });
         mode.set('ask');
         panel_open.set(true);
         view.set('chat');
@@ -269,6 +287,7 @@ describe('AI panel', () => {
 
         await type_and_send('Organize my photos');
         await vi.waitFor(() => expect(mocked.SendMessage).toHaveBeenCalled());
+        expect(mocked.SendMessage).toHaveBeenCalledWith(expect.objectContaining({ mode: 'ask' }));
         expect(mocked.PlanOrganize).not.toHaveBeenCalled();
     });
 });

@@ -4,7 +4,9 @@
 import { Events } from '@wailsio/runtime';
 import * as ai_service from '../../../bindings/TDrive/internal/app/aiservice';
 import type {
+    ActionItem,
     ApplyResult,
+    ChatAction,
     ChatMessage,
     ChatSession,
     ModelView,
@@ -13,12 +15,22 @@ import type {
     Scope,
     SendMessageRequest,
     SessionSummary,
+    UndoActionResult,
     UndoResult,
 } from '../../../bindings/TDrive/backend/ai/models';
 
-export type { ApplyResult, ChatMessage, ChatSession, ModelView, Plan, Scope, SessionSummary, UndoResult };
+export type { ActionItem, ApplyResult, ChatMessage, ChatSession, ModelView, Plan, Scope, SessionSummary, UndoResult };
 
-export type AiEventName = 'ai:message_delta' | 'ai:message_done' | 'ai:organize_progress' | 'ai:apply_progress';
+/** One tool call the assistant made during a turn, as stored with the reply. */
+export type ActionRecord = ChatAction;
+
+export type AiEventName =
+    | 'ai:message_delta'
+    | 'ai:message_done'
+    | 'ai:organize_progress'
+    | 'ai:apply_progress'
+    | 'ai:action_request'
+    | 'ai:action_done';
 
 export interface MessageDeltaPayload {
     session_id: string;
@@ -30,6 +42,27 @@ export interface ProgressPayload {
     done?: number;
     total: number;
 }
+
+export interface ActionRequestPayload {
+    session_id: string;
+    request_id: string;
+    tool: string;
+    summary: string;
+    items: ActionItem[];
+}
+
+export interface ActionDonePayload {
+    session_id: string;
+    tool: string;
+    summary: string;
+    ok: boolean;
+    error?: string;
+    undo_token?: string;
+    items?: Array<Pick<ActionItem, 'id' | 'name'>>;
+}
+
+/** Result of an undo: ok=false carries the reason in message. */
+export type ActionOutcome = UndoActionResult;
 
 /** Why a call failed, in the terms the panel can act on. */
 export type AiErrorKind = 'no_model' | 'invalid_key' | 'rate_limit' | 'generic';
@@ -50,6 +83,7 @@ export function create_session(title: string, scope: Scope): Promise<ChatSession
     return Promise.resolve(ai_service.CreateSession(title, scope));
 }
 
+/** Agent mode lets the model call file tools; Ask mode answers only. */
 export function send_message(request: SendMessageRequest): Promise<ChatMessage> {
     return Promise.resolve(ai_service.SendMessage(request));
 }
@@ -64,6 +98,19 @@ export function apply_plan(plan_id: string, excluded_file_ids: number[]): Promis
 
 export function undo_apply(undo_token: string): Promise<UndoResult> {
     return Promise.resolve(ai_service.UndoApply(undo_token));
+}
+
+/**
+ * Approves or refuses one pending tool call. The backend returns nothing on
+ * success; a failure rejects.
+ */
+export function resolve_action(request_id: string, approved: boolean): Promise<ActionOutcome> {
+    return Promise.resolve(ai_service.ResolveAction(request_id, approved)).then(() => ({ ok: true, message: '' }));
+}
+
+/** Moves the files one tool call changed back. The token works once. */
+export function undo_action(undo_token: string): Promise<ActionOutcome> {
+    return Promise.resolve(ai_service.UndoAction(undo_token));
 }
 
 /**

@@ -90,6 +90,24 @@ func (s *AIService) SendMessage(ctx context.Context, request ai.SendMessageReque
 	return s.core.SendMessage(ctx, request)
 }
 
+// ResolveAction answers an ai:action_request raised by a tool that needs the
+// user's approval (delete, bulk move, folder rename). approved=false denies it.
+// Each request id works once; the agent treats a missing answer as denied after
+// five minutes.
+func (s *AIService) ResolveAction(request_id string, approved bool) error {
+	return s.core.ResolveAction(request_id, approved)
+}
+
+// UndoAction reverses an agent action by its undo_token: a rename, move, folder
+// creation or trash. Organize apply tokens work here too. The token works once.
+// Failures come back as ok=false with a message.
+func (s *AIService) UndoAction(ctx context.Context, undo_token string) (ai.UndoActionResult, error) {
+	if err := s.host.WaitForBackendReady(ctx); err != nil {
+		return ai.UndoActionResult{}, err
+	}
+	return s.core.UndoAction(ctx, undo_token)
+}
+
 // PlanOrganize analyzes the photos in the scope and returns a plan for review.
 // Progress arrives as ai:organize_progress events. Nothing moves yet.
 func (s *AIService) PlanOrganize(ctx context.Context, request ai.PlanRequest) (ai.Plan, error) {
