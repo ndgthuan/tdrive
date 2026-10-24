@@ -126,6 +126,8 @@ func (a *App) initServices(version string) {
 	// The assistant reads drives through the engine lazily, so it can be built
 	// before startup like the other domain services.
 	a.assistant = new_ai_service(a)
+	// The downloader reads its data directory lazily, on first use.
+	a.mediaDownload = new_media_download_service(a)
 }
 
 // quit satisfies appShell. It tolerates a missing application handle so a
@@ -160,5 +162,6 @@ func (a *App) services() []application.Service {
 		application.NewService(a.media),
 		application.NewService(a.updates),
 		application.NewService(a.assistant),
+		application.NewService(a.mediaDownload),
 	}
 }

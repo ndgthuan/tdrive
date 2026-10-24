@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Hernoemen",
     "approval_confirm_create": "Maken",
     "approval_confirm_default": "Toestaan",
+    "approval_confirm_empty_trash": "Prullenbak leegmaken",
+    "approval_permanent": "Dit kan niet ongedaan worden gemaakt. De items worden definitief verwijderd.",
     "approval_approved": "Goedgekeurd",
     "approval_denied": "Geannuleerd",
     "approval_expired": "Dit verzoek is verlopen.",

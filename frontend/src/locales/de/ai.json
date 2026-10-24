@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Umbenennen",
     "approval_confirm_create": "Erstellen",
     "approval_confirm_default": "Erlauben",
+    "approval_confirm_empty_trash": "Papierkorb leeren",
+    "approval_permanent": "Das kann nicht rückgängig gemacht werden. Die Elemente werden endgültig gelöscht.",
     "approval_approved": "Genehmigt",
     "approval_denied": "Abgebrochen",
     "approval_expired": "Diese Anfrage ist abgelaufen.",

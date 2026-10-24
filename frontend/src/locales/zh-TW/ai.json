@@ -58,6 +58,8 @@
     "approval_confirm_rename": "重新命名",
     "approval_confirm_create": "建立",
     "approval_confirm_default": "允許",
+    "approval_confirm_empty_trash": "清空垃圾桶",
+    "approval_permanent": "此操作無法復原，項目將被永久刪除。",
     "approval_approved": "已核准",
     "approval_denied": "已取消",
     "approval_expired": "此要求已過期。",

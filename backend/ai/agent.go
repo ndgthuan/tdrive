@@ -320,6 +320,12 @@ func (s *Service) run_tool(ctx context.Context, env agent_env, call ToolCall) to
 		return s.tool_move_items(ctx, env, call.Arguments)
 	case "delete_items":
 		return s.tool_delete_items(ctx, env, call.Arguments)
+	case "list_trash":
+		return s.tool_list_trash(ctx, env, call.Arguments)
+	case "restore_items":
+		return s.tool_restore_items(ctx, env, call.Arguments)
+	case "empty_trash":
+		return s.tool_empty_trash(ctx, env, call.Arguments)
 	case "organize_photos":
 		return s.tool_organize_photos(ctx, env, call.Arguments)
 	case "view_media":
@@ -442,12 +448,14 @@ func agent_system_prompt(scope Scope, drive_name string, vision bool) string {
 	}
 	lines := []string{
 		"You are the assistant inside TDrive, a desktop file manager that stores files in Telegram channels, called drives.",
-		"You ACT on files through tools. You can list and search files, look at pictures and videos, create folders, rename, move, and delete (delete only moves items to the trash, and the user must approve it).",
-		"Never claim you cannot rename, move, delete or create folders. Use the tools.",
+		"You ACT on files through tools. You can list and search files, look at pictures and videos, create folders, rename, move, and delete (delete only moves items to the trash, and the user must approve it). You can also look at the trash, restore items from it, and permanently delete items from it.",
+		"Never claim you cannot rename, move, delete, restore, create folders or empty the trash. Use the tools.",
+		"The trash: call list_trash to see what is in it. restore_items takes trashed items back to where they were; it runs at once. When the user asks to empty, clear or purge the trash (all of it, or some items), call empty_trash: omit item_ids to empty all of it, or pass item_ids for just those items. Call list_trash first when that helps you name what will go. Emptying is permanent and cannot be undone. The user must approve it, and it does not run until they do. Never refuse these requests and never say you cannot empty the trash.",
+		"After empty_trash or restore_items, confirm in one short sentence what the tool reports: how many items were permanently deleted or restored, and the drive name. If the user denied it, say nothing was deleted.",
 		"The user is working in " + location + ". Name the drive exactly as given: " + drive + ". Only the personal drive is called My Drive.",
 		"Resolve names to ids first: use list_files for one folder and search_files across the whole drive. Never guess an id.",
 		"If a name matches more than one item, ask the user a brief question which one they mean instead of guessing.",
-		"Use rename_item, move_items (destination_folder_id is a folder id or \"root\"), create_folder and delete_items for changes. Report what you did in one or two short sentences, with the drive name.",
+		"Use rename_item, move_items (destination_folder_id is a folder id or \"root\"), create_folder, delete_items, restore_items and empty_trash for changes. Report what you did in one or two short sentences, with the drive name.",
 		"Nothing has changed until a tool reports success. Do not claim a change that a tool did not confirm.",
 		"Be concise.",
 	}
@@ -458,7 +466,7 @@ func agent_system_prompt(scope Scope, drive_name string, vision bool) string {
 		)
 	} else {
 		lines = append(lines,
-			"The active model cannot see images or video, so view_media and organize_photos will fail. Tell the user to choose a vision-enabled model in the model settings if they need pictures to be looked at or sorted by content. You can still list, search, rename, move and delete by name.",
+			"The active model cannot see images or video, so view_media and organize_photos will fail. Tell the user to choose a vision-enabled model in the model settings if they need pictures to be looked at or sorted by content. You can still list, search, rename, move, delete, restore and empty the trash by name.",
 		)
 	}
 	return strings.Join(lines, "\n")

@@ -182,3 +182,44 @@ func (d *aiDrive) TrashItem(ctx context.Context, channel_id int64, item_id strin
 func (d *aiDrive) RestoreItem(ctx context.Context, channel_id int64, item_id string) error {
 	return d.files.RestoreObject(ctx, channel_id, aiItemObjectID(item_id))
 }
+
+// ListTrash reads the trash through the file service's own listing, the one the
+// Trash view uses. File ids are reported as their decimal message id so they
+// match the ids the other tools use; folder ids stay "d:<uuid>".
+func (d *aiDrive) ListTrash(ctx context.Context, channel_id int64) ([]ai.TrashedItem, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	listings, err := d.files.ListTrash(channel_id)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]ai.TrashedItem, 0, len(listings))
+	for _, listing := range listings {
+		is_folder := listing.ObjectKind == projection.ObjectKindFolder
+		id := listing.ObjectID
+		if !is_folder {
+			id = strings.TrimPrefix(id, projection.FileIDPrefix)
+		}
+		items = append(items, ai.TrashedItem{
+			ID:         id,
+			Name:       listing.OriginalName,
+			IsFolder:   is_folder,
+			Size:       listing.Size,
+			ParentPath: listing.ParentPath,
+			DeletedAt:  listing.DeletedAt,
+		})
+	}
+	return items, nil
+}
+
+// PurgeItem destroys one trashed object through the file service's purge, the
+// same call the Trash view's "delete permanently" makes. An object already gone
+// (its trashed parent folder was purged first) is treated as done.
+func (d *aiDrive) PurgeItem(ctx context.Context, channel_id int64, item_id string) error {
+	err := d.files.PurgeObject(ctx, channel_id, aiItemObjectID(item_id))
+	if err != nil && !errors.Is(err, projection.ErrTrashEntryNotFound) {
+		return err
+	}
+	return nil
+}

@@ -32,22 +32,26 @@ let refresh_timer: ReturnType<typeof setTimeout> | null = null;
 
 /** Tool names that change files. Search and list calls leave the file list alone. */
 export function is_mutating_tool(tool: string): boolean {
-    return /rename|move|create|delete|trash|remove/i.test(tool);
+    if (/^list_/i.test(tool)) return false;
+    return /rename|move|create|delete|trash|remove|restore/i.test(tool);
 }
 
-export type ToolIcon = 'rename' | 'move' | 'create' | 'delete' | 'search';
+export type ToolIcon = 'rename' | 'move' | 'create' | 'delete' | 'restore' | 'search';
 
 /** Which icon a tool's timeline row shows. */
 export function icon_for_tool(tool: string): ToolIcon {
+    if (/^list_/i.test(tool)) return 'search';
     if (/rename/i.test(tool)) return 'rename';
     if (/move/i.test(tool)) return 'move';
     if (/create|mkdir|new_folder/i.test(tool)) return 'create';
+    if (/restore/i.test(tool)) return 'restore';
     if (/delete|trash|remove/i.test(tool)) return 'delete';
     return 'search';
 }
 
 /** Translation key for the approval button label; delete is styled as danger in the card. */
 export function confirm_label_key(tool: string): string {
+    if (/empty_trash/i.test(tool)) return 'ai.approval_confirm_empty_trash';
     switch (icon_for_tool(tool)) {
         case 'delete': return 'ai.approval_confirm_delete';
         case 'move': return 'ai.approval_confirm_move';

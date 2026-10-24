@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Renombrar",
     "approval_confirm_create": "Crear",
     "approval_confirm_default": "Permitir",
+    "approval_confirm_empty_trash": "Vaciar papelera",
+    "approval_permanent": "No se puede deshacer. Los elementos se eliminarán para siempre.",
     "approval_approved": "Aprobado",
     "approval_denied": "Cancelado",
     "approval_expired": "Esta solicitud caducó.",

@@ -141,3 +141,63 @@ func (d *fake_drive) item_name(item_id string) string {
 	item, _ := d.lookup_locked(item_id)
 	return item.Name
 }
+
+// ListTrash lists the trashed files and folders in the order the fixture holds
+// them. Item names are the current ones; ParentPath is left empty.
+func (d *fake_drive) ListTrash(ctx context.Context, channel_id int64) ([]TrashedItem, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	var out []TrashedItem
+	for _, file := range d.files {
+		id := fmt.Sprint(file.ID)
+		if d.trashed[id] {
+			out = append(out, TrashedItem{ID: id, Name: file.Name, Size: file.Size, DeletedAt: 1_700_000_000})
+		}
+	}
+	for _, folder := range d.folders {
+		if d.trashed[folder.ID] {
+			out = append(out, TrashedItem{ID: folder.ID, Name: folder.Name, IsFolder: true, DeletedAt: 1_700_000_100})
+		}
+	}
+	return out, nil
+}
+
+// PurgeItem destroys a trashed item for good: it leaves both the listing and
+// the fixture. Purged ids are recorded in d.purged.
+func (d *fake_drive) PurgeItem(ctx context.Context, channel_id int64, item_id string) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if err := d.check_write("purge", item_id); err != nil {
+		return err
+	}
+	if !d.trashed[item_id] {
+		return errors.New("item is not in the trash")
+	}
+	if n, err := strconv.ParseInt(item_id, 10, 64); err == nil {
+		kept := d.files[:0]
+		for _, file := range d.files {
+			if file.ID != n {
+				kept = append(kept, file)
+			}
+		}
+		d.files = kept
+	} else {
+		kept := d.folders[:0]
+		for _, folder := range d.folders {
+			if folder.ID != item_id {
+				kept = append(kept, folder)
+			}
+		}
+		d.folders = kept
+	}
+	delete(d.trashed, item_id)
+	d.purged = append(d.purged, item_id)
+	return nil
+}
+
+// purged_ids is a test helper returning the ids purged so far.
+func (d *fake_drive) purged_ids() []string {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return append([]string(nil), d.purged...)
+}

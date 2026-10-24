@@ -58,6 +58,8 @@
     "approval_confirm_rename": "नाम बदलें",
     "approval_confirm_create": "बनाएँ",
     "approval_confirm_default": "अनुमति दें",
+    "approval_confirm_empty_trash": "ट्रैश खाली करें",
+    "approval_permanent": "इसे पूर्ववत नहीं किया जा सकता। आइटम हमेशा के लिए हटा दिए जाएंगे।",
     "approval_approved": "स्वीकृत",
     "approval_denied": "रद्द किया गया",
     "approval_expired": "यह अनुरोध समाप्त हो गया है।",

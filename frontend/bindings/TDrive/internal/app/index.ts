@@ -6,6 +6,7 @@ import * as App from "./app.js";
 import * as DeviceService from "./deviceservice.js";
 import * as DriveService from "./driveservice.js";
 import * as EncryptionService from "./encryptionservice.js";
+import * as MediaDownloadService from "./mediadownloadservice.js";
 import * as MediaService from "./mediaservice.js";
 import * as UpdateService from "./updateservice.js";
 export {
@@ -14,6 +15,7 @@ export {
     DeviceService,
     DriveService,
     EncryptionService,
+    MediaDownloadService,
     MediaService,
     UpdateService
 };

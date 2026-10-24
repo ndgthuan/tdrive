@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Renomear",
     "approval_confirm_create": "Criar",
     "approval_confirm_default": "Permitir",
+    "approval_confirm_empty_trash": "Esvaziar lixeira",
+    "approval_permanent": "Não é possível desfazer. Os itens serão excluídos para sempre.",
     "approval_approved": "Aprovado",
     "approval_denied": "Cancelado",
     "approval_expired": "Esta solicitação expirou.",

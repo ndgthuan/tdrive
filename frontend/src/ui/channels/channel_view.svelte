@@ -1255,6 +1255,21 @@
        row's columns line up whether or not it has either button. */
     .channel-view.is-list .channel-row-main { padding-right: 84px; }
 
+    /* The list's fixed columns (kind, size, date) and the reserved button strip
+       take about 370px, which left the title nothing in a narrow pane. In a
+       pane under 700px the kind column goes and the rest tighten; under 560px
+       size goes too, so the name keeps its room. The pane is the container
+       (see .main-content in files.css), so the window's width is not read. */
+    @container main-pane (max-width: 699px) {
+        .channel-view.is-list .channel-row-main { gap: var(--space-2); padding-left: var(--space-2); }
+        .channel-view.is-list .channel-row-kind { display: none; }
+        .channel-view.is-list .channel-row-size { width: 72px; }
+        .channel-view.is-list .channel-row-date { width: 96px; }
+    }
+    @container main-pane (max-width: 559px) {
+        .channel-view.is-list .channel-row-size { display: none; }
+    }
+
     .channel-view.is-list .channel-row-download {
         position: absolute;
         top: 50%;

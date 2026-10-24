@@ -67,6 +67,7 @@ type fake_drive struct {
 	drive_name  string
 	// Fields used by the agent tests (see agent_fakes_test.go).
 	trashed     map[string]bool
+	purged      []string
 	write_err   map[string]error
 	calls       []string
 	thumb_calls int

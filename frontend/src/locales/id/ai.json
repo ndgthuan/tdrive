@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Ganti nama",
     "approval_confirm_create": "Buat",
     "approval_confirm_default": "Izinkan",
+    "approval_confirm_empty_trash": "Kosongkan tempat sampah",
+    "approval_permanent": "Tidak dapat dibatalkan. Item akan dihapus permanen.",
     "approval_approved": "Disetujui",
     "approval_denied": "Dibatalkan",
     "approval_expired": "Permintaan ini sudah kedaluwarsa.",

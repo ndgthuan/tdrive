@@ -1,4 +1,5 @@
 <script lang="ts">
+    import ArrowCounterClockwiseIcon from 'phosphor-svelte/lib/ArrowCounterClockwiseIcon';
     import ArrowsLeftRightIcon from 'phosphor-svelte/lib/ArrowsLeftRightIcon';
     import CheckIcon from 'phosphor-svelte/lib/CheckIcon';
     import FolderPlusIcon from 'phosphor-svelte/lib/FolderPlusIcon';
@@ -26,6 +27,8 @@
                     <ArrowsLeftRightIcon size={14} />
                 {:else if icon_for_tool(row.tool) === 'create'}
                     <FolderPlusIcon size={14} />
+                {:else if icon_for_tool(row.tool) === 'restore'}
+                    <ArrowCounterClockwiseIcon size={14} />
                 {:else if icon_for_tool(row.tool) === 'delete'}
                     <TrashIcon size={14} />
                 {:else}

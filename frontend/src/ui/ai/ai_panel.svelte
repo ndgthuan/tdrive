@@ -147,6 +147,21 @@
         font-size: var(--type-base);
     }
 
+    /* Below 1140px the drive pane cannot keep its four columns beside a 260px
+       sidebar and this 380px panel, so the panel floats over the right edge of
+       the window instead. It sits above the pane (never beneath it) and the
+       pane keeps its full width underneath. */
+    @media (max-width: 1139px) {
+        .ai-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 30;
+            max-width: 100%;
+            box-shadow: -12px 0 32px rgb(0 0 0 / 0.35);
+        }
+    }
+
     .ai-panel-header {
         height: 52px;
         flex: none;

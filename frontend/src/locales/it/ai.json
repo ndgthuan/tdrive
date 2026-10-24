@@ -58,6 +58,8 @@
     "approval_confirm_rename": "Rinomina",
     "approval_confirm_create": "Crea",
     "approval_confirm_default": "Consenti",
+    "approval_confirm_empty_trash": "Svuota cestino",
+    "approval_permanent": "Non è possibile annullare. Gli elementi verranno eliminati definitivamente.",
     "approval_approved": "Approvato",
     "approval_denied": "Annullato",
     "approval_expired": "Questa richiesta è scaduta.",

@@ -15,6 +15,8 @@
     const shown = $derived(request.items.slice(0, MAX_ITEMS));
     const hidden_count = $derived(Math.max(0, request.items.length - MAX_ITEMS));
     const is_delete = $derived(/delete|trash|remove/i.test(request.tool));
+    // Emptying the trash destroys items for good; the card says so in the user's language.
+    const is_permanent = $derived(/empty_trash/i.test(request.tool));
     const can_answer = $derived(request.state === 'pending');
     const outcome = $derived(
         request.state === 'approved' ? $t_store('ai.approval_approved')
@@ -33,6 +35,9 @@
 {:else}
     <section class="ai-approval" aria-label={$t_store('ai.approval_label')}>
         <p class="ai-approval-title">{request.summary}</p>
+        {#if is_permanent}
+            <p class="ai-approval-permanent" role="note">{$t_store('ai.approval_permanent')}</p>
+        {/if}
         <ul class="ai-approval-items">
             {#each shown as item (item.id)}
                 <li class="ai-approval-item">
@@ -87,6 +92,13 @@
     .ai-approval-title {
         margin: 0;
         font-weight: var(--weight-semibold);
+        line-height: var(--leading-snug);
+    }
+
+    .ai-approval-permanent {
+        margin: 0;
+        color: var(--color-danger);
+        font-size: var(--type-sm);
         line-height: var(--leading-snug);
     }
 

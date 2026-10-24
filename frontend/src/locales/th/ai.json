@@ -58,6 +58,8 @@
     "approval_confirm_rename": "เปลี่ยนชื่อ",
     "approval_confirm_create": "สร้าง",
     "approval_confirm_default": "อนุญาต",
+    "approval_confirm_empty_trash": "ล้างถังขยะ",
+    "approval_permanent": "ไม่สามารถย้อนกลับได้ รายการจะถูกลบถาวร",
     "approval_approved": "อนุมัติแล้ว",
     "approval_denied": "ยกเลิกแล้ว",
     "approval_expired": "คำขอนี้หมดอายุแล้ว",

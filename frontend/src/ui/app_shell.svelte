@@ -47,6 +47,7 @@
     import NotifBell from './notifications/notif_bell.svelte';
     import AiPanel from './ai/ai_panel.svelte';
     import AiPanelToggle from './ai/ai_panel_toggle.svelte';
+    import DownloaderEntry from './downloader/downloader_entry.svelte';
     import SelectionBar from './selection/selection_bar.svelte';
     import { selectedFileRowKeys } from './file_list/row_state_store';
     import { selectionBarState, selectionModeOn } from './selection/selection_bar_store';
@@ -230,6 +231,7 @@
 
             <div class="header-actions">
                 {#if dashboardVisible && aiAvailable}
+                    <DownloaderEntry />
                     <AiPanelToggle />
                 {/if}
                 {#if dashboardVisible}

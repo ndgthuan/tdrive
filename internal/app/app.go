@@ -94,6 +94,8 @@ type App struct {
 	media      *MediaService
 	updates    *UpdateService
 	assistant  *AIService
+	// mediaDownload is the link downloader service (yt-dlp to Telegram).
+	mediaDownload *MediaDownloadService
 
 	photoBackupMu          sync.Mutex
 	photoBackupDiscoveryMu sync.Mutex
