@@ -262,6 +262,9 @@
     </div>
     <div id="video-modal" class="modal-overlay video-overlay" style="display: none;" aria-hidden="true">
         <VideoModal
+            onDownload={() => {
+                void import('../../modules/modals/video').then(({ downloadCurrentVideo }) => downloadCurrentVideo());
+            }}
             onPreferencesChange={(value) => {
                 void import('../../modules/modals/video').then(({ updatePlaybackPreferences }) =>
                     updatePlaybackPreferences(value),

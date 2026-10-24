@@ -32,7 +32,6 @@
     "video_fit": "동영상 맞춤: {mode}. 클릭하여 순환",
     "open_playlist": "동영상 재생 목록 열기",
     "enter_fullscreen": "전체 화면",
-
     "playlist_label": "동영상 재생 목록",
     "playlist_list_label": "이 재생 목록의 동영상",
     "close_playlist": "재생 목록 닫기",
@@ -43,7 +42,6 @@
     "playlist_default_title": "동영상",
     "untitled_video": "제목 없는 동영상",
     "format_default": "동영상",
-
     "picture": "화면",
     "picture_note": "동영상이 화면에 맞는 방식을 선택하세요.",
     "picture_mode_label": "화면 모드",
@@ -68,5 +66,6 @@
     "background_color": "배경 색상",
     "transparency": "투명도",
     "save": "저장",
-    "reset": "초기화"
+    "reset": "초기화",
+    "more_actions": "기타 작업"
 }

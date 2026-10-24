@@ -6,9 +6,9 @@
     "folder_name_placeholder": "z. B. Rechnungen",
     "folder_create": "Ordner erstellen",
     "join_drive_title": "Gemeinsamem Laufwerk beitreten",
-    "join_drive_subtitle": "Den t.me-Einladungslink eines Freundes einfügen. Wenn das Laufwerk einen langen Verlauf hat, kann der Beitritt einige Sekunden dauern.",
+    "join_drive_subtitle": "Füge einen Einladungslink von einem geteilten Laufwerk ein. Du trittst mit der Rolle bei, die der Link vorgibt.",
     "join_drive_link_label": "Einladungslink",
-    "join_drive_go": "Beitreten",
+    "join_drive_go": "Drive beitreten",
     "leave_drive_title": "Laufwerk verlassen?",
     "leave_drive_subtitle_named": "„{title}“ verlassen? Ein erneuter Beitritt ist später mit dem Einladungslink möglich.",
     "leave_drive_subtitle": "Ein erneuter Beitritt ist später mit dem Einladungslink möglich.",
@@ -160,5 +160,13 @@
     "join_requests_retry": "Erneut versuchen",
     "join_requests_empty": "Keine ausstehenden Anfragen.",
     "join_requests_approve": "Genehmigen",
-    "join_requests_reject": "Ablehnen"
+    "join_requests_reject": "Ablehnen",
+    "join_drive_paste": "Einfügen",
+    "join_drive_preview": "Vorschau",
+    "join_drive_preview_hint": "Prüfe den Link und tritt dann bei. Laufwerksname und deine Rolle erscheinen danach.",
+    "join_drive_invalid": "Dieser Link ist ungültig. Prüfe ihn und versuche es erneut.",
+    "new_drive_owner_note": "Du wirst Eigentümer. Nach dem Erstellen kannst du Personen einladen.",
+    "new_drive_role_label": "Standardrolle für neue Mitglieder",
+    "new_drive_role_editor": "Bearbeiter",
+    "new_drive_role_viewer": "Betrachter"
 }

@@ -13,6 +13,11 @@
     import { openNewDriveModal } from '../../modules/modals/new_drive';
     import DriveList from '../sidebar/drive_list.svelte';
     import { activeTab, driveSwitcherOpen, closeDriveSwitcher } from './mobile_shell_store';
+    import { load_drive_role, load_member_count } from '../members/members_store';
+    import { get } from 'svelte/store';
+    import { driveListFailed } from '../sidebar/sidebar_store';
+    import { retryLoadChannels } from '../../modules/channels';
+    import { sidebarState } from '../sidebar/sidebar_store';
     import { t_store } from '../../i18n/i18n';
     import ChannelNav from '../channels/channel_nav.svelte';
     import { sourceKey, type ChannelSource } from '../channels/channel_model';
@@ -26,6 +31,19 @@
     } from '../../modules/channel_sources';
 
     let sheetEl = $state<HTMLElement | null>(null);
+
+    // Each shared drive's role is asked for when the switcher opens, so its row
+    // can say whether this account manages it or only reads it. Telegram's own
+    // one-minute cache answers repeat opens, so this does not hammer the server.
+    $effect(() => {
+        if (!$driveSwitcherOpen) return;
+        // Read without subscribing: the retry itself flips this store.
+        if (get(driveListFailed)) retryLoadChannels();
+        for (const drive of $sidebarState.shared) {
+            void load_drive_role(drive.id);
+            void load_member_count(drive.id);
+        }
+    });
     let scrimEl = $state<HTMLElement | null>(null);
 
     const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -226,11 +244,14 @@
         <!-- Two groups rather than one list: the phone shows the same split the
              desktop sidebar does, and each is its own stacking column. -->
         <div class="switcher-group">
+            <h2 class="switcher-label">{$t_store('mobile.my_drive_label')}</h2>
             <DriveList kind="personal" onDriveClick={handleDriveClick} />
         </div>
         <div class="switcher-group">
+            <h2 class="switcher-label">{$t_store('mobile.shared_drives_label')}</h2>
             <DriveList
                 kind="shared"
+                showRoles
                 onDriveClick={handleDriveClick}
                 onDriveActions={showSharedActionsMenu}
                 onPendingClick={handlePendingClick}
@@ -251,13 +272,13 @@
     </nav>
 
     <div class="switcher-actions">
+        <button class="switcher-action" data-drive-action="create" type="button" onclick={openCreate}>
+            <FolderPlusIcon size={20} aria-hidden="true" />
+            {$t_store('mobile.new_shared_drive')}
+        </button>
         <button class="switcher-action" data-drive-action="join" type="button" onclick={openJoin}>
             <Link2Icon size={20} aria-hidden="true" />
             {$t_store('mobile.account_join_link')}
-        </button>
-        <button class="switcher-action" data-drive-action="create" type="button" onclick={openCreate}>
-            <FolderPlusIcon size={20} aria-hidden="true" />
-            {$t_store('mobile.account_create_shared')}
         </button>
     </div>
 </div>

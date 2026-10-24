@@ -6,6 +6,9 @@
     import { contextMenuState } from '../menus/context_menu_store';
     import { sidebarState, type SidebarActionMenuRequest } from './sidebar_store';
     import { openChannelKey } from '../channels/channel_store';
+    import { drive_roles, drive_member_counts } from '../members/members_store';
+    import { driveListFailed } from './sidebar_store';
+    import { retryLoadChannels } from '../../modules/channels';
     import { t_store } from '../../i18n/i18n';
 
     type DriveKind = 'personal' | 'shared';
@@ -20,6 +23,8 @@
         onDriveActions?: ActionMenuHandler<DriveChannel>;
         onPendingClick?: (inviteHash: string) => void;
         onPendingActions?: ActionMenuHandler<PendingJoin>;
+        /** Shows the caller's role beside each shared drive once Telegram has answered for it. */
+        showRoles?: boolean;
     }
 
     let {
@@ -28,7 +33,12 @@
         onDriveActions,
         onPendingClick,
         onPendingActions,
+        showRoles = false,
     }: Props = $props();
+
+    function roleLabelKey(role: string): string {
+        return `members.role_${role}`;
+    }
 
     let activeActionKey = $state<string | null>(null);
     let returnFocusTo = $state<HTMLElement | null>(null);
@@ -145,6 +155,14 @@
     }
 </script>
 
+{#if kind === 'shared' && $driveListFailed}
+    <!-- The drives already listed stay put; this row says the refresh failed and
+         offers the one action that matters, asking again. -->
+    <button type="button" class="drive-retry" onclick={retryLoadChannels}>
+        <span>{$t_store('mobile.shared_load_failed')}</span>
+        <span class="drive-retry-action">{$t_store('mobile.retry')}</span>
+    </button>
+{/if}
 {#if kind === 'personal'}
     {#if $sidebarState.personal.length === 0}
         <div class="drive-empty">{$t_store('sidebar.loading')}</div>
@@ -181,11 +199,26 @@
                 data-channel-id={channel.id}
                 title={titleFor(channel)}
                 aria-current={isActiveDrive(channel) ? 'page' : undefined}
+                aria-describedby={showRoles && ($drive_roles[channel.id]?.role || $drive_member_counts[channel.id] !== undefined) ? `drive-role-${channel.id}` : undefined}
                 onclick={() => onDriveClick(channel.id)}
             >
                 <FolderIcon class="icon" size={18} aria-hidden="true" />
-                <span class="drive-item-title">{titleFor(channel)}</span>
+                <span class="drive-item-text">
+                    <span class="drive-item-title">{titleFor(channel)}</span>
+                    {#if showRoles && $drive_member_counts[channel.id] !== undefined}
+                        <!-- Read out through the row's description with the role, not in its name. -->
+                        <span class="drive-item-sub" aria-hidden="true">{$t_store('members.count', { count: $drive_member_counts[channel.id] })}</span>
+                    {/if}
+                </span>
+                {#if showRoles && $drive_roles[channel.id]?.role}
+                    <!-- The role is read out as the row's description, not as part of
+                         its name, so the drive keeps the name people know it by. -->
+                    <span class="drive-role-tag" aria-hidden="true">{$t_store(roleLabelKey($drive_roles[channel.id].role))}</span>
+                {/if}
             </button>
+            {#if showRoles && ($drive_roles[channel.id]?.role || $drive_member_counts[channel.id] !== undefined)}
+                <span id="drive-role-{channel.id}" class="drive-role-sr">{[$t_store(roleLabelKey($drive_roles[channel.id].role)), $drive_member_counts[channel.id] !== undefined ? $t_store('members.count', { count: $drive_member_counts[channel.id] }) : ''].filter(Boolean).join(', ')}</span>
+            {/if}
             {#if onDriveActions}
                 <button
                     type="button"
@@ -247,6 +280,41 @@
 
     .sidebar-drive-row > .drive-item {
         min-width: 0;
+    }
+
+    .drive-item-text {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .drive-item-sub {
+        overflow: hidden;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .drive-role-sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .drive-role-tag {
+        flex: 0 0 auto;
+        margin-left: auto;
+        padding: 2px 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-pill);
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        white-space: nowrap;
     }
 
     .drive-actions-trigger {

@@ -90,7 +90,15 @@ function renderSearchResults(results: SearchHit[], query: string) {
 
     const resultRows = results;
     if (!resultRows.length) {
-        renderFileState(list, "empty", t("leftovers.no_results", { query: String(query || "") }));
+        // The board's empty result says what was searched and offers the way back:
+        // clearing the query returns the drive's own list.
+        renderFileState(
+            list,
+            "empty",
+            t("leftovers.no_results", { query: String(query || "") }),
+            t("mobile.search_empty_body", { drive: state.activeChannel?.title || t("mobile.drive_fallback") }),
+            { label: t("mobile.search_clear"), onClick: () => clearSearch() },
+        );
         return;
     }
 

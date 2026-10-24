@@ -6,9 +6,9 @@
     "folder_name_placeholder": "เช่น ใบแจ้งหนี้",
     "folder_create": "สร้างโฟลเดอร์",
     "join_drive_title": "เข้าร่วมไดรฟ์ที่แชร์",
-    "join_drive_subtitle": "วางลิงก์คำเชิญ t.me ที่เพื่อนส่งให้คุณ หากไดรฟ์มีประวัติจำนวนมาก การเข้าร่วมอาจใช้เวลาไม่กี่วินาที",
+    "join_drive_subtitle": "วางลิงก์คำเชิญจากไดรฟ์ที่แชร์ คุณจะเข้าร่วมด้วยบทบาทที่ลิงก์กำหนด",
     "join_drive_link_label": "ลิงก์คำเชิญ",
-    "join_drive_go": "เข้าร่วม",
+    "join_drive_go": "เข้าร่วมไดรฟ์",
     "leave_drive_title": "ออกจากไดรฟ์ไหม",
     "leave_drive_subtitle_named": "ออกจาก “{title}” ไหม คุณสามารถเข้าร่วมใหม่ได้ภายหลังด้วยลิงก์คำเชิญ",
     "leave_drive_subtitle": "คุณสามารถเข้าร่วมใหม่ได้ภายหลังด้วยลิงก์คำเชิญ",
@@ -151,5 +151,13 @@
     "join_requests_retry": "ลองอีกครั้ง",
     "join_requests_empty": "ไม่มีคำขอที่รอดำเนินการ",
     "join_requests_approve": "อนุมัติ",
-    "join_requests_reject": "ปฏิเสธ"
+    "join_requests_reject": "ปฏิเสธ",
+    "join_drive_paste": "วาง",
+    "join_drive_preview": "ตัวอย่าง",
+    "join_drive_preview_hint": "ตรวจสอบลิงก์แล้วเข้าร่วม ชื่อไดรฟ์และบทบาทของคุณจะแสดงหลังเข้าร่วม",
+    "join_drive_invalid": "ลิงก์นี้ไม่ถูกต้อง โปรดตรวจสอบแล้วลองอีกครั้ง",
+    "new_drive_owner_note": "คุณจะเป็นเจ้าของ และเชิญคนอื่นได้หลังสร้างเสร็จ",
+    "new_drive_role_label": "บทบาทเริ่มต้นของสมาชิกใหม่",
+    "new_drive_role_editor": "ผู้แก้ไข",
+    "new_drive_role_viewer": "ผู้ดู"
 }

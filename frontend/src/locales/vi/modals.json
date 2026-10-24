@@ -6,9 +6,9 @@
     "folder_name_placeholder": "vd: Hóa đơn",
     "folder_create": "Tạo thư mục",
     "join_drive_title": "Tham gia ổ chia sẻ",
-    "join_drive_subtitle": "Dán liên kết mời t.me bạn nhận được từ bạn bè. Nếu ổ có nhiều lịch sử, việc tham gia có thể mất vài giây.",
+    "join_drive_subtitle": "Dán liên kết mời từ một ổ dùng chung. Bạn tham gia với vai trò mà liên kết cấp.",
     "join_drive_link_label": "Liên kết mời",
-    "join_drive_go": "Tham gia",
+    "join_drive_go": "Tham gia ổ",
     "leave_drive_title": "Rời khỏi ổ?",
     "leave_drive_subtitle_named": "Rời khỏi \"{title}\"? Bạn có thể tham gia lại sau bằng liên kết mời.",
     "leave_drive_subtitle": "Bạn có thể tham gia lại sau bằng liên kết mời.",
@@ -160,5 +160,13 @@
     "join_requests_retry": "Thử lại",
     "join_requests_empty": "Không có yêu cầu đang chờ.",
     "join_requests_approve": "Phê duyệt",
-    "join_requests_reject": "Từ chối"
+    "join_requests_reject": "Từ chối",
+    "join_drive_paste": "Dán",
+    "join_drive_preview": "Xem trước",
+    "join_drive_preview_hint": "Kiểm tra liên kết rồi tham gia. Tên ổ và vai trò của bạn hiện ra sau khi bạn tham gia.",
+    "join_drive_invalid": "Liên kết này không hợp lệ. Hãy kiểm tra và thử lại.",
+    "new_drive_owner_note": "Bạn là Chủ sở hữu. Bạn có thể mời người khác sau khi tạo.",
+    "new_drive_role_label": "Vai trò mặc định cho thành viên mới",
+    "new_drive_role_editor": "Biên tập viên",
+    "new_drive_role_viewer": "Người xem"
 }

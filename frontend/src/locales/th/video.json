@@ -32,7 +32,6 @@
     "video_fit": "การปรับวิดีโอ: {mode} คลิกเพื่อเปลี่ยน",
     "open_playlist": "เปิดเพลย์ลิสต์วิดีโอ",
     "enter_fullscreen": "เต็มหน้าจอ",
-
     "playlist_label": "เพลย์ลิสต์วิดีโอ",
     "playlist_list_label": "วิดีโอในเพลย์ลิสต์นี้",
     "close_playlist": "ปิดเพลย์ลิสต์",
@@ -43,7 +42,6 @@
     "playlist_default_title": "วิดีโอ",
     "untitled_video": "วิดีโอที่ไม่มีชื่อ",
     "format_default": "วิดีโอ",
-
     "picture": "ภาพ",
     "picture_note": "เลือกวิธีที่วิดีโอจะพอดีกับกรอบภาพ",
     "picture_mode_label": "โหมดภาพ",
@@ -68,5 +66,6 @@
     "background_color": "สีพื้นหลัง",
     "transparency": "ความโปร่งใส",
     "save": "บันทึก",
-    "reset": "รีเซ็ต"
+    "reset": "รีเซ็ต",
+    "more_actions": "การดำเนินการเพิ่มเติม"
 }

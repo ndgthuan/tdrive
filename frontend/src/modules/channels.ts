@@ -5,6 +5,7 @@
 // state.activeChannel in sync; tells the sidebar to re-render on every
 // change.
 
+import { get } from 'svelte/store';
 import { state, invalidateFolderIndex, resetFolderCaches, resetSelection } from '../state';
 import { resetRenditions } from './renditions/runtime';
 import {
@@ -28,6 +29,7 @@ import {
 } from '../api';
 import type { DriveChannel, JoinDriveResult, JoinRequest, PendingJoin } from '../types';
 import { closeChannel } from '../ui/channels/channel_store';
+import { driveListFailed } from '../ui/sidebar/sidebar_store';
 import { runGlobalSearch } from './search';
 import type { RefreshFilesOptions } from './app_actions';
 import { driveSyncStatus, type DriveSyncState } from '../ui/mobile/mobile_shell_store';
@@ -86,7 +88,51 @@ function applyPendingJoins(pending: PendingJoin[]): void {
     state.pendingJoins = pending;
 }
 
+// A failed listing keeps the drives already on screen. Wiping them (the old
+// behaviour) hid every shared drive on the phone until the next successful
+// refresh, which is what made the drives look missing after a transient error.
+const LIST_RETRY_DELAYS_MS = [2_000, 4_000, 8_000, 16_000, 30_000, 60_000] as const;
+let listRetryTimer: ReturnType<typeof setTimeout> | null = null;
+let listRetryAttempt = 0;
+let listLifecycleBound = false;
+
+function clearListRetry(): void {
+    if (listRetryTimer !== null) clearTimeout(listRetryTimer);
+    listRetryTimer = null;
+    listRetryAttempt = 0;
+}
+
+function scheduleListRetry(): void {
+    if (listRetryTimer !== null) return;
+    const delay = LIST_RETRY_DELAYS_MS[Math.min(listRetryAttempt, LIST_RETRY_DELAYS_MS.length - 1)];
+    listRetryAttempt += 1;
+    listRetryTimer = setTimeout(() => {
+        listRetryTimer = null;
+        void loadChannels();
+    }, delay);
+}
+
+/**
+ * Coming back to the app (or opening the drive switcher) asks again at once,
+ * whatever the backoff says: a phone that was locked for an hour should not
+ * make someone wait out the last retry delay to see their shared drives.
+ */
+function bindListLifecycle(): void {
+    if (listLifecycleBound || typeof document === 'undefined') return;
+    listLifecycleBound = true;
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && get(driveListFailed)) void loadChannels();
+    });
+}
+
+/** Asks for the drive list again right away, used when the switcher opens after a failure. */
+export function retryLoadChannels(): void {
+    clearListRetry();
+    void loadChannels();
+}
+
 export async function loadChannels(): Promise<void> {
+    bindListLifecycle();
     try {
         const [channels, pending] = await Promise.all([
             listChannels(),
@@ -97,12 +143,14 @@ export async function loadChannels(): Promise<void> {
         ]);
         applyChannels(channels);
         applyPendingJoins(pending);
+        driveListFailed.set(false);
+        clearListRetry();
         renderSidebar();
     } catch (error) {
         console.error('ListChannels failed:', error);
-        state.channels = [];
-        state.activeChannel = null;
-        state.pendingJoins = [];
+        // Keep what is on screen: an empty list would read as "no shared drives".
+        driveListFailed.set(true);
+        scheduleListRetry();
         renderSidebar();
     }
 }

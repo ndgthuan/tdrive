@@ -6,9 +6,9 @@
     "folder_name_placeholder": "예: 청구서",
     "folder_create": "폴더 만들기",
     "join_drive_title": "공유 드라이브에 참여",
-    "join_drive_subtitle": "친구에게 받은 t.me 초대 링크를 붙여 넣으세요. 드라이브 기록이 많으면 참여에 몇 초가 걸릴 수 있습니다.",
+    "join_drive_subtitle": "공유 드라이브의 초대 링크를 붙여넣으세요. 링크가 지정한 역할로 참여합니다.",
     "join_drive_link_label": "초대 링크",
-    "join_drive_go": "참여",
+    "join_drive_go": "드라이브 참여",
     "leave_drive_title": "드라이브를 나갈까요?",
     "leave_drive_subtitle_named": "“{title}”을(를) 나갈까요? 나중에 초대 링크로 다시 참여할 수 있습니다.",
     "leave_drive_subtitle": "나중에 초대 링크로 다시 참여할 수 있습니다.",
@@ -151,5 +151,13 @@
     "join_requests_retry": "다시 시도",
     "join_requests_empty": "대기 중인 요청이 없습니다.",
     "join_requests_approve": "승인",
-    "join_requests_reject": "거부"
+    "join_requests_reject": "거부",
+    "join_drive_paste": "붙여넣기",
+    "join_drive_preview": "미리보기",
+    "join_drive_preview_hint": "링크를 확인한 뒤 참여하세요. 참여하면 드라이브 이름과 역할이 표시됩니다.",
+    "join_drive_invalid": "유효하지 않은 링크입니다. 확인하고 다시 시도하세요.",
+    "new_drive_owner_note": "귀하가 소유자가 됩니다. 만든 뒤 다른 사람을 초대할 수 있습니다.",
+    "new_drive_role_label": "새 멤버의 기본 역할",
+    "new_drive_role_editor": "편집자",
+    "new_drive_role_viewer": "뷰어"
 }

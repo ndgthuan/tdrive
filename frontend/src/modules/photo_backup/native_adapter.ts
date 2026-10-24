@@ -7,7 +7,7 @@ export interface NativeAssetPage { assets: PhotoBackupAsset[]; nextCursor: strin
 /** What the host knows about the media grant, for the one line the panel shows. */
 export interface NativeAccess { status: string; detail: string; }
 export interface NativeMaterializedResource { path: string; releaseID: string; }
-interface IOSPhotosBridge { listPhotoBackupAssets?: (sourceID: string, cursor: string, limit: number) => unknown; pickPhotoBackupFolder?: () => unknown; materializePhotoBackupResource?: (assetID: string, version: string, maxBytes?: number, resourceID?: string) => unknown; releasePhotoBackupResource?: (token: string) => unknown; cancelMaterialization?: (requestID: string) => unknown; setBackgroundBackup?: (active: boolean) => unknown; }
+interface IOSPhotosBridge { listPhotoBackupAssets?: (sourceID: string, cursor: string, limit: number) => unknown; pickPhotoBackupFolder?: () => unknown; materializePhotoBackupResource?: (assetID: string, version: string, maxBytes?: number, resourceID?: string) => unknown; releasePhotoBackupResource?: (token: string) => unknown; cancelMaterialization?: (requestID: string) => unknown; setBackgroundBackup?: (active: boolean) => unknown; getPowerStatus?: () => unknown; getNetworkStatus?: () => unknown; }
 function iosBridge(): IOSPhotosBridge | null { return typeof window !== 'undefined' ? (window as Window & { tdriveIOSPhotos?: IOSPhotosBridge }).tdriveIOSPhotos ?? null : null; }
 async function nativeCall(value: unknown): Promise<Record<string, unknown>> { const result = await Promise.resolve(value); return typeof result === 'string' ? parse(result) : asRecord(result); }
 
@@ -77,6 +77,13 @@ export async function requestNativePhotoBackupAccess(): Promise<NativeAccess> {
 }
 
 export async function nativePhotoBackupPolicy(): Promise<boolean | null> {
+    // iOS reports Wi-Fi through its path monitor; a reading the host has not
+    // taken yet is unknown, and an unknown reading is not sent.
+    const network = iosBridge()?.getNetworkStatus;
+    if (network) {
+        const raw = await nativeCall(network());
+        return raw.known === true ? raw.wifi === true : null;
+    }
     const ios = iosBridge() as (IOSPhotosBridge & { getPhotoBackupCapabilities?: () => unknown }) | null;
     const raw = ios?.getPhotoBackupCapabilities
         ? await nativeCall(ios.getPhotoBackupCapabilities())
@@ -146,4 +153,28 @@ export async function pickNativePhotoBackupFolder(): Promise<PhotoBackupSource |
     const root = boundedText(raw.root, 1024);
     if (!id || !root) return null;
     return { id, kind: boundedText(raw.kind, 64) || 'device-folder', name: boundedText(raw.name, 240) || t('photos.folder_default'), root, enabled: true, addedAt: 0 };
+}
+
+/** One battery reading from the host: charging, level as a percent or -1, and Low Power Mode. */
+export interface NativePowerStatus { charging: boolean; levelPercent: number; lowPower: boolean; }
+
+function powerReading(charging: boolean, level: number, lowPower: boolean): NativePowerStatus {
+    const percent = level < 0 ? -1 : Math.min(100, Math.round(level));
+    return { charging, levelPercent: percent, lowPower };
+}
+
+/** Reads battery state on either phone host; null on a host that cannot report it. */
+export async function nativePowerStatus(): Promise<NativePowerStatus | null> {
+    const power = iosBridge()?.getPowerStatus;
+    if (power) {
+        const raw = await nativeCall(power());
+        return powerReading(raw.charging === true, typeof raw.level === 'number' ? raw.level : -1, raw.lowPowerMode === true);
+    }
+    if (hasBridgeMethod('photoBackupPolicyStatus')) {
+        const raw = parse(await callBridge('photoBackupPolicyStatus', [], ''));
+        if (raw.supported === false) return null;
+        const ratio = typeof raw.batteryLevel === 'number' ? raw.batteryLevel : -1;
+        return powerReading(raw.charging === true, ratio < 0 ? -1 : ratio * 100, raw.lowPowerMode === true);
+    }
+    return null;
 }

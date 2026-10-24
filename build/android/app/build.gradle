@@ -89,4 +89,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.biometric:biometric:1.1.0'
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    // yt-dlp and ffmpeg for the link downloader. Pinned to the latest Maven Central release as of 2026-10-24 (0.18.1, published 2025-11-16).
+    implementation 'io.github.junkfood02.youtubedl-android:library:0.18.1'
+    implementation 'io.github.junkfood02.youtubedl-android:ffmpeg:0.18.1'
 }

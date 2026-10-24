@@ -44,7 +44,8 @@ test('phone shell mounts with the platform classes', async ({ page }) => {
     await bootMobile(page);
     await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('mobile'))).toBe(true);
     await expect(page.locator('.tab-bar')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('My Drive');
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('TDrive');
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toHaveAttribute('aria-label', /My Drive/);
 });
 
 test('tab bar switches between surfaces', async ({ page }) => {
@@ -171,7 +172,7 @@ for (const name of ['TDrive-v1.6.0-linux-amd64.zip', 'notes.txt']) {
         await expect(row.locator('.row-more')).toHaveCSS('opacity', '0');
         await row.locator('[data-swipe-action="delete"]').click();
 
-        const confirmation = page.getByRole('dialog', { name: 'Move file to Trash?' });
+        const confirmation = page.getByRole('dialog', { name: 'Move to Trash?' });
         await expect(confirmation).toContainText(name);
         expect(await mock.calls('DeleteFile')).toHaveLength(0);
         await confirmation.getByRole('button', { name: 'Cancel' }).click();
@@ -202,7 +203,7 @@ test('Android keyboard events keep the app shell fixed while the join sheet make
     expect(await shell.boundingBox()).toEqual(before);
     expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
     await expect(page.locator('#join-drive-link')).toBeVisible();
-    await expect(page.locator('#join-drive-go')).toBeVisible();
+    await expect(page.locator('#join-drive-preview-btn')).toBeVisible();
 });
 
 test('the back bridge pops one folder level and then leaves the app', async ({ page }) => {
@@ -282,7 +283,8 @@ test('tapping the active drive in Account opens Files without re-switching', asy
     await page.getByRole('region', { name: 'Drives' }).getByRole('button', { name: /^My Drive/ }).click();
 
     await expect(page.locator('.main-content')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('My Drive');
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('TDrive');
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toHaveAttribute('aria-label', /My Drive/);
     expect(await mock.calls('SetActiveChannel')).toEqual([]);
 });
 

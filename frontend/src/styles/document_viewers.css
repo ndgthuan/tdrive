@@ -774,3 +774,17 @@ html.mobile .audio-viewer {
     width: calc(100% - 32px);
     padding: 32px 0 calc(var(--inset-bottom) + 32px);
 }
+
+/* Phone viewer header: the file name, then its type and size, as the board
+   draws it. The stack takes the free width between close and download. */
+.file-viewer-title-stack { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.file-viewer-title-stack .file-viewer-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-viewer-phone-meta {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--color-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

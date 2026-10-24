@@ -98,6 +98,8 @@ type App struct {
 	mediaDownload *MediaDownloadService
 	// members is the shared-drive roles and membership service.
 	members *DriveMembersService
+	// autoBackup is the phone-level automatic photo and video backup service.
+	autoBackup *AutoBackupService
 
 	photoBackupMu          sync.Mutex
 	photoBackupDiscoveryMu sync.Mutex

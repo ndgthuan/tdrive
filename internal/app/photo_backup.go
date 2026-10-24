@@ -280,7 +280,12 @@ func (a *App) UpsertPhotoBackupSource(value PhotoBackupSource) (PhotoBackupSourc
 	if value.ID == "" || value.Kind == "" {
 		return PhotoBackupSource{}, photobackup.ErrInvalid
 	}
-	if value.Kind == "folder" {
+	if value.Kind == photobackup.DeviceLibrarySourceKind {
+		// The whole library is one fixed source. Its root and id come from
+		// this side, never from the webview.
+		value.ID = photobackup.DeviceLibrarySourceID
+		value.Root = photoBackupDeviceLibraryRoot
+	} else if value.Kind == "folder" {
 		root, rootErr := validatePhotoBackupFolderRoot(value.Root)
 		if rootErr != nil {
 			return PhotoBackupSource{}, rootErr
@@ -634,6 +639,11 @@ func randomPhotoBackupToken() string {
 }
 
 func (a *App) photoBackupPolicyAllows(settings photobackup.Settings) error {
+	// Automatic backup's charging and battery rules apply first. The gate is a
+	// no-op while automatic backup is off, and fails closed for charging-only.
+	if err := a.autoBackup.uploadGateError(time.Now()); err != nil {
+		return err
+	}
 	if !settings.WiFiOnly {
 		return nil
 	}
@@ -854,8 +864,8 @@ func photoBackupState(settings photobackup.Settings, sources []photobackup.Sourc
 	} else if status.Complete > 0 {
 		state.Status.Phase = "complete"
 	}
-	policySupported := runtime.GOOS == "android"
-	detail := "Wi-Fi conditions are available on Android."
+	policySupported := runtime.GOOS == "android" || runtime.GOOS == "ios"
+	detail := "Wi-Fi conditions are available on this device."
 	if policySupported {
 		detail = "Requires a recent device connectivity update."
 	}

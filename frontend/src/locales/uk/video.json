@@ -32,7 +32,6 @@
     "video_fit": "Масштаб відео: {mode}. Натисніть, щоб перемкнути",
     "open_playlist": "Відкрити список відео",
     "enter_fullscreen": "Розгорнути на весь екран",
-
     "playlist_label": "Список відео",
     "playlist_list_label": "Відео в цьому списку",
     "close_playlist": "Закрити список",
@@ -43,7 +42,6 @@
     "playlist_default_title": "Відео",
     "untitled_video": "Відео без назви",
     "format_default": "VIDEO",
-
     "picture": "Зображення",
     "picture_note": "Оберіть, як відео заповнює кадр.",
     "picture_mode_label": "Режим зображення",
@@ -68,5 +66,6 @@
     "background_color": "Колір фону",
     "transparency": "Прозорість",
     "save": "Зберегти",
-    "reset": "Скинути"
+    "reset": "Скинути",
+    "more_actions": "Ще дії"
 }

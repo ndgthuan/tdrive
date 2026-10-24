@@ -1,4 +1,6 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <Photos/Photos.h>
+#import <Network/Network.h>
 
 static NSString *const TDrivePhotoHandlerName = @"tdrivePhotos";
 static NSUInteger const TDrivePhotoDefaultPageSize = 50;
@@ -196,7 +198,7 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
 
 @end
 
-@interface TDrivePhotoBridge : NSObject <WKScriptMessageHandler, UIDocumentPickerDelegate>
+@interface TDrivePhotoBridge : NSObject <WKScriptMessageHandler, UIDocumentPickerDelegate, PHPhotoLibraryChangeObserver>
 @property (nonatomic, weak) WKWebView *webView;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSNumber *> *materializations;
 @property (nonatomic, assign) BOOL stagingCleanupFailed;
@@ -211,6 +213,14 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
 // request waiting on it. Only one picker can be open at a time.
 @property (nonatomic, weak) UIViewController *presenter;
 @property (nonatomic, copy) NSString *pendingFolderPick;
+// The whole library is read through one PhotoKit snapshot per scan. The
+// cursor names the snapshot and an offset in it; a snapshot that is gone
+// makes the scan start over.
+@property (nonatomic, strong) PHFetchResult<PHAsset *> *libraryFetch;
+@property (nonatomic, copy) NSString *libraryToken;
+// Network path, updated by Network.framework on its own queue.
+@property (nonatomic, strong) nw_path_monitor_t pathMonitor;
+@property (nonatomic, strong) nw_path_t currentPath;
 - (void)startObserving;
 @end
 
@@ -234,11 +244,24 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidBecomeActive:) name:UIApplicationDidBecomeActiveNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationWillResignActive:) name:UIApplicationWillResignActiveNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidEnterBackground:) name:UIApplicationDidEnterBackgroundNotification object:nil];
+    [PHPhotoLibrary.sharedPhotoLibrary registerChangeObserver:self];
+    nw_path_monitor_t monitor = nw_path_monitor_create();
+    nw_path_monitor_set_queue(monitor, dispatch_queue_create("com.tdrive.network-path", DISPATCH_QUEUE_SERIAL));
+    __weak TDrivePhotoBridge *weakSelf = self;
+    nw_path_monitor_set_update_handler(monitor, ^(nw_path_t path) {
+        TDrivePhotoBridge *strongSelf = weakSelf;
+        if (strongSelf == nil) return;
+        @synchronized (strongSelf) { strongSelf.currentPath = path; }
+    });
+    nw_path_monitor_start(monitor);
+    self.pathMonitor = monitor;
 }
 
 - (void)dealloc {
     for (TDriveFolderScan *scan in self.folderScans.allValues) [scan close];
     [self endBackgroundBackupTask];
+    [PHPhotoLibrary.sharedPhotoLibrary unregisterChangeObserver:self];
+    if (self.pathMonitor != nil) nw_path_monitor_cancel(self.pathMonitor);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
@@ -339,6 +362,8 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
 }
 
 - (void)listBackupAssets:(NSString *)requestID arguments:(NSDictionary *)arguments {
+    NSString *librarySource = [arguments[@"sourceID"] isKindOfClass:[NSString class]] ? arguments[@"sourceID"] : @"";
+    if ([librarySource isEqualToString:@"device-library"]) { [self listLibraryAssets:requestID arguments:arguments]; return; }
     NSString *pickedRoot = TDriveFolderRootForSource([arguments[@"sourceID"] isKindOfClass:[NSString class]] ? arguments[@"sourceID"] : @"");
     // A picked folder is the only kind of source there is: the photo library
     // and its albums went with the picker that used to offer them.
@@ -594,6 +619,8 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
 }
 
 - (void)materialize:(NSString *)requestID arguments:(NSDictionary *)arguments {
+    NSString *libraryAsset = [arguments[@"assetID"] isKindOfClass:[NSString class]] ? arguments[@"assetID"] : @"";
+    if ([libraryAsset hasPrefix:@"photos:"]) { [self materializeLibraryAsset:requestID assetID:libraryAsset arguments:arguments]; return; }
     NSString *relative = nil;
     NSString *pickedRoot = [self folderRootForAsset:[arguments[@"assetID"] isKindOfClass:[NSString class]] ? arguments[@"assetID"] : @"" relative:&relative];
     if (pickedRoot == nil) { [self reply:requestID result:nil error:TDrivePhotoError(@"unknownSource", @"That backup source no longer exists")]; return; }
@@ -621,6 +648,245 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
     [self reply:requestID result:@{ @"removed": @(existed) } error:nil];
 }
 
+// The automatic backup folder is named from the model class only. The reply
+// carries nothing else about the device, and it never blocks on the photo library.
+- (void)deviceIdentity:(NSString *)requestID {
+    BOOL tablet = UIDevice.currentDevice.userInterfaceIdiom == UIUserInterfaceIdiomPad;
+    [self reply:requestID result:@{ @"platform": @"ios", @"manufacturer": @"Apple", @"model": tablet ? @"iPad" : @"iPhone" } error:nil];
+}
+
+- (void)openAppSettings:(NSString *)requestID {
+    NSURL *settings = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+    if (settings == nil) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"settingsUnavailable", @"Settings cannot be opened")];
+        return;
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[UIApplication sharedApplication] openURL:settings options:@{} completionHandler:nil];
+    });
+    [self reply:requestID result:@{ @"opened": @YES } error:nil];
+}
+
+#pragma mark - Photo library
+
+// Whole-library backup reads PhotoKit. Every item is a PHAsset; a Live Photo
+// adds its paired video as a second item, so each is backed up on its own.
+// Ids are "photos:<localIdentifier>" and "photos:<localIdentifier>#live".
+static NSString *TDrivePhotoLibraryVersion(PHAsset *asset) {
+    NSTimeInterval modified = asset.modificationDate.timeIntervalSince1970;
+    return [NSString stringWithFormat:@"%.0f:%lu:%lu", modified * 1000.0, (unsigned long)asset.pixelWidth, (unsigned long)asset.pixelHeight];
+}
+
+// The byte size PhotoKit reports for a resource. It is read through the key
+// the Photos framework itself uses; a missing value reports zero, and the
+// staging budget then treats the item as unknown-sized.
+static unsigned long long TDrivePhotoResourceBytes(PHAssetResource *resource) {
+    id size = [resource valueForKey:@"fileSize"];
+    return [size isKindOfClass:[NSNumber class]] ? [size unsignedLongLongValue] : 0;
+}
+
+- (NSString *)photoAccessStatusString:(PHAuthorizationStatus)status {
+    switch (status) {
+        case PHAuthorizationStatusAuthorized: return @"authorized";
+        case PHAuthorizationStatusLimited: return @"limited";
+        case PHAuthorizationStatusNotDetermined: return @"undetermined";
+        default: return @"denied";
+    }
+}
+
+- (void)photoAccess:(NSString *)requestID {
+    PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatusForAccessLevel:PHAccessLevelReadWrite];
+    [self reply:requestID result:@{ @"status": [self photoAccessStatusString:status] } error:nil];
+}
+
+// Asks once; iOS shows the prompt only while the status is undetermined. The
+// read-write level is what the single NSPhotoLibraryUsageDescription key covers.
+- (void)requestPhotoAccess:(NSString *)requestID {
+    [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelReadWrite handler:^(PHAuthorizationStatus status) {
+        [self reply:requestID result:@{ @"status": [self photoAccessStatusString:status] } error:nil];
+    }];
+}
+
+- (NSArray<NSDictionary *> *)libraryEntriesForAsset:(PHAsset *)asset {
+    NSString *base = [@"photos:" stringByAppendingString:asset.localIdentifier];
+    BOOL video = asset.mediaType == PHAssetMediaTypeVideo;
+    NSString *version = TDrivePhotoLibraryVersion(asset);
+    NSNumber *modified = TDriveMillis(asset.modificationDate ?: asset.creationDate ?: [NSDate date]);
+    NSNumber *created = TDriveMillis(asset.creationDate ?: asset.modificationDate ?: [NSDate date]);
+    NSMutableArray<NSDictionary *> *entries = [NSMutableArray array];
+    PHAssetResourceType primaryType = video ? PHAssetResourceTypeVideo : PHAssetResourceTypePhoto;
+    PHAssetResource *primary = nil;
+    PHAssetResource *paired = nil;
+    for (PHAssetResource *resource in [PHAssetResource assetResourcesForAsset:asset]) {
+        if (primary == nil && resource.type == primaryType) primary = resource;
+        if (paired == nil && resource.type == PHAssetResourceTypePairedVideo) paired = resource;
+    }
+    if (primary == nil) return @[];
+    [entries addObject:@{
+        @"id": base, @"version": version, @"name": primary.originalFilename.length ? primary.originalFilename : @"media",
+        @"media_type": video ? @"video" : @"image", @"mediaType": video ? @"video" : @"image",
+        @"modified_at": modified, @"modifiedAt": modified, @"created_at": created, @"createdAt": created,
+        @"rel_dir": @"", @"relDir": @"", @"size": @(TDrivePhotoResourceBytes(primary)),
+    }];
+    if ((asset.mediaSubtypes & PHAssetMediaSubtypePhotoLive) && paired != nil) {
+        [entries addObject:@{
+            @"id": [base stringByAppendingString:@"#live"], @"version": version,
+            @"name": paired.originalFilename.length ? paired.originalFilename : @"live.mov",
+            @"media_type": @"video", @"mediaType": @"video",
+            @"modified_at": modified, @"modifiedAt": modified, @"created_at": created, @"createdAt": created,
+            @"rel_dir": @"", @"relDir": @"", @"size": @(TDrivePhotoResourceBytes(paired)),
+        }];
+    }
+    return entries;
+}
+
+- (void)listLibraryAssets:(NSString *)requestID arguments:(NSDictionary *)arguments {
+    PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatusForAccessLevel:PHAccessLevelReadWrite];
+    if (status != PHAuthorizationStatusAuthorized && status != PHAuthorizationStatusLimited) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"mediaDenied", @"Allow access to Photos to back up your library")];
+        return;
+    }
+    NSUInteger pageSize = TDriveBoundedPageSize(arguments[@"pageSize"]);
+    NSString *cursor = [arguments[@"cursor"] isKindOfClass:[NSString class]] ? arguments[@"cursor"] : @"";
+    NSUInteger offset = 0;
+    if (cursor.length == 0) {
+        PHFetchOptions *options = [[PHFetchOptions alloc] init];
+        options.predicate = [NSPredicate predicateWithFormat:@"mediaType == %d OR mediaType == %d", PHAssetMediaTypeImage, PHAssetMediaTypeVideo];
+        options.sortDescriptors = @[ [NSSortDescriptor sortDescriptorWithKey:@"creationDate" ascending:NO] ];
+        self.libraryFetch = [PHAsset fetchAssetsWithOptions:options];
+        self.libraryToken = NSUUID.UUID.UUIDString;
+    } else {
+        NSArray<NSString *> *parts = [cursor componentsSeparatedByString:@":"];
+        if (parts.count != 2 || self.libraryFetch == nil || ![parts[0] isEqualToString:self.libraryToken]) {
+            [self reply:requestID result:nil error:TDrivePhotoError(@"cursorExpired", @"The photo library scan ended; scan again from the start")];
+            return;
+        }
+        offset = (NSUInteger)MAX(0, [parts[1] integerValue]);
+    }
+    NSUInteger total = self.libraryFetch.count;
+    if (offset > total) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"cursorExpired", @"The photo library changed; scan again from the start")];
+        return;
+    }
+    NSMutableArray *assets = [NSMutableArray arrayWithCapacity:pageSize];
+    NSUInteger next = offset;
+    while (next < total && assets.count < pageSize) {
+        PHAsset *asset = [self.libraryFetch objectAtIndex:next];
+        NSArray<NSDictionary *> *entries = [self libraryEntriesForAsset:asset];
+        // A Live Photo may add two entries; keep a page whole rather than split
+        // the pair across cursors. A page always takes at least one asset.
+        if (assets.count > 0 && assets.count + entries.count > pageSize) break;
+        [assets addObjectsFromArray:entries];
+        next++;
+    }
+    NSString *nextCursor = next < total ? [NSString stringWithFormat:@"%@:%lu", self.libraryToken, (unsigned long)next] : nil;
+    [self reply:requestID result:@{ @"assets": assets, @"nextCursor": nextCursor ?: (id)[NSNull null] } error:nil];
+}
+
+- (void)materializeLibraryAsset:(NSString *)requestID assetID:(NSString *)assetID arguments:(NSDictionary *)arguments {
+    BOOL live = [assetID hasSuffix:@"#live"];
+    NSUInteger prefix = @"photos:".length;
+    NSUInteger suffix = live ? @"#live".length : 0;
+    if (assetID.length <= prefix + suffix) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"assetNotFound", @"That item is no longer in Photos")];
+        return;
+    }
+    NSString *localIdentifier = [assetID substringWithRange:NSMakeRange(prefix, assetID.length - prefix - suffix)];
+    PHAsset *asset = [PHAsset fetchAssetsWithLocalIdentifiers:@[localIdentifier] options:nil].firstObject;
+    if (asset == nil) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"assetNotFound", @"That item is no longer in Photos")];
+        return;
+    }
+    NSString *currentVersion = TDrivePhotoLibraryVersion(asset);
+    NSString *expectedVersion = [arguments[@"version"] isKindOfClass:[NSString class]] ? arguments[@"version"] : nil;
+    if (expectedVersion.length > 0 && ![expectedVersion isEqualToString:currentVersion]) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"assetChanged", @"The item changed after discovery; refresh before backing it up")];
+        return;
+    }
+    PHAssetResourceType wanted = live ? PHAssetResourceTypePairedVideo
+        : (asset.mediaType == PHAssetMediaTypeVideo ? PHAssetResourceTypeVideo : PHAssetResourceTypePhoto);
+    PHAssetResource *resource = nil;
+    for (PHAssetResource *candidate in [PHAssetResource assetResourcesForAsset:asset]) {
+        if (candidate.type == wanted) { resource = candidate; break; }
+    }
+    if (resource == nil) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"assetNotFound", @"That item has no original to back up")];
+        return;
+    }
+    unsigned long long size = TDrivePhotoResourceBytes(resource);
+    unsigned long long requestedMax = [arguments[@"maxBytes"] respondsToSelector:@selector(unsignedLongLongValue)] ? [arguments[@"maxBytes"] unsignedLongLongValue] : TDrivePhotoDefaultMaxBytes;
+    unsigned long long maxBytes = MAX(1, MIN(TDrivePhotoMaximumMaxBytes, requestedMax));
+    if (size > maxBytes) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"tooLarge", @"That file is larger than the staging limit")];
+        return;
+    }
+    NSString *token = NSUUID.UUID.UUIDString;
+    @synchronized (self.materializations) {
+        if (self.materializations.count >= TDrivePhotoMaximumStages) {
+            [self reply:requestID result:nil error:TDrivePhotoError(@"stagingBusy", @"Release a staged resource before staging another")];
+            return;
+        }
+        self.materializations[token] = @(size);
+    }
+    NSURL *cache = [[[NSFileManager defaultManager] URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask] firstObject];
+    NSURL *directory = [[cache URLByAppendingPathComponent:@"TDrivePhotoBackup" isDirectory:YES] URLByAppendingPathComponent:token isDirectory:YES];
+    NSError *directoryError = nil;
+    if (![[NSFileManager defaultManager] createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:&directoryError]) {
+        @synchronized (self.materializations) { [self.materializations removeObjectForKey:token]; }
+        [self reply:requestID result:nil error:TDrivePhotoError(@"stagingFailed", directoryError.localizedDescription)];
+        return;
+    }
+    NSString *fileName = resource.originalFilename.length ? resource.originalFilename : @"file";
+    NSURL *staged = [directory URLByAppendingPathComponent:fileName isDirectory:NO];
+    PHAssetResourceRequestOptions *options = [[PHAssetResourceRequestOptions alloc] init];
+    // Originals of photos that live only in iCloud are downloaded here. The
+    // request is asynchronous, so the bridge never blocks the main thread.
+    options.networkAccessAllowed = YES;
+    [[PHAssetResourceManager defaultManager] writeDataForAssetResource:resource toFile:staged options:options completionHandler:^(NSError *error) {
+        if (error != nil) {
+            [[NSFileManager defaultManager] removeItemAtURL:directory error:nil];
+            @synchronized (self.materializations) { [self.materializations removeObjectForKey:token]; }
+            [self reply:requestID result:nil error:TDrivePhotoError(@"materializeFailed", error.localizedDescription ?: @"That item could not be downloaded from iCloud")];
+            return;
+        }
+        [self reply:requestID result:@{ @"token": token, @"path": staged.path, @"byteSize": @(size), @"assetID": assetID, @"assetVersion": currentVersion } error:nil];
+    }];
+}
+
+- (void)photoLibraryDidChange:(PHChange *)changeInstance {
+    PHFetchResult<PHAsset *> *fetch = self.libraryFetch;
+    // Only an addition is worth a rescan. Favouriting or editing is picked up
+    // on the next resume, as it is for folders.
+    if (fetch == nil) { [self emitMediaChanged:@"library"]; return; }
+    PHFetchResultChangeDetails *details = [changeInstance changeDetailsForFetchResult:fetch];
+    if (details == nil || details.insertedObjects.count > 0) [self emitMediaChanged:@"library"];
+}
+
+#pragma mark - Device state
+
+// Battery state for the automatic backup gate. Monitoring is switched on only
+// when asked, because it costs power to keep on.
+- (void)powerStatus:(NSString *)requestID {
+    UIDevice *device = UIDevice.currentDevice;
+    device.batteryMonitoringEnabled = YES;
+    UIDeviceBatteryState state = device.batteryState;
+    BOOL charging = state == UIDeviceBatteryStateCharging || state == UIDeviceBatteryStateFull;
+    float fraction = device.batteryLevel;
+    NSInteger percent = fraction < 0 ? -1 : (NSInteger)lroundf(fraction * 100.0f);
+    [self reply:requestID result:@{ @"charging": @(charging), @"level": @(percent), @"lowPowerMode": @(NSProcessInfo.processInfo.isLowPowerModeEnabled) } error:nil];
+}
+
+- (void)networkStatus:(NSString *)requestID {
+    nw_path_t path;
+    @synchronized (self) { path = self.currentPath; }
+    BOOL known = path != nil;
+    BOOL connected = known && nw_path_get_status(path) == nw_path_status_satisfied;
+    BOOL wifi = connected && nw_path_uses_interface_type(path, nw_interface_type_wifi);
+    BOOL cellular = connected && nw_path_uses_interface_type(path, nw_interface_type_cellular);
+    BOOL expensive = connected && nw_path_is_expensive(path);
+    [self reply:requestID result:@{ @"known": @(known), @"connected": @(connected), @"wifi": @(wifi), @"cellular": @(cellular), @"expensive": @(expensive) } error:nil];
+}
+
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
     (void)controller;
     NSURL *origin = message.frameInfo.request.URL;
@@ -639,6 +905,12 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
     else if ([operation isEqualToString:@"cleanup"]) [self cleanup:requestID arguments:arguments];
     else if ([operation isEqualToString:@"setBackgroundBackup"]) [self setBackgroundBackup:requestID arguments:arguments];
     else if ([operation isEqualToString:@"pickBackupFolder"]) [self pickBackupFolder:requestID];
+    else if ([operation isEqualToString:@"deviceIdentity"]) [self deviceIdentity:requestID];
+    else if ([operation isEqualToString:@"openAppSettings"]) [self openAppSettings:requestID];
+    else if ([operation isEqualToString:@"photoAccess"]) [self photoAccess:requestID];
+    else if ([operation isEqualToString:@"requestPhotoAccess"]) [self requestPhotoAccess:requestID];
+    else if ([operation isEqualToString:@"powerStatus"]) [self powerStatus:requestID];
+    else if ([operation isEqualToString:@"networkStatus"]) [self networkStatus:requestID];
     else [self reply:requestID result:nil error:TDrivePhotoError(@"unsupportedOperation", @"Unsupported photo library operation")];
 }
 @end
@@ -656,7 +928,7 @@ static void TDriveInstallPhotoBridge(WKWebView *webView, UIViewController *prese
     objc_setAssociatedObject(webView, &TDrivePhotoBridgeKey, bridge, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     WKUserContentController *controller = webView.configuration.userContentController;
     [controller addScriptMessageHandler:bridge name:TDrivePhotoHandlerName];
-    NSString *source = @"(function(){if(window.tdriveIOSPhotos)return;const pending=new Map();let seq=0;window.__tdriveIOSPhotosReplyBase64=function(b){try{const bytes=Uint8Array.from(atob(b),c=>c.charCodeAt(0));const m=JSON.parse(new TextDecoder().decode(bytes));const p=pending.get(m.id);if(!p)return;pending.delete(m.id);m.error?p.reject(Object.assign(new Error(m.error.message||'Photo operation failed'),{code:m.error.code})):p.resolve(m.result)}catch(e){console.error('TDrive photo bridge reply failed',e)}};const call=(operation,args={})=>{const id=Date.now().toString(36)+'-'+(++seq).toString(36);const promise=new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});window.webkit.messageHandlers.tdrivePhotos.postMessage({id,operation,arguments:args})});promise.requestID=id;return promise};const api={materialize:(args)=>call('materialize',args||{}),cancelMaterialization:(requestID)=>call('cancelMaterialization',{requestID}),cleanup:(token)=>call('cleanup',{token}),setBackgroundBackup:(active)=>call('setBackgroundBackup',{active:!!active}),pickPhotoBackupFolder:()=>call('pickBackupFolder')};api.listPhotoBackupAssets=(sourceID,cursor=null,limit=50)=>call('listBackupAssets',{sourceID,cursor,pageSize:limit});api.materializePhotoBackupResource=(assetID,version,maxBytes,resourceID)=>api.materialize({assetID,version,maxBytes,resourceID});api.releasePhotoBackupResource=token=>api.cleanup(token);window.tdriveIOSPhotos=Object.freeze(api)})();";
+    NSString *source = @"(function(){if(window.tdriveIOSPhotos)return;const pending=new Map();let seq=0;window.__tdriveIOSPhotosReplyBase64=function(b){try{const bytes=Uint8Array.from(atob(b),c=>c.charCodeAt(0));const m=JSON.parse(new TextDecoder().decode(bytes));const p=pending.get(m.id);if(!p)return;pending.delete(m.id);m.error?p.reject(Object.assign(new Error(m.error.message||'Photo operation failed'),{code:m.error.code})):p.resolve(m.result)}catch(e){console.error('TDrive photo bridge reply failed',e)}};const call=(operation,args={})=>{const id=Date.now().toString(36)+'-'+(++seq).toString(36);const promise=new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});window.webkit.messageHandlers.tdrivePhotos.postMessage({id,operation,arguments:args})});promise.requestID=id;return promise};const api={materialize:(args)=>call('materialize',args||{}),cancelMaterialization:(requestID)=>call('cancelMaterialization',{requestID}),cleanup:(token)=>call('cleanup',{token}),setBackgroundBackup:(active)=>call('setBackgroundBackup',{active:!!active}),pickPhotoBackupFolder:()=>call('pickBackupFolder')};api.getDeviceIdentity=()=>call('deviceIdentity');api.openAppSettings=()=>call('openAppSettings');api.getPhotoAccess=()=>call('photoAccess');api.requestPhotoAccess=()=>call('requestPhotoAccess');api.getPowerStatus=()=>call('powerStatus');api.getNetworkStatus=()=>call('networkStatus');api.listPhotoBackupAssets=(sourceID,cursor=null,limit=50)=>call('listBackupAssets',{sourceID,cursor,pageSize:limit});api.materializePhotoBackupResource=(assetID,version,maxBytes,resourceID)=>api.materialize({assetID,version,maxBytes,resourceID});api.releasePhotoBackupResource=token=>api.cleanup(token);window.tdriveIOSPhotos=Object.freeze(api)})();";
     [controller addUserScript:[[WKUserScript alloc] initWithSource:source injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [webView evaluateJavaScript:source completionHandler:nil];
 }

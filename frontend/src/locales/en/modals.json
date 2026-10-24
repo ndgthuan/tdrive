@@ -6,9 +6,9 @@
     "folder_name_placeholder": "e.g. Invoices",
     "folder_create": "Create folder",
     "join_drive_title": "Join shared drive",
-    "join_drive_subtitle": "Paste the t.me invite link you received from a friend. If the drive has lots of history, joining may take a few seconds.",
+    "join_drive_subtitle": "Paste an invite link from a shared drive. You join with the role the link gives.",
     "join_drive_link_label": "Invite link",
-    "join_drive_go": "Join",
+    "join_drive_go": "Join drive",
     "leave_drive_title": "Leave drive?",
     "leave_drive_subtitle_named": "Leave \"{title}\"? You can rejoin later with the invite link.",
     "leave_drive_subtitle": "You can rejoin later with the invite link.",
@@ -160,5 +160,13 @@
     "join_requests_retry": "Try again",
     "join_requests_empty": "No pending requests.",
     "join_requests_approve": "Approve",
-    "join_requests_reject": "Reject"
+    "join_requests_reject": "Reject",
+    "join_drive_paste": "Paste",
+    "join_drive_preview": "Preview",
+    "join_drive_preview_hint": "Check the link, then join. The drive name and your role appear once you join.",
+    "join_drive_invalid": "That link is not valid. Check it and try again.",
+    "new_drive_owner_note": "You are the Owner. You can invite people after you create it.",
+    "new_drive_role_label": "Default role for new members",
+    "new_drive_role_editor": "Editor",
+    "new_drive_role_viewer": "Viewer"
 }

@@ -282,7 +282,10 @@ html.mobile .drive-header-chevron {
     margin-left: 4px;
     color: var(--color-text-muted);
 }
+html.mobile .drive-header-name { font-size: 2rem; line-height: 2.4rem; }
 html.mobile .drive-header-meta { font-size: var(--mobile-type-meta); color: var(--color-text-muted); }
+/* The view-only pill sits on its own line under the meta, at its natural width. */
+html.mobile .drive-header .view-only-badge { align-self: flex-start; margin-top: 4px; }
 
 /* Folder header: the name over a count, matching the drive header's two-line
    shape so the bar does not change height when you walk into a folder. */
@@ -519,6 +522,10 @@ html.mobile .tab-item {
 html.mobile .tab-item.active { color: var(--color-accent); }
 html.mobile .tab-icon {
     position: relative;
+    /* Own stacking context: the pill is painted first and the glyph, avatar
+       and badge are lifted above it. Without this the absolutely positioned
+       pill sat over the un-positioned SVG and hid the active icon. */
+    isolation: isolate;
     display: inline-grid;
     place-items: center;
     /* The press settles the icon rather than the whole button, so the label
@@ -528,6 +535,11 @@ html.mobile .tab-icon {
 html.mobile .tab-item:active .tab-icon { transform: scale(0.9); }
 /* Sized to the glyph it replaces, so the row keeps its rhythm. The hairline is
    there because a dark photograph against a dark bar has no edge of its own. */
+html.mobile .tab-icon > svg,
+html.mobile .tab-icon .profile-avatar {
+    position: relative;
+    z-index: 1;
+}
 html.mobile .tab-icon .profile-avatar {
     width: 24px;
     height: 24px;
@@ -556,6 +568,7 @@ html.mobile .tab-label {
    than 0 keeps it an object that arrives, not one conjured from nothing. */
 html.mobile .tab-pill {
     position: absolute;
+    z-index: 0;
     left: 50%;
     top: 50%;
     width: 48px;
@@ -575,6 +588,7 @@ html.mobile .tab-item.active .tab-pill {
 
 html.mobile .tab-badge {
     position: absolute;
+    z-index: 2;
     top: -4px;
     left: 14px;
     min-width: 16px;
@@ -1104,6 +1118,39 @@ html.mobile .switcher-actions {
     margin-top: var(--space-2);
     border-top: 1px solid var(--color-border-soft);
 }
+/* A row that says a refresh failed and offers the one thing to do about it. */
+html.mobile .drive-retry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    margin: 0 0 6px;
+    padding: 0 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: 0.875rem;
+    text-align: left;
+    cursor: pointer;
+}
+html.mobile .drive-retry-action {
+    flex: 0 0 auto;
+    color: var(--color-accent);
+    font-weight: 600;
+}
+html.mobile .switcher-label {
+    margin: 4px 0 0;
+    padding: 0 var(--space-2);
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: var(--weight-strong);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
 html.mobile .switcher-action {
     display: flex;
     align-items: center;
@@ -1375,4 +1422,12 @@ html.mobile .file-row.is-revealing .row-more {
     /* The status glyph stops turning; its shape and tone already say which
        state it is, so nothing is lost by holding it still. */
     html.mobile .item-status[data-spins="true"] svg { animation: none; }
+}
+
+/* A line under a field that says what the field keeps or means. */
+.modal-hint {
+    margin: 6px 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.8125rem;
+    line-height: 1.4;
 }

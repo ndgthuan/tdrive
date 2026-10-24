@@ -67,6 +67,22 @@ export function Probe(url: string): $CancellablePromise<mediadl$0.ProbeResult> {
 }
 
 /**
+ * ReportMediaDownloadLine is called by the web view with one line of native
+ * output for a request that is still running.
+ */
+export function ReportMediaDownloadLine(request_id: string, line: string): $CancellablePromise<void> {
+    return $Call.ByID(1260901570, request_id, line);
+}
+
+/**
+ * ResolveMediaDownloadHost is called by the web view with the native answer to
+ * one request. failure, when set, is shown to the user.
+ */
+export function ResolveMediaDownloadHost(request_id: string, result: string, failure: string): $CancellablePromise<void> {
+    return $Call.ByID(826456216, request_id, result, failure);
+}
+
+/**
  * SetToolPath points the downloader at a tool the user already has. An empty
  * path clears the choice and falls back to PATH or the managed copy.
  */

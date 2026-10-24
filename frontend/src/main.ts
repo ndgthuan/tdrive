@@ -12,12 +12,14 @@ import { appView, type AppLifecycle } from './ui/app/app_store';
 // Side-effect import: registers the window 'tdrive:open_settings' listener at startup.
 import './ui/settings/settings_host';
 import { applyMobilePlatformClasses } from './ui/mobile/platform_classes';
+import { install_diagnostics } from './modules/diagnostics';
 import { activateSystemTextScale } from './ui/mobile/system_text_scale';
 import { initializeNativeTheme } from './ui/theme/native_theme';
 import { initializeTheme } from './ui/theme/theme_controller';
 import { deriveVideoPlaylist } from './modules/video/video_playlist';
 import { activatePhotoBackup } from './modules/photo_backup/controller';
 import { activatePhotoBackupOnDashboard } from './modules/photo_backup/activation';
+import { startAutoBackupRuntime } from './ui/backup/auto_backup_runtime';
 import { getInteractiveFileListRows } from './ui/file_list/file_list_store';
 import type { FileListFileRow } from './ui/file_list/types';
 
@@ -26,7 +28,7 @@ import type { FileListFileRow } from './ui/file_list/types';
 // early, where the platform is only known once the gateway hydrates below.
 applyMobilePlatformClasses();
 
-const disposers: Array<() => void> = [initializeTheme()];
+const disposers: Array<() => void> = [initializeTheme(), install_diagnostics()];
 let started = false;
 let stopped = false;
 
@@ -128,6 +130,7 @@ const lifecycle: AppLifecycle = {
 
         registerDisposer(connectAuthEvents());
         registerDisposer(activatePhotoBackupOnDashboard(appView, activatePhotoBackup));
+        registerDisposer(startAutoBackupRuntime());
         await initializeSession();
     },
 

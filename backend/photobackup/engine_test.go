@@ -1182,3 +1182,30 @@ func TestMigrateDropsSourcesTheAlbumPickerMade(t *testing.T) {
 		t.Fatalf("status = %+v, want the queue gone and the receipt kept", status)
 	}
 }
+
+// The whole-library source is back under its own kind. Migrations must keep it
+// (and the receipts it wrote), while the retired album kind is still dropped.
+func TestMigrateKeepsDeviceLibrarySource(t *testing.T) {
+	isolate_data_dir(t)
+	now := time.Now()
+	engine, scope := testEngine(t, &now)
+	ctx := context.Background()
+	for _, source := range []Source{
+		{Scope: scope, ID: DeviceLibrarySourceID, Kind: DeviceLibrarySourceKind, Root: "content://media", Enabled: true},
+		{Scope: scope, ID: "bucket:9", Kind: "album", Root: "content://media", Enabled: true},
+	} {
+		if err := engine.UpsertSource(ctx, source); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := engine.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	sources, err := engine.ListSources(ctx, scope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sources) != 1 || sources[0].ID != DeviceLibrarySourceID || sources[0].Kind != DeviceLibrarySourceKind {
+		t.Fatalf("sources = %+v, want only the device-library source", sources)
+	}
+}

@@ -73,6 +73,9 @@ export interface RuntimeEventMap {
     "photo-backup:materialize": [payload: unknown];
     "photo-backup:release": [payload: unknown];
     "photo-backup:state": [payload: unknown];
+    /** Automatic backup: the toggle, folder and policy, and the queue summary. */
+    "auto_backup:state": [payload: unknown];
+    "auto_backup:progress": [payload: unknown];
     gallery_memory_pressure: [];
     // Emitted by both phone hosts while SetKeyboardWatch is on; the payload is
     // {visible, height}. Android reports the only soft-keyboard height its

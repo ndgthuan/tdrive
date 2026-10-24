@@ -80,11 +80,21 @@ func (e *Engine) Migrate(ctx context.Context) error {
 	return e.pruneOrphanedJobs(ctx)
 }
 
-// FolderSourceKinds are the only kinds a source can be: a folder on a desktop
-// and a folder a phone handed over. Albums and whole-library sources were a
-// picker that no longer exists, and a ledger row for one names a place nothing
-// can scan.
-var FolderSourceKinds = []string{"folder", "device-folder"}
+// DeviceLibrarySourceKind is the phone's whole media library: every photo and
+// video the platform reports, not a picked folder. Automatic backup owns it.
+// It was retired with the album picker and is reintroduced here as a new kind.
+// Migrations never delete rows of this kind; they only drop kinds outside
+// FolderSourceKinds, which this one is part of.
+const DeviceLibrarySourceKind = "device-library"
+
+// DeviceLibrarySourceID is the fixed ID of the single whole-library source, so
+// there is at most one per drive.
+const DeviceLibrarySourceID = "device-library"
+
+// FolderSourceKinds are the kinds a source can be: a folder on a desktop, a
+// folder a phone handed over, and the phone's whole library. A row of any other
+// kind names a picker that no longer exists, and nothing can scan it.
+var FolderSourceKinds = []string{"folder", "device-folder", DeviceLibrarySourceKind}
 
 // dropRetiredSources removes the sources the album picker used to create. The
 // jobs they own go with them through the orphan prune that follows, except the
@@ -92,7 +102,7 @@ var FolderSourceKinds = []string{"folder", "device-folder"}
 // what stops the same photos being sent again when the folder holding them is
 // added back through the picker that remains.
 func (e *Engine) dropRetiredSources(ctx context.Context) error {
-	_, err := e.db.ExecContext(ctx, `DELETE FROM photo_backup_sources WHERE kind NOT IN (?,?)`, FolderSourceKinds[0], FolderSourceKinds[1])
+	_, err := e.db.ExecContext(ctx, `DELETE FROM photo_backup_sources WHERE kind NOT IN (?,?,?)`, FolderSourceKinds[0], FolderSourceKinds[1], FolderSourceKinds[2])
 	if err != nil {
 		return fmt.Errorf("photobackup: drop retired sources: %w", err)
 	}
@@ -404,7 +414,7 @@ func (e *Engine) CommitScanPage(ctx context.Context, scope Scope, sourceID, expe
 		return 0, ErrScanStale
 	}
 	complete := nextCursor == ""
-	result, err := tx.ExecContext(ctx, `UPDATE photo_backup_sources SET scan_cursor=?,scan_complete=? WHERE account_id=? AND drive_id=? AND source_id=? AND scan_cursor=? AND scan_complete=0 AND enabled=1 AND kind='device-folder'`, nextCursor, complete, scope.AccountID, scope.DriveID, sourceID, expectedCursor)
+	result, err := tx.ExecContext(ctx, `UPDATE photo_backup_sources SET scan_cursor=?,scan_complete=? WHERE account_id=? AND drive_id=? AND source_id=? AND scan_cursor=? AND scan_complete=0 AND enabled=1 AND kind IN ('device-folder','device-library')`, nextCursor, complete, scope.AccountID, scope.DriveID, sourceID, expectedCursor)
 	if err != nil {
 		return 0, err
 	}

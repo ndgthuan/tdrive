@@ -2,6 +2,7 @@
 // row is deliberately updated in place so a large camera roll cannot turn into
 // an equally large notification log.
 import type { PhotoBackupState } from '../../api/photo_backup';
+import { getAutoBackupState, onAutoBackupState } from '../../api/auto_backup';
 import type { TransferItem } from '../../ui/notifications/notif_store';
 import { t } from '../../i18n/i18n';
 import {
@@ -60,7 +61,34 @@ function resultName(state: PhotoBackupState): string {
     return t('photos.result_completed', { count: complete });
 }
 
+/**
+ * Whether automatic backup is switched on. While it is, the automatic backup
+ * owns the progress feed, and the legacy photo backup row must not also appear
+ * for the same photos. Read from the auto backup state and kept current by its
+ * change events; until the first answer arrives the legacy row stays as before.
+ */
+let auto_backup_on = false;
+let auto_backup_watch_started = false;
+
+function watch_auto_backup(): void {
+    if (auto_backup_watch_started) return;
+    auto_backup_watch_started = true;
+    void getAutoBackupState()
+        .then((state) => { auto_backup_on = state.enabled; })
+        .catch(() => undefined);
+    try {
+        onAutoBackupState((state) => { auto_backup_on = state.enabled; });
+    } catch {
+        // The event bridge is unavailable in plain browser runs; the read above still answers.
+    }
+}
+
 export function syncPhotoBackupActivity(state: PhotoBackupState): void {
+    watch_auto_backup();
+    if (auto_backup_on) {
+        clearPhotoBackupActivity();
+        return;
+    }
     const { phase, bytesDone, bytesTotal } = state.status;
     // A paused backup ends its row rather than holding one open. Nothing is on
     // its way, so an active row with a progress bar was saying otherwise --

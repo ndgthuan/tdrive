@@ -196,8 +196,8 @@
         }, 1600);
     }
 
-    async function onDefaultRoleChange(event: Event): Promise<void> {
-        const next = (event.currentTarget as HTMLSelectElement).value as 'editor' | 'viewer';
+    async function onDefaultRoleChange(next: 'editor' | 'viewer'): Promise<void> {
+        if (next === defaultRole) return;
         const previous = defaultRole;
         defaultRole = next;
         try {
@@ -393,12 +393,22 @@
                 {/if}
 
                 {#if access.canManageMembers}
-                    <div class="members-default-row">
-                        <label class="members-default-label" for="members-default-role">{$t_store('members.default_role')}</label>
-                        <select id="members-default-role" class="select-field" value={defaultRole} onchange={(event) => void onDefaultRoleChange(event)}>
-                            <option value="editor">{$t_store('members.role_editor')}</option>
-                            <option value="viewer">{$t_store('members.role_viewer')}</option>
-                        </select>
+                    <div class="members-default-row" role="group" aria-labelledby="members-default-label">
+                        <span id="members-default-label" class="members-default-label">{$t_store('members.default_role')}</span>
+                        <div class="members-role-chips">
+                            {#each ['editor', 'viewer'] as role (role)}
+                                <button
+                                    id="members-default-role-{role}"
+                                    type="button"
+                                    class="members-role-chip"
+                                    class:is-selected={defaultRole === role}
+                                    aria-pressed={defaultRole === role}
+                                    onclick={() => void onDefaultRoleChange(role as 'editor' | 'viewer')}
+                                >
+                                    {role === 'editor' ? $t_store('members.role_editor') : $t_store('members.role_viewer')}
+                                </button>
+                            {/each}
+                        </div>
                     </div>
                 {/if}
             </section>
@@ -716,8 +726,24 @@
         font-size: 0.85rem;
     }
 
-    .members-default-row .select-field {
-        width: auto;
-        min-width: 140px;
+    .members-role-chips {
+        display: flex;
+        gap: 8px;
+    }
+
+    .members-role-chip {
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 17px;
+        background: var(--color-surface-2);
+        color: var(--color-text-muted);
+        font: inherit;
+        font-size: 14px;
+    }
+
+    .members-role-chip.is-selected {
+        background: var(--color-accent-soft, var(--color-surface-3));
+        color: var(--color-accent);
+        font-weight: 600;
     }
 </style>

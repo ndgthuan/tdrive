@@ -26,6 +26,40 @@ export interface AppVersionInfo {
 }
 
 /**
+ * AutoBackupProgress is the queue summary the upload tray and the pane show.
+ * Done and Total count this phone's library items; the current file fields
+ * describe the upload in flight, if any.
+ */
+export interface AutoBackupProgress {
+    "enabled": boolean;
+    "done": number;
+    "total": number;
+    "current_name": string;
+    "current_bytes": number;
+    "current_bytes_done": number;
+    "paused": boolean;
+    "folder_name": string;
+}
+
+/**
+ * AutoBackupState is what the automatic backup pane renders.
+ */
+export interface AutoBackupState {
+    "enabled": boolean;
+    "folder_name": string;
+    "default_folder_name": string;
+    "folder_name_custom": boolean;
+    "folder_id": string;
+    "wifi_only": boolean;
+    "charging_only": boolean;
+    "permission": string;
+    "phase": string;
+    "power_block": string;
+    "platform": string;
+    "errors": string[] | null;
+}
+
+/**
  * BiometricStatus contains capability metadata only; keys never enter Wails.
  */
 export interface BiometricStatus {

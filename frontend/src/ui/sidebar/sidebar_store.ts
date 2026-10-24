@@ -34,6 +34,12 @@ const initialState: SidebarState = {
 
 export const sidebarState = writable<SidebarState>(initialState);
 
+/**
+ * True while the last attempt to list drives failed. The drives already shown
+ * stay on screen; this only drives the inline "Couldn't load shared drives" row.
+ */
+export const driveListFailed = writable(false);
+
 export function setSidebarState(next: SidebarState): void {
     sidebarState.set(next);
 }

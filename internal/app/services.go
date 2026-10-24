@@ -129,6 +129,16 @@ func (a *App) initServices(version string) {
 	// The downloader reads its data directory lazily, on first use.
 	a.mediaDownload = new_media_download_service(a)
 	a.members = newDriveMembersService(a)
+	// The automatic backup service reads its settings lazily and resolves the
+	// drive folder through the same accessor as the photo backup destination.
+	a.autoBackup = newAutoBackupService(a, func() (autoBackupFolderStore, error) {
+		service, err := a.requireFolderService()
+		if err != nil {
+			return nil, err
+		}
+		return appAutoBackupFolderStore{appPhotoBackupFolderStore{service: service}}, nil
+	})
+	a.autoBackup.engine = appAutoBackupEngine{app: a}
 }
 
 // quit satisfies appShell. It tolerates a missing application handle so a
@@ -165,5 +175,6 @@ func (a *App) services() []application.Service {
 		application.NewService(a.assistant),
 		application.NewService(a.mediaDownload),
 		application.NewService(a.members),
+		application.NewService(a.autoBackup),
 	}
 }

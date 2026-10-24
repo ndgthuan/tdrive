@@ -1,4 +1,5 @@
 import { t } from '../../i18n/i18n';
+import { videoDownloadable } from '../../ui/video/video_download_store';
 import { acquireScreenProtection, bind_no_save_guards, bindViewOnlyGuards } from '../../ui/viewers/view_only_guards';
 import { htmlPictureStyle, loadPlaybackPreferences, normalizePlaybackPreferences, savePlaybackPreferences, type PlaybackPreferences, type PictureMode } from "../video/playback_preferences";
 import {
@@ -1035,6 +1036,16 @@ function handleHtmlMediaError(
     });
 }
 
+// The file the modal is showing, for the '...' menu's Download. A protected
+// file is never offered for download, the same rule the viewer applies.
+let activeVideoTarget: VideoOpenTarget | null = null;
+
+export function downloadCurrentVideo(): void {
+    const target = activeVideoTarget;
+    if (!target || target.protected) return;
+    appActions().downloadFile({ id: target.id, name: target.name, size: target.size || 0 });
+}
+
 // downloadInstead is the escape from a file this device cannot play: the share
 // sheet hands it to an app that can.
 function downloadInstead(target: VideoOpenTarget): ErrorAction {
@@ -1303,6 +1314,8 @@ async function openVideoTarget(target: VideoOpenTarget, playbackIntent: Playback
 export async function openVideoModal(target: VideoOpenTarget, playlist?: VideoPlaylistLaunch): Promise<void> {
     const normalized = normalizeVideoTarget(target);
     if (!normalized) return;
+    activeVideoTarget = normalized;
+    videoDownloadable.set(!normalized.protected);
     const host = document.getElementById("video-modal");
     if (videoHostEl !== host || !videoSetupComplete) activateVideoModal();
     if (!videoDOM.modal || !videoDOM.video || !videoDOM.filename || !videoDOM.meta) return;
@@ -1311,6 +1324,8 @@ export async function openVideoModal(target: VideoOpenTarget, playlist?: VideoPl
 }
 
 export async function closeVideoModal() {
+    activeVideoTarget = null;
+    videoDownloadable.set(false);
     const modal = videoDOM.modal;
     if (!modal) return;
     const generation = playbackTransitions.begin();

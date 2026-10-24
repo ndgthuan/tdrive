@@ -1,5 +1,6 @@
 package com.wails.app;
 
+import android.os.Build;
 import android.util.Log;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -159,6 +160,29 @@ public class WailsJSBridge {
         MainActivity activity = activity();
         if (activity == null) { sendCallback(callbackId, null, "folder picker unavailable"); return; }
         activity.runOnUiThread(() -> activity.pickPhotoBackupFolder(callbackId));
+    }
+
+    /** Platform, manufacturer and model for the automatic backup folder name. Nothing else about the device is sent. */
+    @JavascriptInterface public void deviceIdentity(final String callbackId) {
+        try {
+            JSONObject identity = new JSONObject();
+            identity.put("platform", "android");
+            identity.put("manufacturer", Build.MANUFACTURER);
+            identity.put("model", Build.MODEL);
+            sendCallback(callbackId, identity.toString(), null);
+        } catch (Exception e) {
+            sendCallback(callbackId, null, "device identity unavailable");
+        }
+    }
+
+    /** Opens this app's system settings page, where the media permission can be changed. */
+    @JavascriptInterface public void openAppSettings(final String callbackId) {
+        MainActivity activity = activity();
+        if (activity == null) { sendCallback(callbackId, null, "settings unavailable"); return; }
+        activity.runOnUiThread(() -> activity.startActivity(new Intent(
+            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            android.net.Uri.parse("package:" + activity.getPackageName()))));
+        sendCallback(callbackId, "{}", null);
     }
 
     /** Return one bounded page of photo/video assets; paths are deliberately omitted. */
@@ -389,6 +413,58 @@ public class WailsJSBridge {
     @JavascriptInterface
     public boolean isDebug() {
         return BuildConfig.DEBUG;
+    }
+
+    /**
+     * yt-dlp on the phone (see MediaDlEngine). Each call answers once through its
+     * callback id. Output lines go to the web view as window.tdriveMediaDlLine.
+     * Called from JavaScript: wails.mediaDlStatus(callbackId), and likewise the
+     * other mediaDl methods below.
+     */
+    private MediaDlEngine mediaDl;
+
+    private MediaDlEngine mediaDl() {
+        if (mediaDl == null) {
+            mediaDl = new MediaDlEngine(webView.getContext().getApplicationContext(), this::mediaDlLine);
+        }
+        return mediaDl;
+    }
+
+    private void mediaDlLine(final String requestId, final String text) {
+        final String js = "window.tdriveMediaDlLine && window.tdriveMediaDlLine("
+                + JSONObject.quote(requestId) + "," + JSONObject.quote(text) + ");";
+        webView.post(() -> webView.evaluateJavascript(js, null));
+    }
+
+    /** Whether the engine is set up, which version it runs, and whether ffmpeg is present. */
+    @JavascriptInterface
+    public void mediaDlStatus(final String callbackId) {
+        mediaDl().status((result, failure) -> sendCallback(callbackId, result, failure.isEmpty() ? null : failure));
+    }
+
+    /** First-time setup. Its progress lines arrive as "stage|percent". */
+    @JavascriptInterface
+    public void mediaDlInstall(final String callbackId, final String requestId) {
+        mediaDl().install(requestId, (result, failure) -> sendCallback(callbackId, result, failure.isEmpty() ? null : failure));
+    }
+
+    /** Runs yt-dlp's self-update and answers with its closing message. */
+    @JavascriptInterface
+    public void mediaDlUpdate(final String callbackId) {
+        mediaDl().update((result, failure) -> sendCallback(callbackId, result, failure.isEmpty() ? null : failure));
+    }
+
+    /** Runs one job. The JSON is {"id":"...","args":[...]} with the yt-dlp argv from Go. */
+    @JavascriptInterface
+    public void mediaDlRun(final String callbackId, final String requestJson) {
+        mediaDl().run(requestJson, (result, failure) -> sendCallback(callbackId, result, failure.isEmpty() ? null : failure));
+    }
+
+    /** Stops a running job by its request id. Answers at once. */
+    @JavascriptInterface
+    public void mediaDlCancel(final String callbackId, final String requestId) {
+        mediaDl().cancel(requestId);
+        sendCallback(callbackId, "", null);
     }
 
     /**

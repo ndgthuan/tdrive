@@ -66,10 +66,11 @@ func exe_name(tool string) string {
 
 // ToolStatus is what the setup state shows for one tool.
 type ToolStatus struct {
-	Name   string `json:"name"`
-	Found  bool   `json:"found"`
-	Path   string `json:"path"`
-	Source string `json:"source"`
+	Name    string `json:"name"`
+	Found   bool   `json:"found"`
+	Path    string `json:"path"`
+	Source  string `json:"source"`
+	Version string `json:"version,omitempty"`
 }
 
 // Status is the combined tool state the dialog reads before it lays out.

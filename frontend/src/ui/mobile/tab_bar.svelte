@@ -8,6 +8,7 @@
     import { profileLoaded, profileUser } from '../chrome/profile_store';
     import type { MobileTab } from './mobile_shell_store';
     import { t_store } from '../../i18n/i18n';
+    import { guard_handler } from '../../modules/diagnostics';
 
     interface Props {
         active: MobileTab;
@@ -57,7 +58,7 @@
             class:active={active === tab.id}
             aria-current={active === tab.id ? 'page' : undefined}
             aria-label={`${$t_store(tab.label_key)}${attentionSuffix(tab.id)}`}
-            onclick={() => onSelect(tab.id)}
+            onclick={guard_handler(`tab:${tab.id}`, () => onSelect(tab.id))}
         >
             <span class="tab-icon" class:is-avatar={tab.id === 'account' && showAvatar}>
                 <!-- The pill grows behind the icon rather than cutting in, so a

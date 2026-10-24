@@ -319,6 +319,7 @@
             <button class="primary-btn auth-submit" type="submit" disabled={$authSubmission.phone.busy}>
                 {$authSubmission.phone.busy ? $t_store('auth.phone_sending') : $t_store('auth.phone_send')}
             </button>
+            <p class="auth-note">{$t_store('auth.phone_terms')}</p>
         </div>
     </form>
 {:else if step === 'code'}
