@@ -1020,6 +1020,9 @@ jobs:
       - name: Build the simulator app bundle
         run: wails3 task ios:package
 
+      - name: Exercise the bundled iOS downloader on Simulator
+        run: bash scripts/smoke_ios_downloader.sh
+
       # A device build uses a different SDK and a different minimum-version
       # flag, and is the one a phone would actually run. Signing is left
       # ad-hoc: a real identity is only needed to install, not to compile.

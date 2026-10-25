@@ -5,11 +5,9 @@
 // mediadl:* tasks in build/ios/Taskfile.yml). The Go side reaches this file
 // through window.tdriveMediaDl, which the web view relays.
 //
-// Not proven on a device or a Mac: the Python embedding, the Xcode header and
-// link settings, and the bundle layout are all unverified. When the Python
-// headers are not present at compile time, or the runtime is not staged in the
-// bundle, status reports installed=false and the app shows "not installed"
-// instead of failing.
+// Both build paths require and link Python.framework. Packaging stages the
+// shared stdlib, native extension frameworks, yt-dlp and its CA certificates.
+// CI exercises imports and a byte-verified download on iOS Simulator.
 //
 // Native answers reach the page through __tdriveMediaDlSettle(promiseId, failure,
 // result). Output lines reach it through tdriveMediaDlLine(requestId, line).
@@ -18,11 +16,14 @@
 #import <WebKit/WebKit.h>
 #import <objc/runtime.h>
 
-#if __has_include(<Python.h>)
-#import <Python.h>
+#if __has_include(<Python/Python.h>)
+#import <Python/Python.h>
 #define TDRIVE_MEDIADL_PYTHON 1
 #else
 #define TDRIVE_MEDIADL_PYTHON 0
+#if defined(TDRIVE_REQUIRE_PYTHON)
+#error "The iOS downloader requires the embedded Python framework"
+#endif
 #endif
 
 static NSString *const TDriveMediaDlHandlerName = @"tdriveMediaDl";
@@ -60,14 +61,29 @@ static BOOL TDriveMediaDlPythonStarted(void) {
         NSString *home = TDriveMediaDlPythonHome();
         NSString *stdlib = [home stringByAppendingPathComponent:TDriveMediaDlStdlibFolder];
         if (![[NSFileManager defaultManager] fileExistsAtPath:[stdlib stringByAppendingPathComponent:@"os.py"]]) return;
+        NSString *certificates = [stdlib stringByAppendingPathComponent:@"site-packages/certifi/cacert.pem"];
+        setenv("SSL_CERT_FILE", certificates.fileSystemRepresentation, 1);
         PyConfig config;
         PyConfig_InitIsolatedConfig(&config);
         config.install_signal_handlers = 0;
         config.write_bytecode = 0;
+        config.buffered_stdio = 0;
+        config.module_search_paths_set = 1;
         PyStatus status = PyConfig_SetBytesString(&config, &config.home, home.fileSystemRepresentation);
+        if (!PyStatus_Exception(status)) status = PyConfig_SetBytesString(&config, &config.executable, NSBundle.mainBundle.executablePath.fileSystemRepresentation);
+        for (NSString *directory in @[stdlib, [stdlib stringByAppendingPathComponent:@"lib-dynload"], [stdlib stringByAppendingPathComponent:@"site-packages"]]) {
+            if (PyStatus_Exception(status)) break;
+            wchar_t *path = Py_DecodeLocale(directory.fileSystemRepresentation, NULL);
+            if (path == NULL) { PyConfig_Clear(&config); return; }
+            status = PyWideStringList_Append(&config.module_search_paths, path);
+            PyMem_RawFree(path);
+        }
         if (!PyStatus_Exception(status)) status = Py_InitializeFromConfig(&config);
         PyConfig_Clear(&config);
-        if (PyStatus_Exception(status)) return;
+        if (PyStatus_Exception(status)) {
+            NSLog(@"TDrive downloader Python initialization failed: %s", status.err_msg ?: "unknown error");
+            return;
+        }
         started = YES;
         // Initialisation leaves the GIL held by this thread. Release it so the
         // worker threads can take it with PyGILState_Ensure.
@@ -100,7 +116,7 @@ static NSString *TDriveMediaDlStatusJSON(void) {
     PyObject *json_module = result ? PyImport_ImportModule("json") : NULL;
     PyObject *text = json_module ? PyObject_CallMethod(json_module, "dumps", "O", result) : NULL;
     if (text) json = [NSString stringWithUTF8String:PyUnicode_AsUTF8(text)];
-    if (!text) PyErr_Clear();
+    if (!text) PyErr_Print();
     Py_XDECREF(text);
     Py_XDECREF(json_module);
     Py_XDECREF(result);
@@ -147,7 +163,9 @@ static NSString *TDriveMediaDlStatusJSON(void) {
     [self emitLine:requestID line:@"extracting|10"];
 #if TDRIVE_MEDIADL_PYTHON
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-        if (TDriveMediaDlPythonStarted()) {
+        NSString *json = TDriveMediaDlPythonStarted() ? TDriveMediaDlStatusJSON() : nil;
+        NSDictionary *status = json ? [NSJSONSerialization JSONObjectWithData:[json dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil] : nil;
+        if ([status[@"installed"] boolValue]) {
             [self emitLine:requestID line:@"done|100"];
             [self settle:promiseID failure:@"" result:@""];
         } else {

@@ -361,6 +361,9 @@ jobs:
       - name: Build unsigned device IPA
         run: wails3 task ios:package:ipa IOS_PLATFORM=device CODESIGN_IDENTITY=-
 
+      - name: Exercise the bundled iOS downloader on Simulator
+        run: bash scripts/smoke_ios_downloader.sh
+
       - name: Stage and verify unsigned IPA
         shell: bash
         run: |
@@ -374,6 +377,14 @@ jobs:
             exit 1
           fi
           grep -Fxq 'Payload/TDrive.app/Info.plist' <<<"$entries"
+          for resource in Frameworks/Python.framework/Python Frameworks/_ssl.framework/_ssl \
+            python/lib/python3.13/os.py python/lib/python3.13/encodings/__init__.py \
+            python/lib/python3.13/site-packages/yt_dlp/version.py \
+            python/lib/python3.13/site-packages/tdrive_mediadl.py \
+            python/lib/python3.13/site-packages/certifi/cacert.pem; do
+            grep -Fxq "Payload/TDrive.app/$resource" <<<"$entries"
+          done
+          otool -L build/bin/TDrive.app/tdrive | grep -F '@rpath/Python.framework/Python'
           if grep -Fxq 'Payload/TDrive.app/embedded.mobileprovision' <<<"$entries"; then
             echo "The unsigned IPA unexpectedly embeds a provisioning profile" >&2
             exit 1

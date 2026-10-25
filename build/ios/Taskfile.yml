@@ -82,8 +82,8 @@ tasks:
 
   # The link downloader's engine: a pinned embedded CPython (BeeWare Python-Apple-support)
   # plus the pinned yt-dlp wheel. Downloads are checked against their published SHA-256
-  # before anything is unpacked. Layout inside the tarball is not verified on a Mac yet:
-  # the stdlib lookup below is the assumption to check first.
+  # before anything is unpacked. Shared stdlib and architecture-specific modules
+  # are merged by package_runtime.py, which also embeds extension frameworks.
   mediadl:fetch:
     internal: true
     summary: Download and verify the pinned Python runtime and yt-dlp for the link downloader
@@ -92,14 +92,17 @@ tasks:
       PY_SUPPORT_VERSION: 3.13-b16
       PY_SUPPORT_URL: https://github.com/beeware/Python-Apple-support/releases/download/3.13-b16/Python-3.13-iOS-support.b16.tar.gz
       PY_SUPPORT_SHA256: 22b96f3d0c3663225f078556b036d2ee6ce3ff98c885706585240681335c71ea
+      CERTIFI_URL: https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl
+      CERTIFI_SHA256: e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1
       YT_DLP_VERSION: 2026.8.19
       YT_DLP_URL: https://files.pythonhosted.org/packages/69/b2/8cd1613f56eed7ceb64fbd4df3f1c01246bfb098e6f398228bafda22b80b/yt_dlp-2026.8.19-py3-none-any.whl
       YT_DLP_SHA256: 1d57897e94c6665a0a6f9bc54b34e584284e32c034ffab3a7df25d8f7b24eedf
     sources:
       - build/ios/mediadl/tdrive_mediadl.py
     generates:
-      - "{{.MEDIADL_CACHE}}/stdlib/**/*"
-      - "{{.MEDIADL_CACHE}}/yt_dlp_site/**/*"
+      - "{{.MEDIADL_CACHE}}/py/Python.xcframework/Info.plist"
+      - "{{.MEDIADL_CACHE}}/yt_dlp.whl"
+      - "{{.MEDIADL_CACHE}}/certifi.whl"
     cmds:
       - |
         set -eu
@@ -108,35 +111,33 @@ tasks:
         if [ ! -f py-support.tar.gz ]; then curl -fsSL -o py-support.tar.gz "{{.PY_SUPPORT_URL}}"; fi
         echo "{{.PY_SUPPORT_SHA256}}  py-support.tar.gz" | shasum -a 256 -c -
         rm -rf py && mkdir py && tar -xzf py-support.tar.gz -C py
-        # Device slice only. The stdlib folder is located by name, not by a fixed path.
-        STDLIB=$(find py -type d -name python3.13 -path '*ios-arm64*' | head -n 1)
-        test -n "$STDLIB" || { echo "python3.13 stdlib not found in the iOS support tarball" >&2; exit 1; }
-        rm -rf stdlib && mkdir stdlib && cp -R "$STDLIB/." stdlib/
         if [ ! -f yt_dlp.whl ]; then curl -fsSL -o yt_dlp.whl "{{.YT_DLP_URL}}"; fi
         echo "{{.YT_DLP_SHA256}}  yt_dlp.whl" | shasum -a 256 -c -
-        rm -rf yt_dlp_site && mkdir yt_dlp_site && unzip -q -o yt_dlp.whl -d yt_dlp_site
+        if [ ! -f certifi.whl ]; then curl -fsSL -o certifi.whl "{{.CERTIFI_URL}}"; fi
+        echo "{{.CERTIFI_SHA256}}  certifi.whl" | shasum -a 256 -c -
         echo "fetched yt-dlp {{.YT_DLP_VERSION}} and Python {{.PY_SUPPORT_VERSION}}"
 
   # Copies the runtime into the built .app so yt-dlp is found at launch. Run after
-  # create:app:bundle. The Xcode path needs the same folder added as a build resource
-  # and the Python framework linked; neither is done by the generator yet.
+  # create:app:bundle. Xcode uses the same packager in build_xcode_archive.sh.
   mediadl:stage:
     internal: true
     summary: Copy the embedded Python runtime and yt-dlp into the app bundle
     vars:
       MEDIADL_CACHE: build/ios/mediadl/cache
+      MEDIADL_APP: '{{.MEDIADL_APP | default (printf "%s/%s.app" .BIN_DIR .APP_NAME)}}'
     deps:
       - task: mediadl:fetch
     cmds:
       - |
         set -eu
-        APP="{{.BIN_DIR}}/{{.APP_NAME}}.app"
-        DEST="$APP/python/lib/python3.13"
-        rm -rf "$APP/python"
-        mkdir -p "$DEST/site-packages"
-        cp -R "{{.MEDIADL_CACHE}}/stdlib/." "$DEST/"
-        cp -R "{{.MEDIADL_CACHE}}/yt_dlp_site/." "$DEST/site-packages/"
-        cp build/ios/mediadl/tdrive_mediadl.py "$DEST/site-packages/"
+        APP="{{.MEDIADL_APP}}"
+        python3 build/ios/mediadl/package_runtime.py \
+          --source "{{.MEDIADL_CACHE}}/py/Python.xcframework" \
+          --wheel "{{.MEDIADL_CACHE}}/yt_dlp.whl" \
+          --certifi "{{.MEDIADL_CACHE}}/certifi.whl" \
+          --app "$APP" --platform "{{.IOS_PLATFORM}}" --arch "{{.ARCH | default "arm64"}}" \
+          --sign "{{.CODESIGN_IDENTITY}}"
+        codesign --force --sign "{{.CODESIGN_IDENTITY}}" --timestamp=none --preserve-metadata=identifier,entitlements,flags "$APP"
         echo "staged the link downloader runtime into $APP"
 
   package:
@@ -167,6 +168,8 @@ tasks:
   compile:ios:link:
     internal: true
     summary: Link the iOS executable from the Go archive and main.m
+    deps:
+      - task: mediadl:fetch
     vars:
       SDK_PATH:
         sh: xcrun --sdk {{.IOS_SDK}} --show-sdk-path
@@ -181,7 +184,9 @@ tasks:
           MAIN_M=build/ios/xcode/main/main.m
         fi
         xcrun -sdk {{.IOS_SDK}} clang \
-          -fobjc-arc -fblocks \
+          -fobjc-arc -fblocks -DTDRIVE_REQUIRE_PYTHON=1 \
+          -F"build/ios/mediadl/cache/py/Python.xcframework/{{if eq .IOS_PLATFORM "device"}}ios-arm64{{else}}ios-arm64_x86_64-simulator{{end}}" \
+          -framework Python -Wl,-rpath,@executable_path/Frameworks \
           -target {{.IOS_TARGET}} \
           -isysroot {{.SDK_PATH}} \
           -framework Foundation -framework UIKit -framework WebKit \
@@ -369,6 +374,8 @@ tasks:
   generate:ios:xcode:
     internal: true
     summary: Generate iOS Xcode project structure and assets
+    deps:
+      - task: mediadl:fetch
     env:
       # Pass metadata as environment variables so unusual command-line values
       # cannot escape the shell quoting before the Go patcher validates them.
@@ -403,7 +410,7 @@ tasks:
       # The Wails template only includes its own frameworks; add ours to both
       # generated configurations every time the project is regenerated.
       - |
-        perl -0pi -e 's/"-ObjC",/"-ObjC", "-framework", "CoreGraphics", "-framework", "ImageIO", "-framework", "Photos", "-framework", "PhotosUI", "-framework", "Network", "-framework", "UniformTypeIdentifiers",/g' build/ios/xcode/main.xcodeproj/project.pbxproj
+        perl -0pi -e 's/"-ObjC",/"-ObjC", "-framework", "Python", "-Wl,-rpath,\@executable_path\/Frameworks", "-framework", "CoreGraphics", "-framework", "ImageIO", "-framework", "Photos", "-framework", "PhotosUI", "-framework", "Network", "-framework", "UniformTypeIdentifiers",/g' build/ios/xcode/main.xcodeproj/project.pbxproj
       # Make the generated project archive-safe. The patcher validates every
       # Wails template anchor before changing it, so upstream template drift
       # fails here instead of producing a subtly broken TestFlight archive.
@@ -478,7 +485,9 @@ tasks:
             /usr/libexec/PlistBuddy -c "Merge $APP_BUNDLE/assetcatalog_generated_info.plist" "$APP_BUNDLE/Info.plist" || true
           fi
         fi
-      - codesign --force --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app"
+      - task: mediadl:stage
+        vars:
+          MEDIADL_APP: '{{.BIN_DIR}}/{{.APP_NAME}}.dev.app'
       - |
         # The dev bundle id comes from build/ios/Info.dev.plist (derived from
         # build/config.yml), so read it from the built bundle rather than

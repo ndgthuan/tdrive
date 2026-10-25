@@ -36,7 +36,7 @@
     import { openJoinDriveModal } from '../../modules/modals/join_drive';
     import { openNewDriveModal } from '../../modules/modals/new_drive';
     import { openLogoutModal } from '../../modules/modals/logout';
-    import { openTrash } from '../../modules/trash/controller';
+    import { openMobileTrash } from './trash_navigation';
     import type { DriveChannel } from '../../types';
     import {
         ACCOUNT_DETAIL_TITLE_KEYS,
@@ -184,8 +184,7 @@
      * Files tab is never briefly the folder the user left.
      */
     function showTrash(): void {
-        openTrash();
-        activeTab.set('files');
+        openMobileTrash('account');
     }
 </script>
 

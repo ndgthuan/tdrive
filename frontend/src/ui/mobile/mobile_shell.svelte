@@ -20,6 +20,7 @@
     import DriveSwitcherSheet from './drive_switcher_sheet.svelte';
     import TabBar from './tab_bar.svelte';
     import TopBar from './top_bar.svelte';
+    import { clearTrashReturnTab } from './trash_navigation';
     import TransfersTab from './transfers_tab.svelte';
     import { activateMobileBack } from './mobile_back';
     import { activateSafeArea } from './safe_area';
@@ -106,6 +107,7 @@
     // Account and back lands where the user left off; only re-tapping the active
     // tab resets it to the drive root.
     function selectTab(tab: MobileTab): void {
+        clearTrashReturnTab();
         const reselect = get(activeTab) === tab;
         if (tab === 'files') {
             // Leaving the gallery reveals the file list (or the channel or trash)
@@ -171,6 +173,7 @@
         const disposeNotificationActions = activateNotificationActions();
 
         return () => {
+            clearTrashReturnTab();
             disposeNotificationActions();
             disposeBack();
             disposeSafeArea();

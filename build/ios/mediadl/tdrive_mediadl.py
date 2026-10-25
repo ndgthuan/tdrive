@@ -77,8 +77,14 @@ def cancel(request_id):
 def status():
     """Reports the bundled yt-dlp. Never runs a download."""
     try:
+        import certifi
+        import ssl
         import yt_dlp.version
 
+        # Importing the pure Python package alone does not prove the native
+        # socket/SSL extensions and CA certificates survived IPA packaging.
+        if not ssl.create_default_context(cafile=certifi.where()).cert_store_stats()["x509_ca"]:
+            return {"installed": False, "version": "", "ffmpeg": False}
         version = yt_dlp.version.__version__
     except Exception:
         return {"installed": False, "version": "", "ffmpeg": False}

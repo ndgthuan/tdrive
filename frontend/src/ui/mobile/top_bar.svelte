@@ -20,8 +20,9 @@
     import { pushSheet } from '../modals/sheet_stack';
     import { selectionBarState } from '../selection/selection_bar_store';
     import { sidebarState } from '../sidebar/sidebar_store';
-    import { askEmptyTrash, closeTrash, openTrash, trashEntries } from '../../modules/trash/controller';
+    import { askEmptyTrash, trashEntries } from '../../modules/trash/controller';
     import SyncRing from './sync_ring.svelte';
+    import { openMobileTrash, closeMobileTrash } from './trash_navigation';
     import AiPanelToggle from '../ai/ai_panel_toggle.svelte';
     import ViewOnlyBadge from '../members/view_only_badge.svelte';
     import {
@@ -151,7 +152,7 @@
     const menuActions: Array<{ label_key: string; run: () => void }> = [
         { label_key: 'mobile.menu_select', run: () => { startSelectionMode(); closeSort(); } },
         { label_key: 'mobile.menu_refresh', run: () => { void appActions().triggerRefresh(); closeSort(); } },
-        { label_key: 'mobile.menu_trash', run: () => { openTrash(); closeSort(); } },
+        { label_key: 'mobile.menu_trash', run: () => { openMobileTrash('files'); closeSort(); } },
     ];
 
     function menuItems(): HTMLButtonElement[] {
@@ -266,7 +267,7 @@
          binding survives navigation. -->
     <div class="topbar-context topbar-plain topbar-trash" hidden={selecting || active !== 'files' || !inTrash}>
         <div class="topbar-row">
-            <button type="button" class="topbar-back" aria-label={$t_store('mobile.back')} onclick={() => closeTrash()}>
+            <button type="button" class="topbar-back" aria-label={$t_store('mobile.back')} onclick={() => closeMobileTrash()}>
                 <ChevronLeftIcon size={24} aria-hidden="true" />
             </button>
             <div class="topbar-plain-titles">
@@ -444,7 +445,7 @@
 
     <!-- Account: a settings page opened from the list carries its own title and
          a way back here, the way a folder and the trash do. -->
-    <div class="topbar-context topbar-plain" hidden={selecting || active !== 'account'}>
+    <div class="topbar-context topbar-plain" class:topbar-account-detail={$accountDetail !== null} hidden={selecting || active !== 'account'}>
         <div class="topbar-row">
             {#if $accountDetail}
                 <button type="button" class="topbar-back" aria-label={$t_store('mobile.back')} onclick={() => closeAccountDetail()}>
