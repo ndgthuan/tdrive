@@ -2,32 +2,64 @@
   <style>
     .cloud {
       transform-box: view-box;
-      animation: float 3.6s ease-in-out infinite;
+      transform-origin: 512px 620px;
+      animation: float 3.2s ease-in-out infinite;
+    }
+    .sheen {
+      transform-box: view-box;
+      animation: sheen 3.2s ease-in-out infinite;
     }
     .plane {
       transform-box: view-box;
       transform-origin: 520px 540px;
-      animation: fly 3.6s ease-in-out infinite;
+      animation: fly 3.2s ease-in-out infinite;
     }
     .trail {
-      stroke-dasharray: 22 30;
-      animation: trail 1.2s linear infinite;
+      stroke-dasharray: 26 34;
+      animation: streak 1.1s linear infinite, fade 3.2s ease-in-out infinite;
     }
+    .trail.t2 { animation-delay: -0.4s, -0.4s; }
+    .trail.t3 { animation-delay: -0.8s, -0.8s; }
     @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-16px); }
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-18px) scale(1.012); }
+    }
+    @keyframes sheen {
+      0%, 100% { transform: translateX(-620px); }
+      50% { transform: translateX(620px); }
     }
     @keyframes fly {
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      50% { transform: translate(16px, -20px) rotate(-5deg); }
+      25% { transform: translate(12px, -14px) rotate(-4deg); }
+      50% { transform: translate(22px, -26px) rotate(2deg); }
+      75% { transform: translate(8px, -12px) rotate(-2deg); }
     }
-    @keyframes trail {
-      to { stroke-dashoffset: -104; }
+    @keyframes streak {
+      to { stroke-dashoffset: -120; }
+    }
+    @keyframes fade {
+      0%, 100% { opacity: 0; }
+      30%, 70% { opacity: 0.7; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .cloud, .plane, .trail { animation: none; }
+      .cloud, .sheen, .plane, .trail { animation: none; }
+      .trail { opacity: 0; }
     }
   </style>
+
+  <defs>
+    <clipPath id="cloud_shape">
+      <circle cx="270" cy="553" r="208"/>
+      <circle cx="560" cy="435" r="210"/>
+      <circle cx="755" cy="610" r="200"/>
+      <rect x="250" y="520" width="520" height="280" rx="140"/>
+    </clipPath>
+    <linearGradient id="sheen_fill" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
 
   <g class="cloud">
     <g fill="#2FA7E3">
@@ -36,11 +68,15 @@
       <circle cx="755" cy="610" r="200"/>
       <rect x="250" y="520" width="520" height="280" rx="140"/>
     </g>
+    <g clip-path="url(#cloud_shape)">
+      <rect class="sheen" x="200" y="200" width="260" height="640" fill="url(#sheen_fill)" transform="skewX(-16)"/>
+    </g>
   </g>
 
-  <g class="trail" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.6">
-    <path d="M 120 470 L 250 446"/>
-    <path d="M 150 575 L 290 548"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round">
+    <path class="trail t1" d="M 110 440 L 250 414"/>
+    <path class="trail t2" d="M 140 540 L 290 512"/>
+    <path class="trail t3" d="M 170 630 L 300 606"/>
   </g>
 
   <g class="plane">
