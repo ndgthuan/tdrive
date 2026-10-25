@@ -63,8 +63,7 @@ async function overflowsSideways(panel: ReturnType<Page['getByRole']>): Promise<
 }
 
 
-// The phone's Account page no longer offers the encryption prompt from its
-// backup card (that card is automatic backup now), so the prompt is desktop-only.
+// The desktop panel and phone Account pane share the encryption gate.
 for (const platform of ['desktop'] as const) {
     test(`locked backup opens the password prompt on ${platform} and cancel keeps it stopped`, async ({ page }) => {
         await usePlatform(page, platform);
@@ -254,8 +253,11 @@ test('the phone auto backup card keeps each row on its own line on a 390px scree
     await usePlatform(page, 'android');
     await bootTDrive(page, {
         GetState: resolves(auto_backup_state({ enabled: true, phase: 'up_to_date' })),
-        // The runtime starts a catch-up run whenever backup is on.
-        BackUpNow: resolves(auto_backup_state({ enabled: true, phase: 'up_to_date' })),
+        GetPhotoBackupState: resolves({
+            platform: 'android', settings: { enabled: true, photos: true, videos: true, encrypt: true },
+            sources: [{ id: 'device-library', kind: 'device-library', enabled: true, scan_complete: false }],
+            status: { phase: 'complete', complete: 0 },
+        }),
     });
     const panel = await open_auto_backup(page);
     await expect(panel.getByRole('switch', { name: 'Auto backup', exact: true })).toHaveAttribute('aria-checked', 'true');
@@ -263,7 +265,8 @@ test('the phone auto backup card keeps each row on its own line on a 390px scree
     await expect(panel.getByRole('button', { name: 'Rename', exact: true })).toBeVisible();
     await expect(panel.getByRole('switch', { name: 'Wi-Fi only', exact: true })).toHaveAttribute('aria-checked', 'true');
     await expect(panel.getByRole('switch', { name: 'Only while charging', exact: true })).toHaveAttribute('aria-checked', 'false');
-    await expect(panel).toContainText('Everything is backed up.');
+    await expect(panel).toContainText('Ready to back up');
+    await expect(panel).not.toContainText('Everything is backed up.');
     expect(await overflowsSideways(panel)).toBe(false);
 });
 
@@ -272,7 +275,12 @@ for (const platform of ['android', 'ios'] as const) {
         await usePlatform(page, platform);
         const mock = await bootTDrive(page, {
             GetState: resolves(auto_backup_state({ platform, enabled: true, phase: 'running' })),
-            BackUpNow: resolves(auto_backup_state({ platform, enabled: true, phase: 'running' })),
+            GetPhotoBackupState: resolves({ platform,
+                settings: { enabled: true, photos: true, videos: true, encrypt: true },
+                sources: [{ id: 'device-library', kind: 'device-library', enabled: true }],
+                status: { phase: 'uploading', pending: 12 },
+            }),
+            RunPhotoBackup: resolves(ok),
         });
         const panel = await open_auto_backup(page);
         await mock.emit('auto_backup:progress', {
@@ -282,9 +290,30 @@ for (const platform of ['android', 'ios'] as const) {
         await expect(panel).toContainText('IMG_0042.HEIC');
         await expect(panel.getByRole('progressbar')).toBeVisible();
         // The runtime already starts a run on its own, so count from here.
-        const starts = (await mock.calls('BackUpNow')).length;
+        const starts = (await mock.calls('RunPhotoBackup')).length;
         await panel.getByRole('button', { name: 'Back up now', exact: true }).click();
-        await expect.poll(async () => (await mock.calls('BackUpNow')).length).toBe(starts + 1);
+        await expect.poll(async () => (await mock.calls('RunPhotoBackup')).length).toBe(starts + 1);
         expect(await overflowsSideways(panel)).toBe(false);
     });
 }
+
+test('iPhone automatic backup exposes encryption unlock with an empty queue', async ({ page }) => {
+    await usePlatform(page, 'ios');
+    const mock = await bootTDrive(page, {
+        GetState: resolves(auto_backup_state({ platform: 'ios', enabled: true, phase: 'up_to_date' })),
+        GetPhotoBackupState: resolves({ platform: 'ios', encryption_required: true,
+            settings: { enabled: true, photos: true, videos: true, encrypt: true },
+            sources: [{ id: 'device-library', kind: 'device-library', enabled: true, scan_complete: false }],
+            status: { phase: 'idle', pending: 0, complete: 0 },
+        }),
+        EncryptionStatus: resolves({ available: true, password_set: true, password_remembered: false, hint: '' }),
+    });
+    const panel = await open_auto_backup(page);
+    await expect(panel).not.toContainText('Everything is backed up.');
+    await panel.getByRole('button', { name: 'Unlock and back up', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Unlock encrypted files' });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    expect(await mock.calls('RunPhotoBackup')).toHaveLength(0);
+});

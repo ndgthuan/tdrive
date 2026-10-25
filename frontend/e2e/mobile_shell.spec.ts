@@ -154,6 +154,12 @@ test('iPhone downloader uses shared controls and distinguishes playable audio fr
     await expect(page.getByRole('button', { name: 'Download to TDrive', exact: true })).toBeDisabled();
     const pane = page.getByRole('region', { name: 'Download from link', exact: true });
     await expect(pane.getByRole('button', { name: 'Paste link', exact: true })).toHaveClass(/ui-button.*is-secondary/);
+    const fieldCenters = await pane.locator('.field').evaluate((field) => {
+        const input = field.querySelector('input')!.getBoundingClientRect();
+        const button = field.querySelector('button')!.getBoundingClientRect();
+        return { input: input.y + input.height / 2, button: button.y + button.height / 2 };
+    });
+    expect(Math.abs(fieldCenters.input - fieldCenters.button)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: '../.task/mobile-downloader-refined.png', fullPage: true });
 });
 
