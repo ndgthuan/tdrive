@@ -41,8 +41,8 @@ export default defineConfig({
         },
         {
             name: 'webkit-mobile',
-            testMatch: /mobile_shell\.spec\.ts/,
-            grep: /iPhone downloader/,
+            testMatch: /(mobile_shell|backup_design)\.spec\.ts/,
+            grep: /iPhone downloader|iPhone backup|iPhone encryption|iPhone audio/,
             use: { ...devices['iPhone 13'] },
         },
     ],

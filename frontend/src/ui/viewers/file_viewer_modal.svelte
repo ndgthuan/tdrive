@@ -9,6 +9,8 @@
     import Volume2Icon from 'phosphor-svelte/lib/SpeakerHighIcon';
     import VolumeXIcon from 'phosphor-svelte/lib/SpeakerXIcon';
     import XIcon from 'phosphor-svelte/lib/XIcon';
+    import RewindIcon from 'phosphor-svelte/lib/ArrowCounterClockwiseIcon';
+    import ForwardIcon from 'phosphor-svelte/lib/ArrowClockwiseIcon';
     import { isMobilePlatform } from '../../api';
     import { createZoomPanController } from '../preview/zoom_pan';
     import { bindTouchGestures } from '../preview/touch_gestures';
@@ -51,6 +53,7 @@
     let audioWaiting = $state(false);
     let audioVolume = $state(1);
     let audioError = $state('');
+    let audioRate = $state(1);
     let activeAudioUrl = '';
 
     let pdfFrameEl = $state<HTMLIFrameElement | null>(null);
@@ -169,6 +172,7 @@
         audioPaused = audioEl.paused;
         audioWaiting = audioEl.readyState < HTMLMediaElement.HAVE_FUTURE_DATA && !audioEl.paused;
         audioVolume = audioEl.volume;
+        audioRate = audioEl.playbackRate;
         if (audioEl.readyState >= HTMLMediaElement.HAVE_METADATA) audioError = '';
     }
 
@@ -179,6 +183,7 @@
         audioWaiting = false;
         audioVolume = 1;
         audioError = '';
+        audioRate = 1;
     }
 
     async function toggleAudio(): Promise<void> {
@@ -216,6 +221,19 @@
     function toggleAudioMute(): void {
         if (!audioEl) return;
         audioEl.muted = !audioEl.muted;
+        syncAudio();
+    }
+
+    function skipAudio(seconds: number): void {
+        if (!audioEl || !Number.isFinite(audioEl.duration)) return;
+        audioEl.currentTime = Math.max(0, Math.min(audioEl.duration, audioEl.currentTime + seconds));
+        syncAudio();
+    }
+
+    function changeAudioSpeed(): void {
+        if (!audioEl) return;
+        const rates = [1, 1.25, 1.5, 2];
+        audioEl.playbackRate = rates[(rates.indexOf(audioRate) + 1) % rates.length];
         syncAudio();
     }
 
@@ -579,7 +597,7 @@
                     </div>
                     <div class="audio-copy">
                         <div class="audio-title" title={$fileViewerState.title}>{$fileViewerState.title}</div>
-                        <div class="audio-subtitle">{audioError || (audioWaiting ? $t_store('viewer.audio_buffering') : audioPaused ? $t_store('viewer.audio_ready') : $t_store('viewer.audio_streaming'))}</div>
+                        <div class="audio-subtitle" role={audioError ? 'alert' : 'status'}>{audioError || (audioWaiting ? $t_store('viewer.audio_buffering') : audioPaused ? $t_store('viewer.audio_ready') : $t_store('viewer.audio_streaming'))}</div>
                     </div>
                 </div>
                 <div class="audio-timeline">
@@ -588,6 +606,7 @@
                     <span class="audio-time">{formatTime(audioDuration)}</span>
                 </div>
                 <div class="audio-controls" aria-label={$t_store('viewer.audio_controls')}>
+                    <button class="audio-skip" type="button" onclick={() => skipAudio(-10)} aria-label={$t_store('video.back_10')}><RewindIcon size={24} aria-hidden="true" /><span>10</span></button>
                     <button class="audio-play" type="button" onclick={() => void toggleAudio()} aria-label={audioPaused ? $t_store('viewer.play_audio') : $t_store('viewer.pause_audio')}>
                         {#if audioPaused}
                             <PlayIcon size={24} aria-hidden="true" weight="fill" />
@@ -595,6 +614,10 @@
                             <PauseIcon size={24} aria-hidden="true" weight="fill" />
                         {/if}
                     </button>
+                    <button class="audio-skip" type="button" onclick={() => skipAudio(10)} aria-label={$t_store('video.forward_10')}><ForwardIcon size={24} aria-hidden="true" /><span>10</span></button>
+                </div>
+                <div class="audio-options">
+                    <button class="audio-rate" type="button" onclick={changeAudioSpeed} aria-label={$t_store('video.playback_speed')}>{audioRate}×</button>
                     <div class="audio-volume-group">
                         <button class="audio-mute" type="button" onclick={toggleAudioMute} aria-label={audioEl?.muted ? $t_store('viewer.unmute') : $t_store('viewer.mute')}>
                             {#if audioEl?.muted || audioVolume <= 0}

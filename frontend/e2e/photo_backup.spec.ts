@@ -271,7 +271,7 @@ test('the phone auto backup card keeps each row on its own line on a 390px scree
 });
 
 for (const platform of ['android', 'ios'] as const) {
-    test(`the phone auto backup shows its live queue and starts a run on ${platform}`, async ({ page }) => {
+    test(`the phone auto backup shows its live queue and pauses a run on ${platform}`, async ({ page }) => {
         await usePlatform(page, platform);
         const mock = await bootTDrive(page, {
             GetState: resolves(auto_backup_state({ platform, enabled: true, phase: 'running' })),
@@ -281,6 +281,7 @@ for (const platform of ['android', 'ios'] as const) {
                 status: { phase: 'uploading', pending: 12 },
             }),
             RunPhotoBackup: resolves(ok),
+            PausePhotoBackup: resolves(ok),
         });
         const panel = await open_auto_backup(page);
         await mock.emit('auto_backup:progress', {
@@ -290,9 +291,8 @@ for (const platform of ['android', 'ios'] as const) {
         await expect(panel).toContainText('IMG_0042.HEIC');
         await expect(panel.getByRole('progressbar')).toBeVisible();
         // The runtime already starts a run on its own, so count from here.
-        const starts = (await mock.calls('RunPhotoBackup')).length;
-        await panel.getByRole('button', { name: 'Back up now', exact: true }).click();
-        await expect.poll(async () => (await mock.calls('RunPhotoBackup')).length).toBe(starts + 1);
+        await panel.getByRole('button', { name: 'Pause', exact: true }).click();
+        await expect.poll(async () => (await mock.calls('PausePhotoBackup')).length).toBe(1);
         expect(await overflowsSideways(panel)).toBe(false);
     });
 }

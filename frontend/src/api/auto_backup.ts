@@ -155,6 +155,7 @@ export interface AutoBackupProgress {
     total: number;
     currentName: string;
     currentBytes: number;
+    currentBytesDone?: number;
     paused: boolean;
     folderName: string;
 }
@@ -171,6 +172,7 @@ export function normalizeAutoBackupProgress(raw: unknown): AutoBackupProgress {
         total: count(value.total),
         currentName: boundedText(value.current_name ?? value.currentName, 512),
         currentBytes: count(value.current_bytes ?? value.currentBytes),
+        currentBytesDone: count(value.current_bytes_done ?? value.currentBytesDone),
         paused: value.paused === true,
         folderName: boundedText(value.folder_name ?? value.folderName, 240),
     };

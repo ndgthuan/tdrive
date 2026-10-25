@@ -23,6 +23,12 @@ function state(overrides: Partial<PhotoBackupState['status']> = {}): PhotoBackup
 describe('photo backup activity', () => {
     beforeEach(() => { historyEvents.set([]); clearPhotoBackupActivity(); });
 
+    it('never resurrects the automatic library as a second legacy row after switching off', () => {
+        const snapshot = state({ phase: 'queued' });
+        syncPhotoBackupActivity({ ...snapshot, platform: 'ios', sources: [{ id: 'device-library', kind: 'device-library', enabled: false, name: 'iPhone', root: 'device:library', addedAt: 0 }], settings: { ...snapshot.settings, enabled: false } });
+        expect(get(activeTransfers)).toEqual([]);
+    });
+
     it('keeps one backup row whose bar is the queue and whose listed file is the current one', () => {
         syncPhotoBackupActivity(state());
         syncPhotoBackupActivity(state({

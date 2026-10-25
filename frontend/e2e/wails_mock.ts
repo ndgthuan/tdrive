@@ -91,6 +91,7 @@ const DEFAULT_METHODS: Record<string, MockPlan> = {
     GetAllFsMsgIDs: resolves([]),
     GetFileList: resolves([]),
     GetPhotoBackupState: resolves({ settings: { enabled: false }, sources: [], status: { phase: 'idle' } }),
+    GetProgress: resolves({ enabled: false, done: 0, total: 0, paused: false }),
     ListResumableUploads: resolves([]),
     ListResumableDownloads: resolves({ result: { ok: true }, jobs: [] }),
     GetFolderContents: resolves({ folders: [], files: [] }),

@@ -26,7 +26,8 @@
     import LanguagePane from '../settings/language_pane.svelte';
     import AboutPanel from './about_panel.svelte';
     import { driveListFailed } from '../sidebar/sidebar_store';
-    import { retryLoadChannels } from '../../modules/channels';
+    import { retryLoadChannels, switchActiveChannel } from '../../modules/channels';
+    import { navigateToFolder, navigateToIndex } from '../../modules/navigation';
     import AutoBackupPane from '../backup/auto_backup_pane.svelte';
     import DownloadFromLinkRow from './download_from_link_row.svelte';
     import DownloadFromLinkSheet from './download_from_link_sheet.svelte';
@@ -52,6 +53,16 @@
     import { photoBackupState } from '../../modules/photo_backup/controller';
     import { describeBackup } from '../gallery/photo_backup_view';
     import { t_store } from '../../i18n/i18n';
+
+    async function showBackupFiles(folderID: string, folderName: string): Promise<void> {
+        const driveID = Number(get(photoBackupState)?.destination.id);
+        if (!Number.isSafeInteger(driveID) || driveID <= 0) return;
+        if (Number(get(activeDrive)?.id) !== driveID) await switchActiveChannel(driveID);
+        navigateToIndex(-1);
+        navigateToFolder(folderID, folderName);
+        closeAccountDetail();
+        activeTab.set('files');
+    }
 
     const displayName = $derived(
         !$profileLoaded ? $t_store('mobile.account_loading') : $profileUser?.displayName || $t_store('mobile.account_telegram'),
@@ -205,7 +216,7 @@
             {:else if $accountDetail === 'download'}
                 <DownloadFromLinkSheet open page onclose={closeAccountDetail} />
             {:else}
-                <AutoBackupPane page />
+                <AutoBackupPane page onopenfiles={(folderID, folderName) => void showBackupFiles(folderID, folderName)} />
             {/if}
         </section>
     {:else}
