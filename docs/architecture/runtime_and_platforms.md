@@ -183,6 +183,21 @@ backup and inherits the active theme. On hosts without FFmpeg, it offers only
 probed combined or audio-only formats, rather than merge/transcode presets.
 Native downloader output is drained through the frontend relay before the
 completion reply removes its Go broker request, including metadata-only probes.
+The iOS picker limits downloads to the containers its in-app player admits
+(MP4/M4V/MOV video and M4A/MP3/AAC/WAV audio). An audio-only WebM is not offered
+as a playable iPhone download. Video and audio choices are grouped separately;
+audio is never automatically selected as the fallback for a video request.
+When only separate video/audio streams exist, the pane explains that this
+mobile build cannot merge them and points to the desktop downloader. This is
+an explicit remaining capability limit, not a successful video download.
+
+Automatic backup triggers the frontend photo discovery controller on enable,
+foreground entry and media changes. Running the backend upload queue alone
+does not enumerate the native library. Explicit enable and retry actions also
+open encryption setup/unlock when required. The Account pane exposes the shared
+controller's errors and locked/scanning state, and offers a backup action even
+when the upload queue has zero items; an empty queue is not proof of a completed
+library scan.
 
 The automatic backup pane reads the actual iOS Photos authorization on entry
 and foreground resume. An enabled backup with an undetermined grant requests

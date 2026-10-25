@@ -28,9 +28,10 @@
     interface Props {
         destination: DownloadDestination;
         disabled?: boolean;
+        mobile?: boolean;
     }
 
-    let { destination = $bindable(), disabled = false }: Props = $props();
+    let { destination = $bindable(), disabled = false, mobile = false }: Props = $props();
 
     let open = $state(false);
     // The drive and folder the popover is browsing. It is separate from the
@@ -182,6 +183,7 @@
     <button
         bind:this={trigger_el}
         class="dest-trigger"
+        class:is-mobile={mobile}
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -344,6 +346,17 @@
     .dest-trigger:hover:not(:disabled),
     .dest-trigger[aria-expanded='true'] {
         border-color: rgb(127 156 196 / 0.5);
+    }
+
+    .dest-trigger.is-mobile {
+        width: 100%;
+        min-height: 40px;
+        padding: 0 var(--space-4);
+        border-radius: var(--radius-md);
+        border-color: var(--border);
+        background: var(--surface-control);
+        color: var(--text-main);
+        font-size: var(--font-size-sm);
     }
 
     .dest-trigger:focus-visible {

@@ -436,6 +436,12 @@ async function continueForegroundDiscovery(): Promise<void> {
     await runDiscoveryScheduler();
 }
 
+/** Refresh the source enabled by the automatic-backup settings before scanning it. */
+export async function discoverAutomaticPhotoBackup(): Promise<void> {
+    await refreshPhotoBackup();
+    await runDiscoveryScheduler();
+}
+
 // Kept at the application lifecycle instead of inside the settings surface so
 // queued work can resume while that panel is closed.
 export function activatePhotoBackup(): () => void {

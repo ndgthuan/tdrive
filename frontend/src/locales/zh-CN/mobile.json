@@ -163,5 +163,6 @@
     "download_transfers_title": "链接下载",
     "download_install_action": "设置下载器",
     "download_update_hint": "网站经常变化。链接失效时请更新。",
-    "download_to_drive": "下载到 TDrive"
+    "download_to_drive": "下载到 TDrive",
+    "download_video_merge_note": "此链接的视频和音频是分开的。此移动版本暂时无法合并。请使用桌面版 TDrive 下载带声音的视频，或在下方选择音频。"
 }

@@ -131,6 +131,32 @@ test('iPhone downloader has a visible return control and one unclipped scroll su
     await expect(tab(page, /^Account/)).toHaveClass(/active/);
 });
 
+test('iPhone downloader uses shared controls and distinguishes playable audio from video', async ({ page }) => {
+    await page.addInitScript(() => { window.tdriveMediaDl = { status: () => '{}' }; });
+    await bootTDrive(page, {
+        ...overrides,
+        Status: resolves({ yt_dlp: { found: true }, ffmpeg: { found: false } }),
+        ListJobs: resolves([]),
+        Probe: resolves({ title: 'Evening session', uploader: 'Example artist', duration_s: 245, formats: [
+            { id: '137', choice: '137+ba', height: 1080, ext: 'mp4', has_video: true, has_audio: false },
+            { id: '140', choice: '140', height: 0, ext: 'm4a', note: 'medium', approx_size: 4000000, has_video: false, has_audio: true },
+            { id: '251', choice: '251', height: 0, ext: 'webm', has_video: false, has_audio: true },
+        ] }),
+    }, { url: '/?mobile=ios' });
+    await tab(page, /^Account/).click();
+    await page.getByRole('button', { name: /Download from link/ }).click();
+    await page.getByRole('textbox', { name: 'Video link' }).fill('https://youtu.be/video123');
+    await page.getByRole('button', { name: 'Fetch', exact: true }).click();
+    await expect(page.getByText('Evening session')).toBeVisible();
+    await expect(page.getByText('M4A', { exact: true })).toBeVisible();
+    await expect(page.getByText('WEBM', { exact: true })).toHaveCount(0);
+    await expect(page.getByText(/separate video and audio streams/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Download to TDrive', exact: true })).toBeDisabled();
+    const pane = page.getByRole('region', { name: 'Download from link', exact: true });
+    await expect(pane.getByRole('button', { name: 'Paste link', exact: true })).toHaveClass(/ui-button.*is-secondary/);
+    await page.screenshot({ path: '../.task/mobile-downloader-refined.png', fullPage: true });
+});
+
 test('mobile upload offers the photo library and AI opens at phone width', async ({ page }) => {
     await page.addInitScript(() => {
         (window as unknown as { tdriveIOSPhotos: unknown }).tdriveIOSPhotos = {

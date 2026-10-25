@@ -163,5 +163,6 @@
     "download_transfers_title": "Downloads via link",
     "download_install_action": "Downloader instellen",
     "download_update_hint": "Sites veranderen vaak. Werk bij als een link niet meer werkt.",
-    "download_to_drive": "Downloaden naar TDrive"
+    "download_to_drive": "Downloaden naar TDrive",
+    "download_video_merge_note": "Deze link heeft aparte video- en audiostreams. Deze mobiele versie kan ze nog niet samenvoegen. Gebruik TDrive op de computer voor video met geluid, of kies hieronder audio."
 }

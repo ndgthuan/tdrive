@@ -158,5 +158,6 @@
     "download_transfers_title": "リンクからのダウンロード",
     "download_install_action": "ダウンローダーを設定",
     "download_update_hint": "サイトは頻繁に変わります。リンクが動かないときは更新してください。",
-    "download_to_drive": "TDrive にダウンロード"
+    "download_to_drive": "TDrive にダウンロード",
+    "download_video_merge_note": "このリンクの映像と音声は別々です。このモバイル版ではまだ結合できません。音声付き動画はパソコン版TDriveで保存するか、下から音声を選んでください。"
 }

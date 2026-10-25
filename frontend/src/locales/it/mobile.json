@@ -168,5 +168,6 @@
     "download_transfers_title": "Download da link",
     "download_install_action": "Configura il downloader",
     "download_update_hint": "I siti cambiano spesso. Aggiorna quando un link non funziona.",
-    "download_to_drive": "Scarica in TDrive"
+    "download_to_drive": "Scarica in TDrive",
+    "download_video_merge_note": "Questo link ha flussi video e audio separati. Questa versione mobile non può ancora unirli. Usa TDrive sul computer per il video con audio oppure scegli un audio qui sotto."
 }
