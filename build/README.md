@@ -151,6 +151,22 @@ wails3 task ios:package
 
 Physical-device builds require a signing identity and provisioning profile; see [ios/Taskfile.yml](ios/Taskfile.yml) for device and IPA tasks. CI checks simulator and device builds, but there is no public iOS distribution yet.
 
+The link downloader embeds pinned BeeWare CPython 3.13, yt-dlp and certifi. Both
+Taskfile and generated Xcode builds link `Python.framework` and stage the shared
+stdlib, architecture-specific native extension frameworks and CA certificates.
+The runtime ships with the app; setup confirms readiness rather than downloading
+an interpreter on the phone. Updating yt-dlp on iOS requires a new app build.
+There is no bundled ffmpeg, so formats requiring merging or conversion remain
+unavailable. Downloads require keeping the app open.
+
+After fetching the runtime with an iOS build, run
+`python3 -m unittest discover -s build/ios/mediadl -p 'test*.py'` for packaging
+contracts and `bash scripts/smoke_ios_downloader.sh` on an Apple Silicon Mac for
+the native Simulator check. The latter imports the packaged Python/SSL/yt-dlp,
+checks its CA store, downloads the local MP4 fixture and verifies its SHA-256.
+CI runs this before uploading an IPA. This does not verify site-specific
+extraction or physical-device behavior.
+
 The owned and generated iOS plists include `NSFaceIDUsageDescription`. Vault keys
 use device-only Keychain items protected by the current biometric set, supporting
 Face ID and Touch ID. Verify their prompts and enrollment invalidation on a

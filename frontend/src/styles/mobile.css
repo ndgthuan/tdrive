@@ -193,6 +193,12 @@ html.mobile .topbar-row {
 
 html.mobile .topbar-plain .topbar-row { min-height: 52px; }
 
+html.mobile .topbar-account-detail .topbar-row {
+    gap: 4px;
+    padding-left: calc(var(--inset-left) + 4px);
+}
+html.mobile .account-detail:has(.ai-header) { margin-inline: -8px; }
+
 html.mobile .topbar-title {
     font-size: var(--mobile-type-title);
     font-weight: var(--weight-strong);

@@ -67,6 +67,16 @@ test('iPhone Account keeps backup navigation, logo, AI settings and updates reac
     await page.screenshot({ path: '../.task/mobile-polish-about.png' });
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await page.getByRole('button', { name: 'AI Models', exact: true }).click();
+    const description = await page.locator('.ai-header p').boundingBox();
+    const add = await page.getByRole('button', { name: 'Add model', exact: true }).boundingBox();
+    expect(description!.x).toBeGreaterThanOrEqual(4);
+    expect(description!.x).toBeLessThanOrEqual(12);
+    expect(description!.width).toBeGreaterThan(340);
+    expect(add!.x).toBeCloseTo(description!.x, 0);
+    expect(add!.y).toBeGreaterThanOrEqual(description!.y + description!.height);
+    const title = await page.locator('.topbar-account-detail h1').boundingBox();
+    expect(title!.x).toBeLessThanOrEqual(60);
+    await page.screenshot({ path: '../.task/mobile-polish-ai-layout.png' });
     await page.getByRole('button', { name: 'Add model', exact: true }).click();
     await expect(page.getByLabel('API key', { exact: true })).toBeVisible();
     await page.screenshot({ path: '../.task/mobile-polish-ai-model.png' });
@@ -325,6 +335,26 @@ test('a tab round trip keeps the files view and re-tapping files resets it', asy
     await tab(page, /^Files/).click();
     await expect(page.getByRole('button', { name: /Switch drive/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Trash' })).toHaveCount(0);
+});
+
+test('Trash Back returns to its Account or Files entry point', async ({ page }) => {
+    await bootMobile(page);
+    await tab(page, /^Account/).click();
+    await page.getByRole('button', { name: 'Trash', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Trash', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(tab(page, /^Account/)).toHaveClass(/active/);
+    await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Trash', exact: true }).click();
+    expect(await page.evaluate(() => window.__tdriveHandleBack?.())).toBe(true);
+    await expect(tab(page, /^Account/)).toHaveClass(/active/);
+    await tab(page, /^Files/).click();
+    await page.getByRole('button', { name: /Sort and more/ }).click();
+    await page.getByRole('menuitem', { name: 'Trash', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Trash', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(tab(page, /^Files/)).toHaveClass(/active/);
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toBeVisible();
 });
 
 // Multi-select has a keyboard/pointer path, not only a long press: the overflow

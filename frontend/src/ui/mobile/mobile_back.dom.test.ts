@@ -10,7 +10,8 @@ vi.mock('../../modules/gallery', () => ({ exitPhotos }));
 vi.mock('../../modules/navigation', () => ({ navigateBack }));
 vi.mock('../../modules/selection', () => ({ clearSelection }));
 const closeTrash = vi.hoisted(() => vi.fn());
-vi.mock('../../modules/trash/controller', () => ({ closeTrash }));
+const openTrash = vi.hoisted(() => vi.fn());
+vi.mock('../../modules/trash/controller', () => ({ closeTrash, openTrash }));
 
 import { breadcrumbPath } from '../chrome/breadcrumb_store';
 import { closeTopSheet, pushSheet } from '../modals/sheet_stack';
@@ -19,8 +20,10 @@ import { sidebarState } from '../sidebar/sidebar_store';
 import { openChannelKey } from '../channels/channel_store';
 import { activateMobileBack, BACK_BRIDGE, handleBackPress } from './mobile_back';
 import { activeTab, accountDetail, driveSwitcherOpen, openAccountDetail } from './mobile_shell_store';
+import { clearTrashReturnTab, openMobileTrash } from './trash_navigation';
 
 beforeEach(() => {
+    clearTrashReturnTab();
     while (closeTopSheet());
     driveSwitcherOpen.set(false);
     sidebarState.update((current) => ({ ...current, virtualView: null }));
@@ -40,6 +43,23 @@ afterEach(() => {
 });
 
 describe('android back', () => {
+    it('returns from Account trash to Account on native Back', () => {
+        activeTab.set('account');
+        openMobileTrash('account');
+        expect(get(activeTab)).toBe('files');
+        sidebarState.update((current) => ({ ...current, virtualView: 'trash' }));
+        expect(handleBackPress()).toBe(true);
+        expect(closeTrash).toHaveBeenCalledOnce();
+        expect(get(activeTab)).toBe('account');
+    });
+
+    it('does not reuse the Account destination after a deliberate tab change', () => {
+        openMobileTrash('account');
+        clearTrashReturnTab();
+        sidebarState.update((current) => ({ ...current, virtualView: 'trash' }));
+        expect(handleBackPress()).toBe(true);
+        expect(get(activeTab)).toBe('files');
+    });
     it('returns from backup to Account before going to Files', () => {
         openAccountDetail('backup');
         expect(handleBackPress()).toBe(true);
