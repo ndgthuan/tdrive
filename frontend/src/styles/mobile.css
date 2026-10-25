@@ -193,6 +193,12 @@ html.mobile .topbar-row {
 
 html.mobile .topbar-plain .topbar-row { min-height: 52px; }
 
+html.mobile .topbar-account-detail .topbar-row {
+    gap: 4px;
+    padding-left: calc(var(--inset-left) + 4px);
+}
+html.mobile .account-detail:has(.ai-header) { margin-inline: -8px; }
+
 html.mobile .topbar-title {
     font-size: var(--mobile-type-title);
     font-weight: var(--weight-strong);
@@ -1074,6 +1080,7 @@ html.mobile .switcher-close::before {
     background: var(--overlay-neutral-2);
 }
 html.mobile .switcher-close:focus-visible {
+    box-shadow: none;
     outline: 2px solid var(--color-accent);
     outline-offset: -6px;
     border-radius: var(--radius-pill);
@@ -1098,6 +1105,10 @@ html.mobile .switcher-list .drive-item {
     color: var(--color-text);
 }
 html.mobile .switcher-list .drive-item.active { background: var(--overlay-accent-1); color: var(--color-accent); }
+html.mobile .switcher-list .drive-item:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--color-accent);
+}
 html.mobile .switcher-list .sidebar-drive-row {
     grid-template-columns: minmax(0, 1fr) 44px;
     width: 100%;
@@ -1262,6 +1273,7 @@ html.mobile .account-logout:focus-visible,
 html.mobile .switcher-action:focus-visible,
 html.mobile .transfers-clear:focus-visible,
 html.mobile .topbar-menu-item:focus-visible {
+    box-shadow: none;
     outline: 2px solid var(--color-accent);
     outline-offset: -2px;
     border-radius: var(--radius-md);

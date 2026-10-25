@@ -767,6 +767,10 @@ func (a *App) ServiceStartup(ctx context.Context, options application.ServiceOpt
 	a.backendLock = lock
 	applog.Init()
 	a.updates.initUpdater()
+	if a.updates.installPendingAtStartup() {
+		a.finishBackendStartup(context.Canceled)
+		return nil
+	}
 
 	// Native file drop: hand the dropped absolute paths to the frontend, which
 	// resolves the target folder and runs the import flow. Drop zones opt in via

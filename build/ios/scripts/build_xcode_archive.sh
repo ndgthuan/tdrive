@@ -30,9 +30,22 @@ fi
 
 if [ "${CONFIGURATION:-Debug}" = "Release" ]; then
     wails3 task common:build:frontend BUILD_FLAGS="-tags production,ios"
-    go build -tags production,ios -trimpath -buildvcs=false -ldflags="-w -s" \
+    go build -tags production,ios -trimpath -buildvcs=false -ldflags="-w -s -X main.appVersion=${MARKETING_VERSION}" \
         -buildmode=c-archive -overlay build/ios/xcode/overlay.json -o "bin/${PRODUCT_NAME}.a"
 else
     go build -tags ios,debug -buildvcs=false -gcflags=all="-l" \
         -buildmode=c-archive -overlay build/ios/xcode/overlay.json -o "bin/${PRODUCT_NAME}.a"
 fi
+
+# Xcode links the same runtime as the Taskfile packaging path.
+if [ "${PLATFORM}" = "iphonesimulator" ]; then
+    PYTHON_PLATFORM=simulator
+else
+    PYTHON_PLATFORM=device
+fi
+python3 build/ios/mediadl/package_runtime.py \
+    --source build/ios/mediadl/cache/py/Python.xcframework \
+    --wheel build/ios/mediadl/cache/yt_dlp.whl \
+    --certifi build/ios/mediadl/cache/certifi.whl \
+    --app "${TARGET_BUILD_DIR}/${WRAPPER_NAME}" --platform "${PYTHON_PLATFORM}" \
+    --sign "${EXPANDED_CODE_SIGN_IDENTITY:--}"

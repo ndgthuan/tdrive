@@ -59,6 +59,10 @@ afterEach(() => {
 });
 
 describe('drive header', () => {
+    it('shows the selected personal drive name', () => {
+        render();
+        expect(target.querySelector('.drive-header-name')?.textContent).toBe('My Drive');
+    });
     it('keeps the sync ring out of the switcher button', () => {
         // Nested, the ring's click bubbled into the header's: one tap jumped to
         // Transfers and opened the drive switcher on top of it.

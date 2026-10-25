@@ -133,6 +133,9 @@ func patchProject(project, minimumVersion, marketingVersion, buildNumber string)
 			old:  "\t\t\t\tCODE_SIGNING_ALLOWED = NO;\n",
 			new: "\t\t\t\tASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;\n" +
 				"\t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;\n" +
+				"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (\"$(inherited)\", \"TDRIVE_REQUIRE_PYTHON=1\");\n" +
+				"\t\t\t\t\"FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]\" = (\"$(inherited)\", \"$(PROJECT_DIR)/../mediadl/cache/py/Python.xcframework/ios-arm64\");\n" +
+				"\t\t\t\t\"FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]\" = (\"$(inherited)\", \"$(PROJECT_DIR)/../mediadl/cache/py/Python.xcframework/ios-arm64_x86_64-simulator\");\n" +
 				"\t\t\t\tCODE_SIGNING_ALLOWED = YES;\n" +
 				"\t\t\t\tCODE_SIGN_STYLE = Automatic;\n" +
 				"\t\t\t\tCURRENT_PROJECT_VERSION = " + buildNumber + ";\n" +

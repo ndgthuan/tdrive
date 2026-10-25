@@ -1,6 +1,6 @@
 {
   "title": "Modele AI",
-  "subtitle": "Modele dla asystenta AI i porządkowania plików. Klucze API są przechowywane w Windows Credential Manager (Menedżer poświadczeń systemu Windows).",
+  "subtitle": "Modele dla asystenta AI i porządkowania plików. Klucze API są przechowywane w bezpiecznym magazynie poświadczeń urządzenia (Menedżer poświadczeń systemu Windows).",
   "add_model": "Dodaj model",
   "loading": "Wczytywanie modeli…",
   "empty": "Brak modeli. Dodaj model, aby korzystać z asystenta AI.",
@@ -28,7 +28,7 @@
   "key_saved": "Klucz zapisany. Pozostaw pole puste, aby go zachować.",
   "key_none": "Nie zapisano jeszcze klucza.",
   "key_clear": "Usuń zapisany klucz",
-  "key_note": "Przechowywane w Windows Credential Manager, nigdy nie wysyłane do Telegrama.",
+  "key_note": "Przechowywane w bezpiecznym magazynie poświadczeń urządzenia, nigdy nie wysyłane do Telegrama.",
   "show_key": "Pokaż klucz",
   "hide_key": "Ukryj klucz",
   "toggle_vision": "Zezwól na odczyt zawartości obrazów (wizja)",

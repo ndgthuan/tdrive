@@ -13,6 +13,23 @@
     import { panel_open, sessions, sessions_query, sessions_searching, view, active_session_id } from './ai_store';
     import { refresh_models, refresh_sessions, start_new_chat } from './ai_chat';
     import { t_store } from '../../i18n/i18n';
+    import { pushSheet } from '../modals/sheet_stack';
+    import { installModalA11y } from '../modals/modal_a11y';
+    import { isMobilePlatform } from '../../api';
+    const mobile = isMobilePlatform();
+    let panelElement = $state<HTMLElement | null>(null);
+
+    $effect(() => {
+        if (!$panel_open) return;
+        if (mobile && panelElement) {
+            const a11y = installModalA11y(panelElement, { requestClose: () => panel_open.set(false) });
+            a11y.activate();
+            return () => a11y.deactivate();
+        }
+        if (mobile) return;
+        const back = pushSheet(() => panel_open.set(false));
+        return () => back.release();
+    });
 
     // Ctrl+I (Cmd+I on macOS) toggles the panel from anywhere in the app shell.
     function on_key_down(event: KeyboardEvent): void {
@@ -77,7 +94,7 @@
 </div>
 
 {#if $panel_open}
-    <aside id="ai-panel" class="ai-panel" aria-label={$t_store('ai.panel_label')}>
+    <aside bind:this={panelElement} id="ai-panel" class="ai-panel" role={mobile ? 'dialog' : undefined} aria-modal={mobile ? 'true' : undefined} aria-label={$t_store('ai.panel_label')}>
         <header class="ai-panel-header">
             {#if $view === 'chat'}
                 <button
@@ -135,6 +152,18 @@
 {/if}
 
 <style>
+    :global(html.mobile) .ai-panel {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        max-width: none;
+        height: 100dvh;
+        margin: 0;
+        padding-top: var(--inset-top);
+        padding-bottom: var(--inset-bottom);
+        z-index: var(--z-modal);
+        box-sizing: border-box;
+    }
     .ai-panel {
         width: 380px;
         flex: 0 0 380px;

@@ -8,8 +8,8 @@
  * 
  * These methods sit on one type because they all read or drive a single phase
  * machine, and because every one of them is meaningless without it: a "dev"
- * build and every mobile build leave that machine nil, and each method here
- * then degrades to PhaseDisabled instead of pretending an update is possible.
+ * build leaves that machine disabled. Mobile builds discover releases but do
+ * not replace their own installation; the operating system owns that step.
  * Grouping them also keeps the one destructive step -- replacing the bundle the
  * process is running from -- next to the checks that decide whether there is
  * anything worth replacing it with.

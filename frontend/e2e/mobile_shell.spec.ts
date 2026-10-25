@@ -44,8 +44,99 @@ test('phone shell mounts with the platform classes', async ({ page }) => {
     await bootMobile(page);
     await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains('mobile'))).toBe(true);
     await expect(page.locator('.tab-bar')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('TDrive');
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('My Drive');
     await expect(page.getByRole('button', { name: /Switch drive/ })).toHaveAttribute('aria-label', /My Drive/);
+});
+
+test('iPhone Account keeps backup navigation, logo, AI settings and updates reachable', async ({ page }) => {
+    await bootTDrive(page, { ...overrides, AppVersion: resolves({ version: '3.0.2', os: 'ios', arch: 'arm64', dev_build: false }) }, { url: '/?mobile=ios' });
+    await tab(page, /^Account/).click();
+    await page.getByRole('button', { name: /Photo & video backup/ }).click();
+    await expect(page.getByRole('heading', { name: 'Photo & video backup' })).toBeVisible();
+    const wifi = page.getByRole('switch', { name: 'Wi-Fi only', exact: true });
+    const card = page.locator('.ab-rows');
+    const [cardBox, switchBox] = await Promise.all([card.boundingBox(), wifi.boundingBox()]);
+    expect(switchBox!.x - cardBox!.x).toBeGreaterThanOrEqual(10);
+    expect(cardBox!.x + cardBox!.width - switchBox!.x - switchBox!.width).toBeGreaterThanOrEqual(10);
+    await page.screenshot({ path: '../.task/mobile-polish-backup.png' });
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(tab(page, /^Account/)).toHaveClass(/active/);
+    await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'About', exact: true }).click();
+    await expect.poll(() => page.locator('.about-mark').evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+    await page.screenshot({ path: '../.task/mobile-polish-about.png' });
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await page.getByRole('button', { name: 'AI Models', exact: true }).click();
+    const description = await page.locator('.ai-header p').boundingBox();
+    const add = await page.getByRole('button', { name: 'Add model', exact: true }).boundingBox();
+    expect(description!.x).toBeGreaterThanOrEqual(4);
+    expect(description!.x).toBeLessThanOrEqual(12);
+    expect(description!.width).toBeGreaterThan(340);
+    expect(add!.x).toBeCloseTo(description!.x, 0);
+    expect(add!.y).toBeGreaterThanOrEqual(description!.y + description!.height);
+    const title = await page.locator('.topbar-account-detail h1').boundingBox();
+    expect(title!.x).toBeLessThanOrEqual(60);
+    await page.screenshot({ path: '../.task/mobile-polish-ai-layout.png' });
+    await page.getByRole('button', { name: 'Add model', exact: true }).click();
+    await expect(page.getByLabel('API key', { exact: true })).toBeVisible();
+    await page.screenshot({ path: '../.task/mobile-polish-ai-model.png' });
+    expect(await page.locator('.account-tab').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    await page.getByRole('button', { name: 'Back', exact: true }).first().click();
+    await page.getByRole('button', { name: 'App updates', exact: true }).click();
+    await expect(page.getByText(/iOS does not allow/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Check for updates', exact: true })).toBeVisible();
+});
+
+test('iPhone downloader has a visible return control and one unclipped scroll surface', async ({ page }) => {
+    await page.addInitScript(() => {
+        window.tdriveMediaDl = { status: () => '{}' };
+    });
+    await bootTDrive(page, {
+        ...overrides,
+        Status: resolves({ yt_dlp: { found: false }, ffmpeg: { found: false } }),
+        ListJobs: resolves([]),
+    }, { url: '/?mobile=ios' });
+    await tab(page, /^Account/).click();
+    await page.getByRole('button', { name: /Download from link/ }).click();
+    const dialog = page.getByRole('dialog', { name: 'Download from link' });
+    await expect(dialog).toBeVisible();
+    const back = dialog.getByRole('button', { name: 'Back', exact: true });
+    await expect(back).toBeInViewport();
+    await page.screenshot({ path: '../.task/mobile-polish-downloader.png' });
+    const sizes = await dialog.evaluate((el) => {
+        const body = el.querySelector('.body')!;
+        const group = el.querySelector('[role="radiogroup"]')!;
+        return { width: el.clientWidth, scrollWidth: el.scrollWidth, groupHeight: group.clientHeight, groupScroll: group.scrollHeight,
+            overflow: getComputedStyle(body).overflowY };
+    });
+    expect(sizes.scrollWidth).toBeLessThanOrEqual(sizes.width);
+    expect(sizes.groupScroll).toBeLessThanOrEqual(sizes.groupHeight + 1);
+    expect(sizes.overflow).toBe('auto');
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(back).toBeInViewport();
+    await back.click();
+    await expect(dialog).toBeHidden();
+    await expect(tab(page, /^Account/)).toHaveClass(/active/);
+});
+
+test('mobile upload offers the photo library and AI opens at phone width', async ({ page }) => {
+    await page.addInitScript(() => {
+        (window as unknown as { tdriveIOSPhotos: unknown }).tdriveIOSPhotos = {
+            pickUploadMedia: () => Promise.resolve({ token: 'selection', paths: [] }),
+            releaseUploadMedia: () => Promise.resolve({}),
+        };
+    });
+    await bootTDrive(page, overrides, { url: '/?mobile=ios' });
+    await page.locator('#upload-btn').click();
+    await expect(page.getByRole('button', { name: 'Photo & video library', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.locator('.topbar-actions .ai-toggle').click();
+    await expect(page.locator('#ai-panel')).toBeVisible();
+    const panel = await page.locator('#ai-panel').boundingBox();
+    expect(panel!.width).toBe(390);
+    expect(panel!.y).toBe(0);
+    await page.evaluate(() => window.__tdriveHandleBack?.());
+    await expect(page.locator('#ai-panel')).toBeHidden();
 });
 
 test('tab bar switches between surfaces', async ({ page }) => {
@@ -246,6 +337,26 @@ test('a tab round trip keeps the files view and re-tapping files resets it', asy
     await expect(page.getByRole('heading', { name: 'Trash' })).toHaveCount(0);
 });
 
+test('Trash Back returns to its Account or Files entry point', async ({ page }) => {
+    await bootMobile(page);
+    await tab(page, /^Account/).click();
+    await page.getByRole('button', { name: 'Trash', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Trash', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(tab(page, /^Account/)).toHaveClass(/active/);
+    await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Trash', exact: true }).click();
+    expect(await page.evaluate(() => window.__tdriveHandleBack?.())).toBe(true);
+    await expect(tab(page, /^Account/)).toHaveClass(/active/);
+    await tab(page, /^Files/).click();
+    await page.getByRole('button', { name: /Sort and more/ }).click();
+    await page.getByRole('menuitem', { name: 'Trash', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Trash', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Back', exact: true }).click();
+    await expect(tab(page, /^Files/)).toHaveClass(/active/);
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toBeVisible();
+});
+
 // Multi-select has a keyboard/pointer path, not only a long press: the overflow
 // menu starts it and Select all then picks every row in the folder.
 test('the overflow menu starts selection and Select all picks every row', async ({ page }) => {
@@ -283,7 +394,7 @@ test('tapping the active drive in Account opens Files without re-switching', asy
     await page.getByRole('region', { name: 'Drives' }).getByRole('button', { name: /^My Drive/ }).click();
 
     await expect(page.locator('.main-content')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('TDrive');
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('My Drive');
     await expect(page.getByRole('button', { name: /Switch drive/ })).toHaveAttribute('aria-label', /My Drive/);
     expect(await mock.calls('SetActiveChannel')).toEqual([]);
 });

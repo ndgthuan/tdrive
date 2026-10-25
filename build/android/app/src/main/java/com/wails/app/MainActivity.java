@@ -189,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
         GalleryImage.nativeInit();
         GalleryVideo.nativeInit();
         BiometricVault.initialize(this);
+        AISecretStore.initialize(this);
         bridge.initialize();
 
         // Set up WebView
@@ -1278,7 +1279,12 @@ public class MainActivity extends AppCompatActivity {
 
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
+        if (mediaPickerNext.getAndSet(false)) {
+            intent.setType("image/*");
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*"});
+        } else {
+            intent.setType("*/*");
+        }
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple);
         try {
             startActivityForResult(intent, FILE_PICKER_REQUEST);
@@ -1288,6 +1294,9 @@ public class MainActivity extends AppCompatActivity {
             bridge.filePickerDone(callbackID);
         }
     }
+
+    private final java.util.concurrent.atomic.AtomicBoolean mediaPickerNext = new java.util.concurrent.atomic.AtomicBoolean();
+    public void prepareMediaPicker() { mediaPickerNext.set(true); }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {

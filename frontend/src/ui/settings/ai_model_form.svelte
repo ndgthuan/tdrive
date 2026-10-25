@@ -160,6 +160,7 @@
                 <input
                     class="settings-input"
                     type={showKey ? 'text' : 'password'}
+                    aria-label={$t_store('settings_ai.field_api_key')}
                     autocomplete="off"
                     spellcheck="false"
                     disabled={draft.clear_api_key}
