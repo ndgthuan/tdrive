@@ -47,7 +47,7 @@ public class WailsJSBridge {
      */
     @JavascriptInterface
     public String invoke(String message) {
-        if (DEBUG) Log.d(TAG, "Invoke called: " + message);
+        if (DEBUG) Log.d(TAG, "Invoke received");
         return bridge.handleMessage(message);
     }
 
