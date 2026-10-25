@@ -1,4 +1,5 @@
 {
+    "allow_photos": "사진 접근 허용",
     "title": "사진 및 동영상 백업",
     "loading": "불러오는 중…",
     "auto_backup": "자동 백업",

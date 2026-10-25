@@ -1,4 +1,6 @@
 {
+    "video_link_required": "Plak de volledige link naar één video, niet naar de YouTube-startpagina of een kanaal.",
+    "no_compatible_formats": "Deze video heeft geen formaat dat dit apparaat kan downloaden zonder beeld en geluid samen te voegen. Probeer een andere video of de desktop-app.",
     "button_label": "Downloaden via link",
     "button_title": "Downloaden via link",
     "title": "Downloaden via link",

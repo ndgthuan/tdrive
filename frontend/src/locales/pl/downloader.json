@@ -1,4 +1,6 @@
 {
+    "video_link_required": "Wklej pełny link do jednego filmu, a nie do strony głównej lub kanału YouTube.",
+    "no_compatible_formats": "Ten film nie ma formatu, który to urządzenie może pobrać bez łączenia obrazu i dźwięku. Spróbuj innego filmu lub aplikacji komputerowej.",
     "button_label": "Pobierz z linku",
     "button_title": "Pobierz z linku",
     "title": "Pobierz z linku",

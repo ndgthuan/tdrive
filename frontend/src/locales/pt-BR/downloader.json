@@ -1,4 +1,6 @@
 {
+    "video_link_required": "Cole o link completo de um vídeo, não da página inicial ou de um canal do YouTube.",
+    "no_compatible_formats": "Este vídeo não tem formatos que este dispositivo possa baixar sem combinar vídeo e áudio. Tente outro vídeo ou o aplicativo para computador.",
     "button_label": "Baixar de um link",
     "button_title": "Baixar de um link",
     "title": "Baixar de um link",

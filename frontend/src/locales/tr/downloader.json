@@ -1,4 +1,6 @@
 {
+    "video_link_required": "YouTube ana sayfasının veya kanalının değil, tek bir videonun tam bağlantısını yapıştırın.",
+    "no_compatible_formats": "Bu videoda, bu cihazın görüntü ve sesi birleştirmeden indirebileceği bir biçim yok. Başka bir video veya masaüstü uygulamasını deneyin.",
     "button_label": "Bağlantıdan indir",
     "button_title": "Bağlantıdan indir",
     "title": "Bağlantıdan indir",

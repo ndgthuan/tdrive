@@ -1,4 +1,6 @@
 {
+    "video_link_required": "Incolla il link completo a un video, non alla home page o a un canale YouTube.",
+    "no_compatible_formats": "Questo video non offre formati scaricabili su questo dispositivo senza unire video e audio. Prova un altro video o l’app desktop.",
     "button_label": "Scarica da un link",
     "button_title": "Scarica da un link",
     "title": "Scarica da un link",

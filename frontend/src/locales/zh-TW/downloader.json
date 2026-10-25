@@ -1,4 +1,6 @@
 {
+    "video_link_required": "請貼上單一影片的完整連結，而非 YouTube 首頁或頻道連結。",
+    "no_compatible_formats": "此影片沒有不需合併影像與音訊即可在此裝置下載的格式。請嘗試其他影片或使用桌面應用程式。",
     "button_label": "從連結下載",
     "button_title": "從連結下載",
     "title": "從連結下載",
