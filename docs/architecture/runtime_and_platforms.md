@@ -178,6 +178,18 @@ stops the mount, waits for handlers, closes the engine and releases the lock.
 | iOS | Wails storage path overrides data; cache stays in the app container's `Library/Caches` | Scoped folder bookmarks, native media and limited UIKit background time |
 
 Mobile exposes the same AI models and assistant through Account and the header.
+The Account link downloader uses the same in-tab detail navigation as photo
+backup and inherits the active theme. On hosts without FFmpeg, it offers only
+probed combined or audio-only formats, rather than merge/transcode presets.
+Native downloader output is drained through the frontend relay before the
+completion reply removes its Go broker request, including metadata-only probes.
+
+The automatic backup pane reads the actual iOS Photos authorization on entry
+and foreground resume. An enabled backup with an undetermined grant requests
+authorization on entry; a visible permission action also allows retrying without
+toggling the saved backup setting. OS permission and vault unlocking remain
+separate gates. These paths do not establish TrollStore-specific device behavior.
+
 Provider keys stay in native credential storage: iOS uses device-only Keychain
 items, and Android wraps each model's key with an Android Keystore AES-GCM key
 and stores ciphertext in the no-backup directory. Neither implementation returns

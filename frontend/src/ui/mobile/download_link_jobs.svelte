@@ -73,14 +73,14 @@
         font-weight: 600;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: #a0a7b1;
+        color: var(--color-text-muted);
     }
 
     .list {
         list-style: none;
         margin: 0;
         padding: 0;
-        background: #111317;
+        background: var(--color-surface-1);
         border-radius: 16px;
         overflow: hidden;
     }
@@ -90,7 +90,7 @@
         flex-direction: column;
         gap: 8px;
         padding: 12px 14px;
-        border-top: 1px solid #22272e;
+        border-top: 1px solid var(--color-border-soft);
     }
 
     .item:first-child {
@@ -115,7 +115,7 @@
 
     .stage {
         font-size: 13px;
-        color: #a0a7b1;
+        color: var(--color-text-muted);
         white-space: nowrap;
     }
 
@@ -127,7 +127,7 @@
         border: 0;
         border-radius: 16px;
         background: transparent;
-        color: #a0a7b1;
+        color: var(--color-text-muted);
         cursor: pointer;
         flex: none;
     }
@@ -135,20 +135,20 @@
     .bar {
         height: 6px;
         border-radius: 3px;
-        background: #22272e;
+        background: var(--color-border-soft);
         overflow: hidden;
     }
 
     .bar i {
         display: block;
         height: 100%;
-        background: #7f9cc4;
+        background: var(--color-accent);
         border-radius: 3px;
     }
 
     .error {
         margin: 0;
         font-size: 13px;
-        color: #e8a0a0;
+        color: var(--color-danger);
     }
 </style>

@@ -29,6 +29,7 @@
     import { retryLoadChannels } from '../../modules/channels';
     import AutoBackupPane from '../backup/auto_backup_pane.svelte';
     import DownloadFromLinkRow from './download_from_link_row.svelte';
+    import DownloadFromLinkSheet from './download_from_link_sheet.svelte';
     import { getThemeDefinition } from '../theme/theme_model';
     import { themeState } from '../theme/theme_controller';
     import { handleDriveClick } from '../../modules/sidebar';
@@ -201,6 +202,8 @@
                 <AiModelsPane />
             {:else if $accountDetail === 'updates'}
                 <MobileUpdatesPane />
+            {:else if $accountDetail === 'download'}
+                <DownloadFromLinkSheet open page onclose={closeAccountDetail} />
             {:else}
                 <AutoBackupPane page />
             {/if}

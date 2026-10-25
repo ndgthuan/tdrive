@@ -23,6 +23,8 @@
     "paste": "Paste link",
     "paste_failed": "Could not read the clipboard. Paste the link into the box.",
     "invalid_link": "Enter a full http or https link.",
+    "video_link_required": "Paste the full link to one video, not the YouTube homepage or channel.",
+    "no_compatible_formats": "This video has no formats this device can download without merging video and audio. Try another video or use the desktop app.",
     "link_label": "Video link",
     "link_placeholder": "https://",
     "fetch": "Fetch",

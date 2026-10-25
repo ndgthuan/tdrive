@@ -28,6 +28,7 @@
     "limited_title": "Photos access is limited",
     "limited_detail": "Allow full access so every photo can be backed up.",
     "open_settings": "Open Settings",
+    "allow_photos": "Allow photo access",
     "keep_open": "Keep the app open to finish the first big backup.",
     "denied_title": "Photos access is off",
     "denied_detail": "Auto backup cannot read your photo library. Turn on access in {settings}, then come back here.",

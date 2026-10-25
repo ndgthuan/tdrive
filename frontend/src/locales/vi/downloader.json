@@ -23,6 +23,8 @@
     "paste": "Dán liên kết",
     "paste_failed": "Không đọc được bộ nhớ tạm. Hãy dán liên kết vào ô nhập.",
     "invalid_link": "Nhập một liên kết http hoặc https đầy đủ.",
+    "video_link_required": "Dán liên kết đầy đủ đến một video, không phải trang chủ hay kênh YouTube.",
+    "no_compatible_formats": "Video này không có định dạng mà thiết bị tải được khi chưa hỗ trợ ghép hình và tiếng. Hãy thử video khác hoặc dùng ứng dụng desktop.",
     "link_label": "Liên kết video",
     "link_placeholder": "https://",
     "fetch": "Lấy thông tin",

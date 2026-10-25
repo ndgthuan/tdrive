@@ -11,11 +11,21 @@ import {
     is_active_stage,
     is_terminal_stage,
     is_valid_link,
+    is_video_link,
+    link_from_clipboard,
     join_parts,
     link_host,
     setup_stage_key,
     stage_key,
 } from './downloader_format';
+
+it('preserves shared YouTube video links and refuses the YouTube homepage', () => {
+    expect(link_from_clipboard('Watch this https://youtu.be/5w2xtQZKBvM?si=share')).toBe('https://youtu.be/5w2xtQZKBvM?si=share');
+    expect(is_video_link('https://youtu.be/5w2xtQZKBvM?si=share')).toBe(true);
+    expect(is_video_link('https://www.youtube.com/watch?v=5w2xtQZKBvM')).toBe(true);
+    expect(is_video_link('https://youtube.com/shorts/5w2xtQZKBvM')).toBe(true);
+    expect(is_video_link('https://youtube.com')).toBe(false);
+});
 import {
     apply_progress_rows,
     attach_request,

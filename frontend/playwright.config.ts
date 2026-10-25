@@ -39,6 +39,12 @@ export default defineConfig({
                 viewport: { width: 1280, height: 800 },
             },
         },
+        {
+            name: 'webkit-mobile',
+            testMatch: /mobile_shell\.spec\.ts/,
+            grep: /iPhone downloader/,
+            use: { ...devices['iPhone 13'] },
+        },
     ],
     webServer: {
         command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173',

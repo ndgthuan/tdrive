@@ -19,7 +19,7 @@
         setAutoBackupWifiOnly, backUpAutoBackupNow, type AutoBackupPermission, type AutoBackupState,
     } from '../../api/auto_backup';
     import { autoBackupProgress } from './auto_backup_runtime';
-    import { requestNativePhotoBackupAccess, nativePhotoBackupAvailable } from '../../modules/photo_backup/native_adapter';
+    import { requestNativePhotoBackupAccess, readNativePhotoBackupAccess, nativePhotoBackupAvailable } from '../../modules/photo_backup/native_adapter';
     import { t_store } from '../../i18n/i18n';
     import {
         folderNameProblemKey, formatBytes, normalizedFolderName, permissionIsLimited,
@@ -54,6 +54,10 @@
     async function refresh(): Promise<void> {
         try {
             current = await getAutoBackupState();
+            const access = await readNativePhotoBackupAccess();
+            if (access && ['undetermined', 'granted', 'limited', 'denied'].includes(access) && access !== current.permission) {
+                current = await setAutoBackupPermission(access as AutoBackupPermission);
+            }
             const identity = await readNativeDeviceIdentity();
             if (identity) current = await setAutoBackupDeviceIdentity(identity);
             loadError = '';
@@ -62,7 +66,16 @@
         }
     }
 
-    onMount(() => { void refresh(); });
+    onMount(() => {
+        // A previous build could persist enabled=true without obtaining Photos
+        // access. Recover that state on entry rather than requiring off/on.
+        void refresh().then(async () => {
+            if (current?.enabled && current.permission === 'undetermined') await allowAccess();
+        });
+        const resumed = () => { if (document.visibilityState === 'visible') void refresh(); };
+        document.addEventListener('visibilitychange', resumed);
+        return () => document.removeEventListener('visibilitychange', resumed);
+    });
 
     /**
      * Asks the phone for the media grant before turning backup on. Without a
@@ -71,7 +84,7 @@
      * library unasked.
      */
     async function askAccess(): Promise<AutoBackupPermission> {
-        if (!nativePhotoBackupAvailable()) return 'undetermined';
+        if (!nativePhotoBackupAvailable()) throw new Error($t_store('photos.library_unavailable'));
         const access = await requestNativePhotoBackupAccess();
         if (access.status === 'granted' || access.status === 'authorized') return 'granted';
         if (access.status === 'limited') return 'limited';
@@ -86,7 +99,7 @@
             if (value) {
                 const access = await askAccess();
                 current = await setAutoBackupPermission(access);
-                if (access === 'denied') return;
+                if (access !== 'granted' && access !== 'limited') return;
                 current = await setAutoBackupEnabled(true);
             } else {
                 current = await setAutoBackupEnabled(false);
@@ -96,6 +109,19 @@
         } finally {
             busy = false;
         }
+    }
+
+    async function allowAccess(): Promise<void> {
+        if (busy) return;
+        busy = true;
+        loadError = '';
+        try {
+            const access = await askAccess();
+            current = await setAutoBackupPermission(access);
+            if (current.enabled && (access === 'granted' || access === 'limited')) current = await backUpAutoBackupNow();
+        } catch (cause) {
+            loadError = cause instanceof Error ? cause.message : '';
+        } finally { busy = false; }
     }
 
     function startRename(): void {
@@ -159,7 +185,12 @@
             />
         </div>
 
-        {#if denied}
+        {#if current.permission === 'undetermined'}
+            <div class="ab-card" role="status">
+                <p class="ab-muted">{$t_store('auto_backup.phase_needs_permission')}</p>
+                <Button variant="primary" loading={busy} onclick={() => void allowAccess()}>{$t_store('auto_backup.allow_photos')}</Button>
+            </div>
+        {:else if denied}
             <div class="ab-denied" role="status">
                 <p class="ab-title">{$t_store('auto_backup.denied_title')}</p>
                 <p class="ab-muted">{$t_store('auto_backup.denied_detail', { settings: settingsWord })}</p>

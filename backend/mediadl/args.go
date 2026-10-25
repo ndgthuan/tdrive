@@ -229,5 +229,5 @@ func probe_args(raw_url string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []string{"--ignore-config", "--no-update", "--no-cache-dir", "--no-playlist", "--no-warnings", "--no-colors", "-J", "--", url_value}, nil
+	return []string{"--ignore-config", "--no-update", "--no-cache-dir", "--no-playlist", "--no-warnings", "--no-colors", "--skip-download", "--ignore-no-formats-error", "-J", "--", url_value}, nil
 }
