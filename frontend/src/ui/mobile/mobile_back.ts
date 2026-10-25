@@ -14,10 +14,10 @@ import { closeTopSheet } from '../modals/sheet_stack';
 import { selectionBarState } from '../selection/selection_bar_store';
 import { navigateBack } from '../../modules/navigation';
 import { exitPhotos } from '../../modules/gallery';
-import { closeTrash } from '../../modules/trash/controller';
 import { clearSelection } from '../../modules/selection';
 import { closeChannel, openChannelKey } from '../channels/channel_store';
-import { activeTab, closeDriveSwitcher, driveSwitcherOpen } from './mobile_shell_store';
+import { activeTab, accountDetail, closeAccountDetail, closeDriveSwitcher, driveSwitcherOpen } from './mobile_shell_store';
+import { closeMobileTrash } from './trash_navigation';
 
 /** The name the native phone hosts call. Keep it in sync with MainActivity and main.m. */
 export const BACK_BRIDGE = '__tdriveHandleBack';
@@ -33,6 +33,10 @@ export function handleBackPress(): boolean {
     // Dialogs, sheets, the media players, the popover menus. They register
     // themselves, so a new one answers BACK without touching this file.
     if (closeTopSheet()) return true;
+    if (get(activeTab) === 'account' && get(accountDetail)) {
+        closeAccountDetail();
+        return true;
+    }
     if (get(driveSwitcherOpen)) {
         closeDriveSwitcher();
         return true;
@@ -75,7 +79,7 @@ function leaveVirtualView(): boolean {
     }
     const view = get(sidebarState).virtualView;
     if (view === 'photos') exitPhotos();
-    else if (view === 'trash') closeTrash();
+    else if (view === 'trash') closeMobileTrash();
     else return false;
     return true;
 }

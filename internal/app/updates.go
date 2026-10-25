@@ -16,8 +16,8 @@ import (
 //
 // These methods sit on one type because they all read or drive a single phase
 // machine, and because every one of them is meaningless without it: a "dev"
-// build and every mobile build leave that machine nil, and each method here
-// then degrades to PhaseDisabled instead of pretending an update is possible.
+// build leaves that machine disabled. Mobile builds discover releases but do
+// not replace their own installation; the operating system owns that step.
 // Grouping them also keeps the one destructive step -- replacing the bundle the
 // process is running from -- next to the checks that decide whether there is
 // anything worth replacing it with.
@@ -86,9 +86,9 @@ type AppVersionInfo struct {
 // changes can be forwarded as runtime events. It never touches the network
 // on its own; the frontend owns the schedule.
 func (s *UpdateService) initUpdater() {
-	// Mobile stores own the update path, so leave the updater nil: every entry
-	// point then reports PhaseDisabled, exactly like a "dev" desktop build.
-	if s.storeManaged || application.System.IsMobile() {
+	// Store-managed installations must never enter the binary replacement path.
+	// Phones use the service for discovery; it has no installable mobile asset.
+	if s.storeManaged {
 		return
 	}
 	s.service = updater.New(updater.Options{
@@ -99,6 +99,18 @@ func (s *UpdateService) initUpdater() {
 			s.host.emit(updateStateEvent, state)
 		},
 	})
+}
+
+// Run before constructing the engine: no transfers or mounted drives exist yet.
+func (s *UpdateService) installPendingAtStartup() bool {
+	if s.service == nil || application.System.IsMobile() || s.service.State().Phase != updater.PhaseReady {
+		return false
+	}
+	if err := s.InstallUpdateAndRestart(); err != nil {
+		fmt.Printf("Warning: deferred update installation failed: %v\n", err)
+		return false
+	}
+	return true
 }
 
 // finishCleanup removes the previous version once this build has come up

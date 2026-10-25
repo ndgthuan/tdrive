@@ -1,5 +1,6 @@
 <script lang="ts">
     import FileUpIcon from 'phosphor-svelte/lib/FileArrowUpIcon';
+    import ImagesIcon from 'phosphor-svelte/lib/ImagesIcon';
     import FolderPlusIcon from 'phosphor-svelte/lib/FolderPlusIcon';
     import FolderUpIcon from 'phosphor-svelte/lib/UploadSimpleIcon';
     import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
@@ -21,19 +22,21 @@
 
     interface Props {
         onFiles: () => void;
+        onPhotos?: () => void;
         // Left out where the platform has no directory picker (Android).
         onFolder?: () => void;
         // Only the phone menu surfaces New folder here; desktop omits it.
         onNewFolder?: () => void;
     }
 
-    let { onFiles, onFolder, onNewFolder }: Props = $props();
+    let { onFiles, onPhotos, onFolder, onNewFolder }: Props = $props();
 
     let open = $state(false);
     let buttonEl = $state<HTMLButtonElement | null>(null);
     let overlayEl = $state<HTMLElement | null>(null);
     let menuEl = $state<HTMLElement | null>(null);
     let filesEl = $state<HTMLButtonElement | null>(null);
+    let photosEl = $state<HTMLButtonElement | null>(null);
     let newFolderEl = $state<HTMLButtonElement | null>(null);
     let folderEl = $state<HTMLButtonElement | null>(null);
 
@@ -124,7 +127,7 @@
         }
         if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
         event.preventDefault();
-        const items = [filesEl, folderEl, newFolderEl].filter(Boolean) as HTMLElement[];
+        const items = [filesEl, photosEl, folderEl, newFolderEl].filter(Boolean) as HTMLElement[];
         if (!items.length) return;
         const idx = items.indexOf(document.activeElement as HTMLElement);
         const next = event.key === 'ArrowDown' ? (idx + 1) % items.length : (idx - 1 + items.length) % items.length;
@@ -209,6 +212,12 @@
         <FileUpIcon size={18} aria-hidden="true" />
         {onNewFolder ? $t_store('chrome.upload_files') : $t_store('chrome.files')}
     </button>
+    {#if onPhotos}
+        <button bind:this={photosEl} id="upload-menu-photos" class="upload-menu-item" type="button" role={asSheet ? undefined : 'menuitem'} onclick={() => activate(onPhotos)}>
+            <ImagesIcon size={18} aria-hidden="true" />
+            {$t_store('chrome.photo_library')}
+        </button>
+    {/if}
     {#if onFolder}
         <button bind:this={folderEl} id="upload-menu-folder" class="upload-menu-item" type="button" role={asSheet ? undefined : 'menuitem'} onclick={chooseFolder}>
             <FolderUpIcon size={18} aria-hidden="true" />

@@ -1,6 +1,6 @@
 {
     "title": "AI 모델",
-    "subtitle": "AI 어시스턴트와 파일 정리에 사용할 모델입니다. API 키는 Windows 자격 증명 관리자(Windows Credential Manager)에 저장됩니다.",
+    "subtitle": "AI 어시스턴트와 파일 정리에 사용할 모델입니다. API 키는 Windows 자격 증명 관리자(기기의 보안 자격 증명 저장소)에 저장됩니다.",
     "add_model": "모델 추가",
     "loading": "모델 로드 중…",
     "empty": "아직 모델이 없습니다. AI 어시스턴트를 사용하려면 모델을 추가하세요.",
@@ -28,7 +28,7 @@
     "key_saved": "키가 저장되었습니다. 유지하려면 비워 두세요.",
     "key_none": "저장된 키가 아직 없습니다.",
     "key_clear": "저장된 키 제거",
-    "key_note": "Windows 자격 증명 관리자(Windows Credential Manager)에 저장되며, Telegram으로 전송되지 않습니다.",
+    "key_note": "Windows 자격 증명 관리자(기기의 보안 자격 증명 저장소)에 저장되며, Telegram으로 전송되지 않습니다.",
     "show_key": "키 보기",
     "hide_key": "키 숨기기",
     "toggle_vision": "이미지 콘텐츠 읽기 허용 (비전)",

@@ -264,7 +264,7 @@ public class WailsBridge {
             Log.w(TAG, "Bridge not initialized, cannot handle message");
             return "{\"error\":\"Bridge not initialized\"}";
         }
-        if (DEBUG) Log.d(TAG, "Message from JS: " + message);
+        if (DEBUG) Log.d(TAG, "Message received from JS");
         try {
             return nativeHandleMessage(message);
         } catch (Exception e) {

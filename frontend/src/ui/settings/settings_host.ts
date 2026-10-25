@@ -6,6 +6,9 @@
 import { mount } from 'svelte';
 import SettingsDialog from './settings_dialog.svelte';
 import { OPEN_SETTINGS_EVENT, settings_view, type settings_pane } from './settings_store';
+import { isMobilePlatform } from '../../api';
+import { openAccountDetail } from '../mobile/mobile_shell_store';
+import { panel_open } from '../ai/ai_store';
 
 const HOST_ID = 'settings-modal';
 
@@ -28,6 +31,11 @@ function ensure_host(): void {
 
 /** Opens the settings dialog on a pane. Safe to call repeatedly. */
 export function open_settings(pane: settings_pane = 'general'): void {
+    if (isMobilePlatform() && (pane === 'ai' || pane === 'general')) {
+        panel_open.set(false);
+        openAccountDetail(pane === 'ai' ? 'ai' : 'updates');
+        return;
+    }
     ensure_host();
     settings_view.set({ open: true, pane });
 }

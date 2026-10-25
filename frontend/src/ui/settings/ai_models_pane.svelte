@@ -209,6 +209,14 @@
     .ai-header-copy { flex: 1; min-width: 0; }
     .ai-add { flex: none; }
 
+    :global(html.mobile) .ai-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding-right: 0;
+    }
+    :global(html.mobile) .ai-add { align-self: flex-start; }
+
     .ai-list {
         display: flex;
         flex-direction: column;

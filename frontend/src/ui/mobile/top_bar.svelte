@@ -8,6 +8,7 @@
     import { t_store } from '../../i18n/i18n';
     import { guard_handler } from '../../modules/diagnostics';
     import { breadcrumbPath } from '../chrome/breadcrumb_store';
+    import { drive_root_name } from '../chrome/drive_root_name';
     import { fileSortState, setFileSortKey } from '../file_list/file_sort_store';
     import type { FileSortKey } from '../file_list/file_sort';
     import { navigateBack } from '../../modules/navigation';
@@ -19,8 +20,10 @@
     import { pushSheet } from '../modals/sheet_stack';
     import { selectionBarState } from '../selection/selection_bar_store';
     import { sidebarState } from '../sidebar/sidebar_store';
-    import { askEmptyTrash, closeTrash, openTrash, trashEntries } from '../../modules/trash/controller';
+    import { askEmptyTrash, trashEntries } from '../../modules/trash/controller';
     import SyncRing from './sync_ring.svelte';
+    import { openMobileTrash, closeMobileTrash } from './trash_navigation';
+    import AiPanelToggle from '../ai/ai_panel_toggle.svelte';
     import ViewOnlyBadge from '../members/view_only_badge.svelte';
     import {
         ACCOUNT_DETAIL_TITLE_KEYS,
@@ -55,10 +58,8 @@
         : $t_store('mobile.items', { count: $trashEntries.length }),
     );
     const folderName = $derived($breadcrumbPath[$breadcrumbPath.length - 1]?.name ?? '');
-    const driveName = $derived($activeDrive?.title || $t_store('mobile.drive_fallback'));
-    // The board titles the personal drive with the app name; a shared drive
-    // keeps its own name because that is what tells two shared drives apart.
-    const headerTitle = $derived($activeDrive?.kind === 'personal' ? 'TDrive' : driveName);
+    const driveName = $derived(drive_root_name($activeDrive, $t_store));
+    const headerTitle = $derived(driveName);
     const driveKind = $derived($activeDrive?.kind === 'shared' ? $t_store('mobile.kind_shared') : $t_store('mobile.kind_personal'));
     const countLabel = $derived(
         $fileListCount === 0 ? $t_store('mobile.files_none')
@@ -151,7 +152,7 @@
     const menuActions: Array<{ label_key: string; run: () => void }> = [
         { label_key: 'mobile.menu_select', run: () => { startSelectionMode(); closeSort(); } },
         { label_key: 'mobile.menu_refresh', run: () => { void appActions().triggerRefresh(); closeSort(); } },
-        { label_key: 'mobile.menu_trash', run: () => { openTrash(); closeSort(); } },
+        { label_key: 'mobile.menu_trash', run: () => { openMobileTrash('files'); closeSort(); } },
     ];
 
     function menuItems(): HTMLButtonElement[] {
@@ -266,7 +267,7 @@
          binding survives navigation. -->
     <div class="topbar-context topbar-plain topbar-trash" hidden={selecting || active !== 'files' || !inTrash}>
         <div class="topbar-row">
-            <button type="button" class="topbar-back" aria-label={$t_store('mobile.back')} onclick={() => closeTrash()}>
+            <button type="button" class="topbar-back" aria-label={$t_store('mobile.back')} onclick={() => closeMobileTrash()}>
                 <ChevronLeftIcon size={24} aria-hidden="true" />
             </button>
             <div class="topbar-plain-titles">
@@ -325,6 +326,7 @@
                 >
                     <SearchIcon size={22} aria-hidden="true" />
                 </button>
+                <AiPanelToggle />
                 <div class="topbar-menu-wrap">
                     <button
                         bind:this={sortButtonEl}
@@ -443,7 +445,7 @@
 
     <!-- Account: a settings page opened from the list carries its own title and
          a way back here, the way a folder and the trash do. -->
-    <div class="topbar-context topbar-plain" hidden={selecting || active !== 'account'}>
+    <div class="topbar-context topbar-plain" class:topbar-account-detail={$accountDetail !== null} hidden={selecting || active !== 'account'}>
         <div class="topbar-row">
             {#if $accountDetail}
                 <button type="button" class="topbar-back" aria-label={$t_store('mobile.back')} onclick={() => closeAccountDetail()}>

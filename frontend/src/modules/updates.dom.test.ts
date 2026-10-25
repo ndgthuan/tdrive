@@ -196,7 +196,7 @@ describe('activation', () => {
         }
     });
 
-    it('never starts the updater or opens its panel on a phone', async () => {
+    it('checks phone releases through Account without downloading desktop binaries', async () => {
         // Go injects window._wails.environment before the bundle loads and the
         // platform helpers read its OS; keep the runtime's own hooks intact.
         const previous = window._wails;
@@ -211,9 +211,13 @@ describe('activation', () => {
             teardown();
             window.removeEventListener(OPEN_SETTINGS_EVENT, opened);
 
-            expect(bindings.GetUpdateState).not.toHaveBeenCalled();
-            expect(bindings.AppVersion).not.toHaveBeenCalled();
-            expect(bindings.CheckForUpdate).not.toHaveBeenCalled();
+            expect(bindings.GetUpdateState).toHaveBeenCalledOnce();
+            expect(bindings.AppVersion).toHaveBeenCalledOnce();
+            expect(bindings.CheckForUpdate).toHaveBeenCalledOnce();
+            expect(bindings.DownloadUpdate).not.toHaveBeenCalled();
+            const { accountDetail, activeTab } = await import('../ui/mobile/mobile_shell_store');
+            expect(get(accountDetail)).toBe('updates');
+            expect(get(activeTab)).toBe('account');
             expect(opened).not.toHaveBeenCalled();
         } finally {
             window._wails = previous;

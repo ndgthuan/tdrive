@@ -1,4 +1,5 @@
 import { t } from '../i18n/i18n';
+import { pickUploadMedia } from './media_picker';
 // Upload/Download progress handling for TDrive frontend.
 //
 // All transfer state surfaces through the notification bell — there is no
@@ -989,6 +990,16 @@ export async function uploadWithParentID(parentID: string) {
     await withTransferFlow(async () => {
         const paths = await selectFiles();
         await importSelection(parentID, paths);
+    });
+}
+
+export function choosePhotosForCurrentFolder(): void {
+    const parentID = state.currentFolderId;
+    if (!allow_edit_in(undefined)) return;
+    void withTransferFlow(async () => {
+        const selection = await pickUploadMedia();
+        try { await importSelection(parentID, selection.paths); }
+        finally { await selection.release(); }
     });
 }
 

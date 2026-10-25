@@ -1,5 +1,6 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <Photos/Photos.h>
+#import <PhotosUI/PhotosUI.h>
 #import <Network/Network.h>
 
 static NSString *const TDrivePhotoHandlerName = @"tdrivePhotos";
@@ -198,7 +199,8 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
 
 @end
 
-@interface TDrivePhotoBridge : NSObject <WKScriptMessageHandler, UIDocumentPickerDelegate, PHPhotoLibraryChangeObserver>
+@interface TDrivePhotoBridge : NSObject <WKScriptMessageHandler, UIDocumentPickerDelegate, PHPickerViewControllerDelegate, PHPhotoLibraryChangeObserver>
+@property (nonatomic, copy) NSString *pendingUploadPick;
 @property (nonatomic, weak) WKWebView *webView;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSNumber *> *materializations;
 @property (nonatomic, assign) BOOL stagingCleanupFailed;
@@ -238,6 +240,7 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
 
 - (void)startObserving {
     NSURL *cache = [[[NSFileManager defaultManager] URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask] firstObject];
+    [[NSFileManager defaultManager] removeItemAtURL:[cache URLByAppendingPathComponent:@"TDriveUploadPicker"] error:nil];
     NSURL *stagingRoot = [cache URLByAppendingPathComponent:@"TDrivePhotoBackup" isDirectory:YES];
     self.stagingCleanupFailed = [[NSFileManager defaultManager] fileExistsAtPath:stagingRoot.path]
         && ![[NSFileManager defaultManager] removeItemAtURL:stagingRoot error:nil];
@@ -425,6 +428,82 @@ static NSString *TDriveFolderMediaKind(NSString *name) {
         while (top.presentedViewController != nil) top = top.presentedViewController;
         [top presentViewController:picker animated:YES completion:nil];
     });
+}
+
+// PHPicker gives access only to the media the user selects, including iCloud
+// originals, without requesting permission to enumerate their whole library.
+- (void)pickUploadMedia:(NSString *)requestID {
+    if (self.pendingUploadPick.length || self.pendingFolderPick.length || self.presenter == nil) {
+        [self reply:requestID result:nil error:TDrivePhotoError(@"pickerBusy", @"Another picker is open")]; return;
+    }
+    self.pendingUploadPick = requestID;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        PHPickerConfiguration *configuration = [[PHPickerConfiguration alloc] init];
+        configuration.filter = [PHPickerFilter anyFilterMatchingSubfilters:@[PHPickerFilter.imagesFilter, PHPickerFilter.videosFilter]];
+        configuration.selectionLimit = 20;
+        configuration.preferredAssetRepresentationMode = PHPickerConfigurationAssetRepresentationModeCurrent;
+        PHPickerViewController *picker = [[PHPickerViewController alloc] initWithConfiguration:configuration];
+        picker.delegate = self;
+        UIViewController *top = self.presenter;
+        while (top.presentedViewController != nil) top = top.presentedViewController;
+        [top presentViewController:picker animated:YES completion:nil];
+    });
+}
+
+- (void)picker:(PHPickerViewController *)picker didFinishPicking:(NSArray<PHPickerResult *> *)results {
+    NSString *requestID = self.pendingUploadPick;
+    [picker dismissViewControllerAnimated:YES completion:nil];
+    if (requestID.length == 0) return;
+    // Keep the pending owner until all copies finish, so a second picker cannot
+    // race these temporary files. Each provider copy is streamed and bounded.
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        NSString *token = NSUUID.UUID.UUIDString;
+        NSURL *cache = [[[NSFileManager defaultManager] URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask] firstObject];
+        NSURL *directory = [[cache URLByAppendingPathComponent:@"TDriveUploadPicker"] URLByAppendingPathComponent:token];
+        NSMutableArray *paths = [NSMutableArray array];
+        __block unsigned long long total = 0;
+        __block NSError *failure = nil;
+        for (PHPickerResult *result in results) {
+            if (failure != nil) break;
+            NSItemProvider *provider = result.itemProvider;
+            NSString *type = [provider hasItemConformingToTypeIdentifier:UTTypeMovie.identifier] ? UTTypeMovie.identifier : UTTypeImage.identifier;
+            dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+            [provider loadFileRepresentationForTypeIdentifier:type completionHandler:^(NSURL *source, NSError *error) {
+                if (source == nil || error != nil) { failure = error ?: [NSError errorWithDomain:@"TDriveUpload" code:1 userInfo:@{NSLocalizedDescriptionKey:@"That item could not be read"}]; dispatch_semaphore_signal(semaphore); return; }
+                NSNumber *size = nil;
+                [source getResourceValue:&size forKey:NSURLFileSizeKey error:&failure];
+                if (size == nil || size.unsignedLongLongValue > TDrivePhotoMaximumMaxBytes - total) {
+                    failure = [NSError errorWithDomain:@"TDriveUpload" code:2 userInfo:@{NSLocalizedDescriptionKey:@"Choose up to 4 GiB of photos and videos at a time"}];
+                } else {
+                    NSURL *slot = [directory URLByAppendingPathComponent:NSUUID.UUID.UUIDString];
+                    [[NSFileManager defaultManager] createDirectoryAtURL:slot withIntermediateDirectories:YES attributes:nil error:&failure];
+                    NSURL *destination = [slot URLByAppendingPathComponent:source.lastPathComponent];
+                    if (failure == nil && TDriveCopyPhotoResource(source, destination, size.unsignedLongLongValue, &failure)) {
+                        total += size.unsignedLongLongValue;
+                        [paths addObject:destination.path];
+                    }
+                }
+                dispatch_semaphore_signal(semaphore);
+            }];
+            dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        }
+        if (failure != nil) [[NSFileManager defaultManager] removeItemAtURL:directory error:nil];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.pendingUploadPick = nil;
+            [self reply:requestID result:failure ? nil : @{ @"token":token, @"paths":paths }
+                error:failure ? TDrivePhotoError(@"mediaReadFailed", failure.localizedDescription) : nil];
+        });
+    });
+}
+
+- (void)releaseUploadMedia:(NSString *)requestID arguments:(NSDictionary *)arguments {
+    NSString *token = [arguments[@"token"] isKindOfClass:NSString.class] ? arguments[@"token"] : @"";
+    if ([[NSUUID alloc] initWithUUIDString:token] == nil) { [self reply:requestID result:nil error:TDrivePhotoError(@"invalidArgument", @"Invalid upload token")]; return; }
+    NSURL *cache = [[[NSFileManager defaultManager] URLsForDirectory:NSCachesDirectory inDomains:NSUserDomainMask] firstObject];
+    NSURL *directory = [[cache URLByAppendingPathComponent:@"TDriveUploadPicker"] URLByAppendingPathComponent:token];
+    NSError *error = nil;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:directory.path]) [[NSFileManager defaultManager] removeItemAtURL:directory error:&error];
+    [self reply:requestID result:@{} error:error ? TDrivePhotoError(@"cleanupFailed", @"Temporary photo cleanup failed") : nil];
 }
 
 - (void)documentPicker:(UIDocumentPickerViewController *)controller didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
@@ -905,6 +984,8 @@ static unsigned long long TDrivePhotoResourceBytes(PHAssetResource *resource) {
     else if ([operation isEqualToString:@"cleanup"]) [self cleanup:requestID arguments:arguments];
     else if ([operation isEqualToString:@"setBackgroundBackup"]) [self setBackgroundBackup:requestID arguments:arguments];
     else if ([operation isEqualToString:@"pickBackupFolder"]) [self pickBackupFolder:requestID];
+    else if ([operation isEqualToString:@"pickUploadMedia"]) [self pickUploadMedia:requestID];
+    else if ([operation isEqualToString:@"releaseUploadMedia"]) [self releaseUploadMedia:requestID arguments:arguments];
     else if ([operation isEqualToString:@"deviceIdentity"]) [self deviceIdentity:requestID];
     else if ([operation isEqualToString:@"openAppSettings"]) [self openAppSettings:requestID];
     else if ([operation isEqualToString:@"photoAccess"]) [self photoAccess:requestID];
@@ -928,7 +1009,7 @@ static void TDriveInstallPhotoBridge(WKWebView *webView, UIViewController *prese
     objc_setAssociatedObject(webView, &TDrivePhotoBridgeKey, bridge, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     WKUserContentController *controller = webView.configuration.userContentController;
     [controller addScriptMessageHandler:bridge name:TDrivePhotoHandlerName];
-    NSString *source = @"(function(){if(window.tdriveIOSPhotos)return;const pending=new Map();let seq=0;window.__tdriveIOSPhotosReplyBase64=function(b){try{const bytes=Uint8Array.from(atob(b),c=>c.charCodeAt(0));const m=JSON.parse(new TextDecoder().decode(bytes));const p=pending.get(m.id);if(!p)return;pending.delete(m.id);m.error?p.reject(Object.assign(new Error(m.error.message||'Photo operation failed'),{code:m.error.code})):p.resolve(m.result)}catch(e){console.error('TDrive photo bridge reply failed',e)}};const call=(operation,args={})=>{const id=Date.now().toString(36)+'-'+(++seq).toString(36);const promise=new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});window.webkit.messageHandlers.tdrivePhotos.postMessage({id,operation,arguments:args})});promise.requestID=id;return promise};const api={materialize:(args)=>call('materialize',args||{}),cancelMaterialization:(requestID)=>call('cancelMaterialization',{requestID}),cleanup:(token)=>call('cleanup',{token}),setBackgroundBackup:(active)=>call('setBackgroundBackup',{active:!!active}),pickPhotoBackupFolder:()=>call('pickBackupFolder')};api.getDeviceIdentity=()=>call('deviceIdentity');api.openAppSettings=()=>call('openAppSettings');api.getPhotoAccess=()=>call('photoAccess');api.requestPhotoAccess=()=>call('requestPhotoAccess');api.getPowerStatus=()=>call('powerStatus');api.getNetworkStatus=()=>call('networkStatus');api.listPhotoBackupAssets=(sourceID,cursor=null,limit=50)=>call('listBackupAssets',{sourceID,cursor,pageSize:limit});api.materializePhotoBackupResource=(assetID,version,maxBytes,resourceID)=>api.materialize({assetID,version,maxBytes,resourceID});api.releasePhotoBackupResource=token=>api.cleanup(token);window.tdriveIOSPhotos=Object.freeze(api)})();";
+    NSString *source = @"(function(){if(window.tdriveIOSPhotos)return;const pending=new Map();let seq=0;window.__tdriveIOSPhotosReplyBase64=function(b){try{const bytes=Uint8Array.from(atob(b),c=>c.charCodeAt(0));const m=JSON.parse(new TextDecoder().decode(bytes));const p=pending.get(m.id);if(!p)return;pending.delete(m.id);m.error?p.reject(Object.assign(new Error(m.error.message||'Photo operation failed'),{code:m.error.code})):p.resolve(m.result)}catch(e){console.error('TDrive photo bridge reply failed',e)}};const call=(operation,args={})=>{const id=Date.now().toString(36)+'-'+(++seq).toString(36);const promise=new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});window.webkit.messageHandlers.tdrivePhotos.postMessage({id,operation,arguments:args})});promise.requestID=id;return promise};const api={materialize:(args)=>call('materialize',args||{}),cancelMaterialization:(requestID)=>call('cancelMaterialization',{requestID}),cleanup:(token)=>call('cleanup',{token}),setBackgroundBackup:(active)=>call('setBackgroundBackup',{active:!!active}),pickPhotoBackupFolder:()=>call('pickBackupFolder')};api.pickUploadMedia=()=>call('pickUploadMedia');api.releaseUploadMedia=token=>call('releaseUploadMedia',{token});api.getDeviceIdentity=()=>call('deviceIdentity');api.openAppSettings=()=>call('openAppSettings');api.getPhotoAccess=()=>call('photoAccess');api.requestPhotoAccess=()=>call('requestPhotoAccess');api.getPowerStatus=()=>call('powerStatus');api.getNetworkStatus=()=>call('networkStatus');api.listPhotoBackupAssets=(sourceID,cursor=null,limit=50)=>call('listBackupAssets',{sourceID,cursor,pageSize:limit});api.materializePhotoBackupResource=(assetID,version,maxBytes,resourceID)=>api.materialize({assetID,version,maxBytes,resourceID});api.releasePhotoBackupResource=token=>api.cleanup(token);window.tdriveIOSPhotos=Object.freeze(api)})();";
     [controller addUserScript:[[WKUserScript alloc] initWithSource:source injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [webView evaluateJavaScript:source completionHandler:nil];
 }

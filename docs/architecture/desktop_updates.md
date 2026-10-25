@@ -4,7 +4,18 @@ Desktop updates authenticate a checksum manifest, validate the selected payload,
 and replace the running installation while retaining a previous copy. The
 [updater service](../../backend/updater/service.go) owns release state;
 [UpdateService](../../internal/app/updates.go) connects it to native players, restart and
-startup cleanup. Mobile stores own the mobile update path.
+startup cleanup. Mobile builds check GitHub for new versions and expose the
+release download in Account. Sideloaded iOS installs require installing the IPA
+with the user's sideloading tool; Android APK installation requires OS confirmation.
+
+Verified desktop downloads are scheduled for the next launch. A private atomic
+`pending.json` record retains the signed manifest, signature, selected asset and
+installation path. Before the engine, transfers or mounts start, the updater
+revalidates the signature, exact platform filename, newer version, installation
+path and payload hash using only cached bytes. It then installs and relaunches;
+an installation failure leaves the existing app usable and the payload retryable.
+Ready updates can also be installed immediately from Settings. The toolbar update
+button sits beside the AI button and indicates available, downloading and ready states.
 
 Windows processes with package identity, including sideloaded MSIX packages,
 also leave the GitHub updater disabled. The Updates panel directs these installs
