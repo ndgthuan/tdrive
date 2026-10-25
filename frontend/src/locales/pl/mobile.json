@@ -173,5 +173,6 @@
     "download_transfers_title": "Pobieranie z linku",
     "download_install_action": "Skonfiguruj program pobierający",
     "download_update_hint": "Strony często się zmieniają. Zaktualizuj program, gdy link przestanie działać.",
-    "download_to_drive": "Pobierz do TDrive"
+    "download_to_drive": "Pobierz do TDrive",
+    "download_video_merge_note": "Ten link ma osobne strumienie obrazu i dźwięku. Ta wersja mobilna nie potrafi ich jeszcze połączyć. Użyj TDrive na komputerze, aby pobrać film z dźwiękiem, lub wybierz dźwięk poniżej."
 }

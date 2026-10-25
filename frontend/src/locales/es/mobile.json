@@ -168,5 +168,6 @@
     "download_transfers_title": "Descargas desde enlace",
     "download_install_action": "Configurar descargador",
     "download_update_hint": "Los sitios cambian a menudo. Actualiza cuando un enlace falle.",
-    "download_to_drive": "Descargar en TDrive"
+    "download_to_drive": "Descargar en TDrive",
+    "download_video_merge_note": "Este enlace tiene vídeo y audio separados. Esta versión móvil aún no puede unirlos. Usa TDrive en el ordenador para vídeo con sonido o elige audio abajo."
 }

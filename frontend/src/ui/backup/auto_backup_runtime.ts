@@ -4,7 +4,8 @@
 // photo backup engine's; this module only decides when to ask it to run.
 import { writable } from 'svelte/store';
 import { t } from '../../i18n/i18n';
-import { backUpAutoBackupNow, getAutoBackupState, onAutoBackupProgress, onAutoBackupState, setAutoBackupPowerState, type AutoBackupProgress } from '../../api/auto_backup';
+import { getAutoBackupState, onAutoBackupProgress, onAutoBackupState, setAutoBackupPowerState, type AutoBackupProgress } from '../../api/auto_backup';
+import { discoverAutomaticPhotoBackup } from '../../modules/photo_backup/controller';
 import { setPhotoBackupPolicy } from '../../api/photo_backup';
 import { onRuntimeEvent } from '../../api/runtime';
 import { nativePhotoBackupPolicy, nativePowerStatus } from '../../modules/photo_backup/native_adapter';
@@ -33,7 +34,7 @@ export function startAutoBackupRuntime(): () => void {
 
     const runNow = (): void => {
         if (!enabled || stopped) return;
-        void backUpAutoBackupNow().catch(() => undefined);
+        void discoverAutomaticPhotoBackup();
     };
 
     const pushReadings = async (): Promise<void> => {

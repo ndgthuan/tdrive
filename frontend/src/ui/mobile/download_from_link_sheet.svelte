@@ -6,6 +6,9 @@
     import { installModalA11y } from '../modals/modal_a11y';
     import ClipboardTextIcon from 'phosphor-svelte/lib/ClipboardTextIcon';
     import { Clipboard } from '@wailsio/runtime';
+    import Button from '../button.svelte';
+    import ProgressBar from '../progress_bar.svelte';
+    import { isIOSPlatform } from '../../api/runtime';
     import { get } from 'svelte/store';
     import {
         install_tool,
@@ -26,7 +29,7 @@
         starting_destination,
         type DownloadDestination,
     } from '../downloader/downloader_destination';
-    import { format_clock, is_video_link, link_from_clipboard, setup_stage_key } from '../downloader/downloader_format';
+    import { format_clock, human_size, is_video_link, link_from_clipboard, setup_stage_key } from '../downloader/downloader_format';
     import { attach_request, download_rows } from '../downloader/downloader_state';
     import { native_engine_present } from '../../modules/media_download/native_engine';
     import { start_mobile_downloads } from '../../modules/media_download/mobile_jobs';
@@ -60,6 +63,7 @@
     ];
 
     const engine_present = native_engine_present();
+    const ios = isIOSPlatform();
 
     let tool_status = $state<Status | null>(null);
     let status_error = $state('');
@@ -82,7 +86,9 @@
 
     const yt_dlp_ready = $derived(tool_status?.yt_dlp.found ?? false);
     const ffmpeg_ready = $derived(tool_status?.ffmpeg.found ?? false);
-    const available_formats = $derived((probe?.formats ?? []).filter((format) => ffmpeg_ready || !format.has_video || format.has_audio));
+    const available_formats = $derived((probe?.formats ?? []).filter((format) => (ffmpeg_ready || !format.has_video || format.has_audio) && (!ios || (format.has_video ? ['mp4', 'm4v', 'mov'].includes(format.ext) : ['m4a', 'mp3', 'aac', 'wav'].includes(format.ext)))));
+    const unavailable_video = $derived(!ffmpeg_ready && Boolean(probe?.formats?.some((format) => format.has_video && !format.has_audio)));
+    const has_video = $derived(available_formats.some((format) => format.has_video));
     const can_start = $derived(yt_dlp_ready && probe !== null && !probe_loading && !probe_error && is_video_link(url) && choice !== '' && !starting && destination.drive_id !== 0);
 
     function changed_link(): void {
@@ -139,7 +145,8 @@
             const result = await probe_link(link);
             if (url.trim() !== link) return;
             probe = result;
-            choice = ffmpeg_ready ? 'best' : (result.formats ?? []).find((format) => format.has_video && format.has_audio)?.choice ?? '';
+            // Never silently turn a video request into an audio download.
+            choice = ffmpeg_ready ? 'best' : available_formats.find((format) => format.has_video && format.has_audio)?.choice ?? '';
         } catch (cause) {
             if (url.trim() === link) probe_error = message_of(cause);
         } finally {
@@ -240,12 +247,10 @@
                     <p class="card-title">{$t_store('downloader.setup_title')}</p>
                     <p class="muted">{$t_store('mobile.download_setup_phone')}</p>
                     {#if setup_busy}
-                        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.max(0, setup_percent)}>
-                            <i style="width: {Math.max(0, setup_percent)}%"></i>
-                        </div>
+                        <ProgressBar value={Math.max(0, setup_percent)} max={100} />
                         <p class="muted">{$t_store(setup_stage_key(setup_stage))}</p>
                     {:else}
-                        <button type="button" class="primary" onclick={install_engine}>{$t_store('mobile.download_install_action')}</button>
+                        <Button onclick={install_engine}>{$t_store('mobile.download_install_action')}</Button>
                     {/if}
                     {#if setup_error}<p class="error" role="alert">{setup_error}</p>{/if}
                     {#if status_error}<p class="error" role="alert">{status_error}</p>{/if}
@@ -267,16 +272,16 @@
                         oninput={changed_link}
                         disabled={!yt_dlp_ready}
                     />
-                    <button type="button" class="chip" onclick={paste_link} disabled={!yt_dlp_ready}>
+                    <Button variant="secondary" class="chip" onclick={paste_link} disabled={!yt_dlp_ready}>
                         <ClipboardTextIcon size={16} aria-hidden="true" />
                         {$t_store('downloader.paste')}
-                    </button>
+                    </Button>
                 </div>
             </div>
             {#if url_error}<p class="error" role="alert">{url_error}</p>{/if}
-            <button type="button" class="secondary" onclick={fetch_link} disabled={!yt_dlp_ready || probe_loading}>
+            <Button variant="secondary" class="fetch-action" onclick={fetch_link} disabled={!yt_dlp_ready || probe_loading} loading={probe_loading}>
                 {probe_loading ? $t_store('downloader.fetching') : $t_store('downloader.fetch')}
-            </button>
+            </Button>
             {#if probe_error}<p class="error" role="alert">{probe_error}</p>{/if}
 
             {#if probe}
@@ -286,7 +291,10 @@
                 </div>
             {/if}
 
-            <p class="sec">{$t_store('downloader.quality_label')}</p>
+            {#if probe}<p class="sec">{$t_store('downloader.quality_label')}</p>{/if}
+            {#if probe && unavailable_video && !has_video}
+                <p class="notice" role="status">{$t_store('mobile.download_video_merge_note')}</p>
+            {/if}
             {#if probe && !ffmpeg_ready && available_formats.length === 0}
                 <p class="error" role="status">{$t_store('downloader.no_compatible_formats')}</p>
             {/if}
@@ -297,29 +305,33 @@
                         <span>{$t_store(option.label_key)}</span>
                     </label>
                 {/each}
-                {#each available_formats as format (format.choice)}
+                {#each [true, false] as video (video)}
+                {@const formats = available_formats.filter((format) => format.has_video === video)}
+                {#if formats.length > 0}<p class="format-heading">{$t_store(video ? 'downloader.format_combined' : 'downloader.format_audio_only')}</p>{/if}
+                {#each formats as format (format.choice)}
                     <label class="opt">
                         <input type="radio" name="download-quality" value={format.choice} bind:group={choice} />
-                        <span>{format.height ? `${format.height}p · ` : ''}{format.ext.toUpperCase()} · {$t_store(!format.has_video ? 'downloader.format_audio_only' : format.has_audio ? 'downloader.format_combined' : 'downloader.format_video_only')}</span>
+                        <span class="format-copy"><strong>{format.height ? `${format.height}p · ` : ''}{format.ext.toUpperCase()}</strong><small>{[format.note, human_size(format.approx_size)].filter(Boolean).join(' · ') || format.id}</small></span>
                     </label>
                 {/each}
+                {/each}
             </div>
-            {#if tool_status && !tool_status.ffmpeg.found}
+            {#if probe && tool_status && !tool_status.ffmpeg.found && has_video}
                 <p class="muted">{$t_store('downloader.no_ffmpeg_note')}</p>
             {/if}
 
             <p class="sec">{$t_store('downloader.destination_save_to')}</p>
-            <DestinationPicker bind:destination disabled={starting} />
+            <div class="card"><DestinationPicker bind:destination disabled={starting} mobile /></div>
 
             {#if yt_dlp_ready}
                 <div class="card">
                     <p class="sec">{$t_store('downloader.update_ytdlp')}</p>
                     <p class="muted">{$t_store('mobile.download_update_hint')}</p>
                     {#if update_message}<p class="muted">{update_message}</p>{/if}
-                    <button type="button" class="secondary" onclick={update_engine} disabled={setup_busy}>
+                    <Button variant="secondary" onclick={update_engine} disabled={setup_busy} loading={setup_busy}>
                         <ArrowsClockwiseIcon size={16} aria-hidden="true" />
                         {$t_store('downloader.update_ytdlp')}
-                    </button>
+                    </Button>
                 </div>
             {/if}
 
@@ -329,9 +341,9 @@
         </div>
 
         <footer class="foot">
-            <button type="button" class="primary" onclick={submit_download} disabled={!can_start}>
+            <Button class="download-action" onclick={submit_download} disabled={!can_start} loading={starting}>
                 {starting ? $t_store('downloader.starting') : $t_store('mobile.download_to_drive')}
-            </button>
+            </Button>
         </footer>
     </div>
     </div>
@@ -391,10 +403,10 @@
         flex: 1;
         min-height: 0;
         overflow-y: auto;
-        padding: 4px 16px 16px;
+        padding: 0 14px 14px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: var(--space-3);
         overscroll-behavior: contain;
         overflow-x: hidden;
     }
@@ -403,7 +415,7 @@
 
     .foot {
         flex: 0 0 auto;
-        padding: 10px 16px 16px;
+        padding: 0 14px 14px;
     }
 
     .sec {
@@ -417,23 +429,29 @@
 
     .grp,
     .card {
-        background: var(--color-surface-2);
-        border-radius: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
         overflow: hidden;
     }
+    .grp:empty { display: none; }
+    .format-heading { margin: 0; padding: var(--space-2) var(--space-3); color: var(--text-muted); font-size: var(--font-size-xs); }
+    .format-copy { display: grid; gap: var(--space-1); min-width: 0; }
+    .format-copy strong { font-size: var(--font-size-sm); font-weight: var(--weight-strong); }
+    .format-copy small { color: var(--text-muted); font-size: var(--font-size-xs); overflow-wrap: anywhere; }
+    :global(.download-action) { width: 100%; }
 
     .card {
-        padding: 14px 16px;
+        padding: var(--space-3);
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: var(--space-2);
     }
 
     .field {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 12px;
+        padding: var(--space-2) var(--space-3);
     }
 
     .field input[type='url'] {
@@ -496,28 +514,12 @@
     .notice {
         margin: 0;
         padding: 14px 16px;
-        background: var(--color-surface-1);
-        border-radius: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
         color: var(--color-text-muted);
     }
 
-    .bar {
-        height: 6px;
-        border-radius: 3px;
-        background: var(--color-border-soft);
-        overflow: hidden;
-    }
-
-    .bar i {
-        display: block;
-        height: 100%;
-        background: var(--color-accent);
-        border-radius: 3px;
-    }
-
-    .text-btn,
-    .chip,
-    .secondary {
+    .text-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -536,28 +538,4 @@
 
     .text-btn { min-width: 44px; min-height: 44px; padding: 0; flex: none; }
 
-    .chip,
-    .secondary {
-        background: var(--overlay-accent-1);
-    }
-
-    .primary {
-        height: 52px;
-        width: 100%;
-        border: 0;
-        border-radius: 26px;
-        background: var(--color-accent);
-        color: var(--color-on-accent);
-        font: inherit;
-        font-size: 17px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-    .primary:disabled,
-    .secondary:disabled,
-    .chip:disabled {
-        opacity: 0.45;
-        cursor: default;
-    }
 </style>

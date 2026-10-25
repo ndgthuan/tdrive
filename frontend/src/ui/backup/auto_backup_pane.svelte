@@ -16,10 +16,12 @@
     import {
         getAutoBackupState, openNativeAppSettings, readNativeDeviceIdentity, setAutoBackupChargingOnly,
         setAutoBackupDeviceIdentity, setAutoBackupEnabled, setAutoBackupFolderName, setAutoBackupPermission,
-        setAutoBackupWifiOnly, backUpAutoBackupNow, type AutoBackupPermission, type AutoBackupState,
+        setAutoBackupWifiOnly, type AutoBackupPermission, type AutoBackupState,
     } from '../../api/auto_backup';
     import { autoBackupProgress } from './auto_backup_runtime';
     import { requestNativePhotoBackupAccess, readNativePhotoBackupAccess, nativePhotoBackupAvailable } from '../../modules/photo_backup/native_adapter';
+    import { photoBackupError, photoBackupState, refreshPhotoBackup, startPhotoBackup } from '../../modules/photo_backup/controller';
+    import { describeBackup } from '../gallery/photo_backup_view';
     import { t_store } from '../../i18n/i18n';
     import {
         folderNameProblemKey, formatBytes, normalizedFolderName, permissionIsLimited,
@@ -60,6 +62,7 @@
             }
             const identity = await readNativeDeviceIdentity();
             if (identity) current = await setAutoBackupDeviceIdentity(identity);
+            await refreshPhotoBackup();
             loadError = '';
         } catch (cause) {
             loadError = cause instanceof Error ? cause.message : '';
@@ -101,6 +104,8 @@
                 current = await setAutoBackupPermission(access);
                 if (access !== 'granted' && access !== 'limited') return;
                 current = await setAutoBackupEnabled(true);
+                await refreshPhotoBackup();
+                await startPhotoBackup();
             } else {
                 current = await setAutoBackupEnabled(false);
             }
@@ -118,7 +123,10 @@
         try {
             const access = await askAccess();
             current = await setAutoBackupPermission(access);
-            if (current.enabled && (access === 'granted' || access === 'limited')) current = await backUpAutoBackupNow();
+            if (current.enabled && (access === 'granted' || access === 'limited')) {
+                await refreshPhotoBackup();
+                await startPhotoBackup();
+            }
         } catch (cause) {
             loadError = cause instanceof Error ? cause.message : '';
         } finally { busy = false; }
@@ -163,7 +171,7 @@
 
     async function backUpNow(): Promise<void> {
         busy = true;
-        try { current = await backUpAutoBackupNow(); } finally { busy = false; }
+        try { await refreshPhotoBackup(); await startPhotoBackup(); } finally { busy = false; }
     }
 
     function bytesText(value: number): string {
@@ -266,12 +274,23 @@
                 </div>
                 <ProgressBar value={progressValue} max={100} label={$t_store('auto_backup.backing_up')} />
                 <p class="ab-muted ab-small">{$t_store('auto_backup.current_file', { name: liveProgress.currentName, size: bytesText(liveProgress.currentBytes) })}</p>
-                <Button variant="primary" size="sm" loading={busy} onclick={() => void backUpNow()}>{$t_store('auto_backup.back_up_now')}</Button>
                 <p class="ab-muted ab-small">{$t_store('auto_backup.back_up_later_note')}</p>
             </div>
         {/if}
 
-        <p class="ab-muted ab-small">{$t_store(phaseMessageKey(current.phase))}</p>
+        {#if current.enabled && !denied}
+            <Button variant="primary" loading={busy} onclick={() => void backUpNow()}>
+                {$photoBackupState?.encryptionRequired ? $t_store('photos.action_unlock_back_up') : $t_store('auto_backup.back_up_now')}
+            </Button>
+        {/if}
+        {#if current.enabled && !denied && $photoBackupState?.encryptionRequired}
+            <p class="ab-muted ab-small" role="status">{$t_store('photos.locked_body')}</p>
+        {:else if current.phase === 'up_to_date'}
+            <p class="ab-muted ab-small" role="status">{$photoBackupState?.sources.some((source) => source.enabled && source.scanComplete !== true) && $photoBackupState.status.phase === 'complete' ? $t_store('photos.ready_to_back_up') : $photoBackupState ? describeBackup($photoBackupState).title : $t_store('photos.preparing_next')}</p>
+        {:else}
+            <p class="ab-muted ab-small">{$t_store(phaseMessageKey(current.phase))}</p>
+        {/if}
+        {#if $photoBackupError}<p class="ab-error" role="alert">{$photoBackupError}</p>{/if}
         {#each current.errors as message (message)}
             <p class="ab-error" role="status">{message}</p>
         {/each}

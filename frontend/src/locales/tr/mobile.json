@@ -163,5 +163,6 @@
     "download_transfers_title": "Bağlantıdan indirmeler",
     "download_install_action": "İndiriciyi kur",
     "download_update_hint": "Siteler sık değişir. Bir bağlantı çalışmadığında güncelleyin.",
-    "download_to_drive": "TDrive'a indir"
+    "download_to_drive": "TDrive'a indir",
+    "download_video_merge_note": "Bu bağlantıda video ve ses ayrı akışlardır. Bu mobil sürüm bunları henüz birleştiremiyor. Sesli video için bilgisayarda TDrive kullanın veya aşağıdan ses seçin."
 }
