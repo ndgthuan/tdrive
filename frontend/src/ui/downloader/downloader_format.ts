@@ -69,6 +69,23 @@ export function is_valid_link(raw: string): boolean {
     return parsed.username === '' && parsed.password === '';
 }
 
+/** Share sheets may put a title around the copied URL. Keep the complete URL. */
+export function link_from_clipboard(raw: string): string {
+    return raw.match(/https?:\/\/[^\s<>"\u201c\u201d]+/i)?.[0] ?? raw.trim();
+}
+
+/** A YouTube home/channel URL isn't a link to one downloadable video. */
+export function is_video_link(raw: string): boolean {
+    if (!is_valid_link(raw)) return false;
+    const url = new URL(raw.trim());
+    const host = url.hostname.toLowerCase().replace(/^(www\.|m\.)/, '');
+    if (host === 'youtu.be') return url.pathname.length > 1;
+    if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+        return Boolean(url.pathname === '/watch' && url.searchParams.get('v')) || /^\/(shorts|live|embed)\/[^/]+/.test(url.pathname);
+    }
+    return true;
+}
+
 /** The format fields the dialog reads. Mirrors the Go ProbeFormat JSON. */
 export interface format_facts {
     height: number;

@@ -76,6 +76,15 @@ export async function requestNativePhotoBackupAccess(): Promise<NativeAccess> {
     return { status: boundedText(raw.status, 64), detail: boundedText(raw.detail, 240) };
 }
 
+/** Read the actual iOS grant after returning from Settings, without prompting. */
+export async function readNativePhotoBackupAccess(): Promise<string | null> {
+    const ios = iosBridge() as (IOSPhotosBridge & { getPhotoAccess?: () => unknown }) | null;
+    if (!ios?.getPhotoAccess) return null;
+    const raw = await nativeCall(ios.getPhotoAccess());
+    const status = boundedText(raw.status, 64);
+    return status === 'authorized' ? 'granted' : status;
+}
+
 export async function nativePhotoBackupPolicy(): Promise<boolean | null> {
     // iOS reports Wi-Fi through its path monitor; a reading the host has not
     // taken yet is unknown, and an unknown reading is not sent.

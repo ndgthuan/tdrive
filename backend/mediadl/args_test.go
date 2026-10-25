@@ -131,7 +131,7 @@ func TestProbeArgsAreMetadataOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.Contains(args, "-J") || !slices.Contains(args, "--no-playlist") || args[len(args)-1] != "https://example.com/v" {
+	if !slices.Contains(args, "-J") || !slices.Contains(args, "--no-playlist") || !slices.Contains(args, "--ignore-no-formats-error") || args[len(args)-1] != "https://example.com/v" {
 		t.Fatalf("probe args wrong: %v", args)
 	}
 	if slices.Contains(args, "-x") || slices.Contains(args, "-P") {

@@ -5,6 +5,7 @@
     import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
     import { installModalA11y } from '../modals/modal_a11y';
     import ClipboardTextIcon from 'phosphor-svelte/lib/ClipboardTextIcon';
+    import { Clipboard } from '@wailsio/runtime';
     import { get } from 'svelte/store';
     import {
         install_tool,
@@ -25,20 +26,22 @@
         starting_destination,
         type DownloadDestination,
     } from '../downloader/downloader_destination';
-    import { format_clock, is_valid_link, setup_stage_key } from '../downloader/downloader_format';
+    import { format_clock, is_video_link, link_from_clipboard, setup_stage_key } from '../downloader/downloader_format';
     import { attach_request, download_rows } from '../downloader/downloader_state';
     import { native_engine_present } from '../../modules/media_download/native_engine';
     import { start_mobile_downloads } from '../../modules/media_download/mobile_jobs';
 
     interface Props {
         open: boolean;
+        page?: boolean;
         onclose: () => void;
     }
 
-    let { open, onclose }: Props = $props();
+    let { open, page = false, onclose }: Props = $props();
 
     // Keep this overlay outside the Account card and its clipped scrollport.
     function portal(node: HTMLElement): { destroy: () => void } {
+        if (page) return { destroy: () => undefined };
         document.body.appendChild(node);
         const a11y = installModalA11y(node, { requestClose: onclose });
         a11y.activate();
@@ -78,7 +81,15 @@
     let start_error = $state('');
 
     const yt_dlp_ready = $derived(tool_status?.yt_dlp.found ?? false);
-    const can_start = $derived(yt_dlp_ready && is_valid_link(url) && choice !== '' && !starting && destination.drive_id !== 0);
+    const ffmpeg_ready = $derived(tool_status?.ffmpeg.found ?? false);
+    const available_formats = $derived((probe?.formats ?? []).filter((format) => ffmpeg_ready || !format.has_video || format.has_audio));
+    const can_start = $derived(yt_dlp_ready && probe !== null && !probe_loading && !probe_error && is_video_link(url) && choice !== '' && !starting && destination.drive_id !== 0);
+
+    function changed_link(): void {
+        probe = null;
+        probe_error = '';
+        choice = '';
+    }
 
     // Reads the engine state and the saved destination each time the sheet opens.
     $effect(() => {
@@ -105,7 +116,10 @@
     async function paste_link(): Promise<void> {
         url_error = '';
         try {
-            url = (await navigator.clipboard.readText()).trim();
+            // Use the native pasteboard in Wails; WebKit's Clipboard API can
+            // be unavailable in the app's custom-origin web view.
+            url = link_from_clipboard(await Clipboard.Text());
+            changed_link();
         } catch {
             url_error = $t_store('downloader.paste_failed');
         }
@@ -113,8 +127,8 @@
 
     async function fetch_link(): Promise<void> {
         const link = url.trim();
-        if (!is_valid_link(link)) {
-            url_error = $t_store('downloader.invalid_link');
+        if (!is_video_link(link)) {
+            url_error = $t_store('downloader.video_link_required');
             return;
         }
         url_error = '';
@@ -122,10 +136,12 @@
         probe_loading = true;
         probe = null;
         try {
-            probe = await probe_link(link);
-            choice = 'best';
+            const result = await probe_link(link);
+            if (url.trim() !== link) return;
+            probe = result;
+            choice = ffmpeg_ready ? 'best' : (result.formats ?? []).find((format) => format.has_video && format.has_audio)?.choice ?? '';
         } catch (cause) {
-            probe_error = message_of(cause);
+            if (url.trim() === link) probe_error = message_of(cause);
         } finally {
             probe_loading = false;
         }
@@ -133,8 +149,8 @@
 
     async function submit_download(): Promise<void> {
         const link = url.trim();
-        if (!is_valid_link(link)) {
-            url_error = $t_store('downloader.invalid_link');
+        if (!is_video_link(link)) {
+            url_error = $t_store('downloader.video_link_required');
             return;
         }
         start_error = '';
@@ -205,14 +221,16 @@
 <svelte:window onkeydown={on_keydown} />
 
 {#if open}
-    <div class="download-overlay" use:portal>
-    <div class="scrim" role="presentation" onclick={onclose}></div>
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="download-link-title">
+    <div class="download-overlay" class:is-page={page} use:portal>
+    {#if !page}<div class="scrim" role="presentation" onclick={onclose}></div>{/if}
+    <div class="sheet" class:is-page={page} role={page ? undefined : 'dialog'} aria-modal={page ? undefined : true} aria-labelledby={page ? undefined : 'download-link-title'}>
+        {#if !page}
         <header class="head">
             <button type="button" class="text-btn" aria-label={$t_store('mobile.back')} onclick={onclose}><CaretLeftIcon size={22} aria-hidden="true" /></button>
             <h2 id="download-link-title">{$t_store('downloader.title')}</h2>
             <span class="spacer" aria-hidden="true"></span>
         </header>
+        {/if}
 
         <div class="body">
             {#if !engine_present}
@@ -246,6 +264,7 @@
                         placeholder={$t_store('downloader.link_placeholder')}
                         aria-label={$t_store('downloader.link_label')}
                         bind:value={url}
+                        oninput={changed_link}
                         disabled={!yt_dlp_ready}
                     />
                     <button type="button" class="chip" onclick={paste_link} disabled={!yt_dlp_ready}>
@@ -268,11 +287,20 @@
             {/if}
 
             <p class="sec">{$t_store('downloader.quality_label')}</p>
+            {#if probe && !ffmpeg_ready && available_formats.length === 0}
+                <p class="error" role="status">{$t_store('downloader.no_compatible_formats')}</p>
+            {/if}
             <div class="grp" role="radiogroup" aria-label={$t_store('downloader.quality_label')}>
-                {#each PRESET_OPTIONS as option (option.value)}
+                {#each (ffmpeg_ready ? PRESET_OPTIONS : []) as option (option.value)}
                     <label class="opt">
                         <input type="radio" name="download-quality" value={option.value} bind:group={choice} />
                         <span>{$t_store(option.label_key)}</span>
+                    </label>
+                {/each}
+                {#each available_formats as format (format.choice)}
+                    <label class="opt">
+                        <input type="radio" name="download-quality" value={format.choice} bind:group={choice} />
+                        <span>{format.height ? `${format.height}p · ` : ''}{format.ext.toUpperCase()} · {$t_store(!format.has_video ? 'downloader.format_audio_only' : format.has_audio ? 'downloader.format_combined' : 'downloader.format_video_only')}</span>
                     </label>
                 {/each}
             </div>
@@ -311,10 +339,13 @@
 
 <style>
     .download-overlay { position: fixed; inset: 0; z-index: var(--z-modal); }
+    .download-overlay.is-page { position: relative; inset: auto; z-index: auto; }
+    .sheet.is-page { position: relative; inset: auto; max-height: none; border-radius: 0; z-index: auto; }
+    .sheet.is-page .body { overflow: visible; }
     .scrim {
         position: fixed;
         inset: 0;
-        background: rgb(0 0 0 / 0.55);
+        background: var(--scrim);
         z-index: 60;
     }
 
@@ -381,7 +412,7 @@
         font-weight: 600;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: #a0a7b1;
+        color: var(--color-text-muted);
     }
 
     .grp,
@@ -418,7 +449,7 @@
 
     .field input:focus-visible,
     .opt input:focus-visible {
-        outline: 2px solid #7f9cc4;
+        outline: 2px solid var(--color-accent);
         outline-offset: 2px;
     }
 
@@ -428,7 +459,7 @@
         gap: 12px;
         min-height: 50px;
         padding: 8px 14px;
-        border-top: 1px solid #2a2f36;
+        border-top: 1px solid var(--color-border-soft);
         font-size: 15px;
     }
 
@@ -437,7 +468,7 @@
     }
 
     .opt input {
-        accent-color: #7f9cc4;
+        accent-color: var(--color-accent);
         width: 20px;
         height: 20px;
         margin: 0;
@@ -453,34 +484,34 @@
         margin: 0;
         font-size: 13px;
         line-height: 18px;
-        color: #a0a7b1;
+        color: var(--color-text-muted);
     }
 
     .error {
         margin: 0;
         font-size: 14px;
-        color: #e8a0a0;
+        color: var(--color-danger);
     }
 
     .notice {
         margin: 0;
         padding: 14px 16px;
-        background: #1e2227;
+        background: var(--color-surface-1);
         border-radius: 16px;
-        color: #a0a7b1;
+        color: var(--color-text-muted);
     }
 
     .bar {
         height: 6px;
         border-radius: 3px;
-        background: #22272e;
+        background: var(--color-border-soft);
         overflow: hidden;
     }
 
     .bar i {
         display: block;
         height: 100%;
-        background: #7f9cc4;
+        background: var(--color-accent);
         border-radius: 3px;
     }
 
@@ -496,7 +527,7 @@
         border: 0;
         border-radius: 18px;
         background: transparent;
-        color: #7f9cc4;
+        color: var(--color-accent);
         font: inherit;
         font-size: 15px;
         font-weight: 600;
@@ -507,7 +538,7 @@
 
     .chip,
     .secondary {
-        background: #1e2a3d;
+        background: var(--overlay-accent-1);
     }
 
     .primary {
@@ -515,8 +546,8 @@
         width: 100%;
         border: 0;
         border-radius: 26px;
-        background: #7f9cc4;
-        color: #0b0f14;
+        background: var(--color-accent);
+        color: var(--color-on-accent);
         font: inherit;
         font-size: 17px;
         font-weight: 600;

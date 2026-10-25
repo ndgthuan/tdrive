@@ -98,9 +98,9 @@ test('iPhone downloader has a visible return control and one unclipped scroll su
     }, { url: '/?mobile=ios' });
     await tab(page, /^Account/).click();
     await page.getByRole('button', { name: /Download from link/ }).click();
-    const dialog = page.getByRole('dialog', { name: 'Download from link' });
+    const dialog = page.getByRole('region', { name: 'Download from link', exact: true }).locator('.sheet');
     await expect(dialog).toBeVisible();
-    const back = dialog.getByRole('button', { name: 'Back', exact: true });
+    const back = page.getByRole('button', { name: 'Back', exact: true });
     await expect(back).toBeInViewport();
     await page.screenshot({ path: '../.task/mobile-polish-downloader.png' });
     const sizes = await dialog.evaluate((el) => {
@@ -111,7 +111,19 @@ test('iPhone downloader has a visible return control and one unclipped scroll su
     });
     expect(sizes.scrollWidth).toBeLessThanOrEqual(sizes.width);
     expect(sizes.groupScroll).toBeLessThanOrEqual(sizes.groupHeight + 1);
-    expect(sizes.overflow).toBe('auto');
+    expect(sizes.overflow).toBe('visible');
+    for (const theme of ['porcelain', 'tdrive']) {
+        await page.evaluate((value) => document.documentElement.dataset.theme = value, theme);
+        const colors = await dialog.evaluate((el) => {
+            const reference = document.createElement('div');
+            reference.style.backgroundColor = 'var(--color-canvas)';
+            el.append(reference);
+            const expected = getComputedStyle(reference).backgroundColor;
+            reference.remove();
+            return { actual: getComputedStyle(el).backgroundColor, expected };
+        });
+        expect(colors.actual).toBe(colors.expected);
+    }
     await page.setViewportSize({ width: 844, height: 390 });
     await expect(back).toBeInViewport();
     await back.click();

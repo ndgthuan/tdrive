@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Nguyễn Dương Gia Thuận
 
 import { describe, expect, it, vi } from 'vitest';
-import { answer_host_request, native_engine_present, type native_engine_port } from './native_engine';
+import { answer_host_request, create_line_forwarder, native_engine_present, type native_engine_port } from './native_engine';
 import type { media_host_request } from '../../api/media_download';
 
 function fake_engine(overrides: Partial<native_engine_port> = {}): native_engine_port {
@@ -80,4 +80,19 @@ describe('native_engine_present', () => {
     it('is false on a desktop test host with no native bridge', () => {
         expect(native_engine_present()).toBe(false);
     });
+});
+
+it('waits for metadata delivery before allowing request completion', async () => {
+    let finish!: () => void;
+    const report = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    const output = create_line_forwarder(report);
+    output.line('probe', '{"title":"Video","formats":[]}');
+    const complete = vi.fn();
+    const drained = output.drain('probe').then(complete);
+    await Promise.resolve();
+    expect(report).toHaveBeenCalledWith('probe', '{"title":"Video","formats":[]}');
+    expect(complete).not.toHaveBeenCalled();
+    finish();
+    await drained;
+    expect(complete).toHaveBeenCalledOnce();
 });

@@ -157,7 +157,17 @@ wails3 task ios:run
 wails3 task ios:package
 ```
 
-Physical-device builds require a signing identity and provisioning profile; see [ios/Taskfile.yml](ios/Taskfile.yml) for device and IPA tasks. CI checks simulator and device builds, but there is no public iOS distribution yet.
+Physical-device builds require a signing identity and provisioning profile; see [ios/Taskfile.yml](ios/Taskfile.yml) for device and IPA tasks.
+
+For repeated local testing on macOS with Xcode, boot an iPhone simulator and run
+`wails3 task ios:deploy-simulator`. This builds, installs over the existing app
+and launches it while preserving its data container and Telegram login. Set
+`IOS_CLEAN=1` only when a fresh container is wanted. An IPA built for a physical
+device cannot be installed in Simulator; use the simulator `.app` build.
+Windows cannot run Apple's iOS Simulator locally. Frontend browser tests can
+cover navigation and theme behavior there, while the macOS CI job compiles the
+native app and exercises the embedded downloader on Simulator. Simulator tests
+do not reproduce TrollStore registration or prove physical-device permissions.
 
 The link downloader embeds pinned BeeWare CPython 3.13, yt-dlp and certifi. Both
 Taskfile and generated Xcode builds link `Python.framework` and stage the shared

@@ -130,6 +130,23 @@ async function run_operation(request: media_host_request, engine: native_engine_
 
 let relay_stop: RuntimeUnsubscribe | null = null;
 
+// Native output and completion cross separate asynchronous Go calls. Drain
+// output before resolving the request, otherwise the broker drops the final
+// metadata/error line after it has removed the completed request.
+export function create_line_forwarder(report = report_media_host_line) {
+    const pending = new Map<string, Promise<void>>();
+    return {
+        line(id: string, line: string): void {
+            const next = (pending.get(id) ?? Promise.resolve()).then(() => report(id, line));
+            pending.set(id, next);
+            void next.catch(() => undefined);
+        },
+        async drain(id: string): Promise<void> {
+            try { await pending.get(id); } finally { pending.delete(id); }
+        },
+    };
+}
+
 /**
  * Starts answering engine requests and forwarding output lines. It does nothing
  * on a device without a native engine. Calling it again returns the same stop.
@@ -138,11 +155,17 @@ export function start_host_relay(): RuntimeUnsubscribe {
     if (relay_stop) return relay_stop;
     const engine = platform_engine();
     if (!engine || typeof window === 'undefined') return () => undefined;
+    const output = create_line_forwarder();
     window.tdriveMediaDlLine = (request_id, line) => {
-        void report_media_host_line(request_id, line).catch(() => undefined);
+        output.line(request_id, line);
+    };
+    const reply = async (id: string, result: string, failure: string) => {
+        try { await output.drain(id); }
+        catch { failure ||= ENGINE_FAILED_MESSAGE; }
+        await reply_media_host(id, result, failure);
     };
     const unsubscribe = subscribe_media_host((request) => {
-        void answer_host_request(request, engine).catch(() => undefined);
+        void answer_host_request(request, engine, reply).catch(() => undefined);
     });
     relay_stop = () => {
         unsubscribe();

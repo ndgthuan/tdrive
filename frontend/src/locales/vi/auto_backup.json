@@ -28,6 +28,7 @@
     "limited_title": "Quyền truy cập ảnh bị giới hạn",
     "limited_detail": "Cho phép truy cập đầy đủ để sao lưu mọi ảnh.",
     "open_settings": "Mở Cài đặt",
+    "allow_photos": "Cho phép truy cập ảnh",
     "keep_open": "Giữ ứng dụng mở để hoàn tất lần sao lưu lớn đầu tiên.",
     "denied_title": "Chưa cấp quyền truy cập ảnh",
     "denied_detail": "Tự động sao lưu không đọc được thư viện ảnh. Hãy bật quyền truy cập trong {settings}, rồi quay lại đây.",

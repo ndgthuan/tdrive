@@ -19,7 +19,7 @@ _cancelled = set()
 
 # The yt-dlp this build ships. It is pinned in build/ios/Taskfile.yml and only
 # changes with an app update, because the app cannot install packages itself.
-BUNDLED_VERSION_FALLBACK = "2026.8.19"
+BUNDLED_VERSION_FALLBACK = "2026.10.21"
 
 
 class _LineSink(io.TextIOBase):
