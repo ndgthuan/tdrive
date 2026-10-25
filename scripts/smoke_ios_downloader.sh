@@ -40,18 +40,26 @@ xcrun simctl bootstatus "$device" -b
 xcrun simctl install "$device" "$app"
 installed="$(xcrun simctl get_app_container "$device" com.jeetraj.tdrive.downloader-smoke app)"
 python3 - "$workspace" "$temporary/port" <<'PY' &
-import http.server, os, sys
+import http.server, os, socketserver, sys
 from pathlib import Path
 os.chdir(sys.argv[1])
-server=http.server.ThreadingHTTPServer(('127.0.0.1',0),http.server.SimpleHTTPRequestHandler)
+class LocalServer(http.server.ThreadingHTTPServer):
+    def server_bind(self):
+        # Avoid a reverse-DNS lookup on hosted macOS runners.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = 'localhost'
+        self.server_port = self.server_address[1]
+server=LocalServer(('127.0.0.1',0),http.server.SimpleHTTPRequestHandler)
 Path(sys.argv[2]).write_text(str(server.server_port))
 server.serve_forever()
 PY
 server_pid=$!
-for attempt in $(seq 1 50); do
+for attempt in $(seq 1 600); do
     [ -f "$temporary/port" ] && break
+    kill -0 "$server_pid" 2>/dev/null || { echo 'Fixture server exited before startup' >&2; exit 1; }
     sleep 0.1
 done
+test -f "$temporary/port" || { echo 'Fixture server did not start within 60 seconds' >&2; exit 1; }
 port="$(cat "$temporary/port")"
 fixture=frontend/e2e/fixtures/tiny.mp4
 test -f "$fixture"

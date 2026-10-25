@@ -1021,7 +1021,9 @@ jobs:
         run: wails3 task ios:package
 
       - name: Exercise the bundled iOS downloader on Simulator
-        run: bash scripts/smoke_ios_downloader.sh
+        run: |
+          python3 -m unittest discover -s build/ios/mediadl -p 'test*.py'
+          bash scripts/smoke_ios_downloader.sh
 
       # A device build uses a different SDK and a different minimum-version
       # flag, and is the one a phone would actually run. Signing is left
