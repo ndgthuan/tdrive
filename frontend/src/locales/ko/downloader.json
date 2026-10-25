@@ -1,4 +1,6 @@
 {
+    "video_link_required": "YouTube 홈페이지나 채널이 아닌 동영상 하나의 전체 링크를 붙여넣으세요.",
+    "no_compatible_formats": "이 동영상에는 이 기기에서 영상과 음성을 합치지 않고 다운로드할 수 있는 형식이 없습니다. 다른 동영상이나 데스크톱 앱을 사용해 보세요.",
     "button_label": "링크에서 다운로드",
     "button_title": "링크에서 다운로드",
     "title": "링크에서 다운로드",

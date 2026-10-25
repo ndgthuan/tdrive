@@ -1,4 +1,6 @@
 {
+    "video_link_required": "Füge den vollständigen Link zu einem Video ein, nicht zur YouTube-Startseite oder einem Kanal.",
+    "no_compatible_formats": "Dieses Video bietet kein Format, das dieses Gerät ohne Zusammenführen von Bild und Ton laden kann. Versuche ein anderes Video oder die Desktop-App.",
     "button_label": "Von einem Link herunterladen",
     "button_title": "Von einem Link herunterladen",
     "title": "Von einem Link herunterladen",

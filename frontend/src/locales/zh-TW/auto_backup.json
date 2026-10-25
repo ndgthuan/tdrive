@@ -1,4 +1,5 @@
 {
+    "allow_photos": "允許存取照片",
     "title": "照片與影片備份",
     "loading": "正在載入…",
     "auto_backup": "自動備份",

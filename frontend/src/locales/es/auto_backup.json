@@ -1,4 +1,5 @@
 {
+    "allow_photos": "Permitir acceso a las fotos",
     "title": "Copia de fotos y vídeos",
     "loading": "Cargando…",
     "auto_backup": "Copia automática",

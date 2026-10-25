@@ -1,4 +1,5 @@
 {
+    "allow_photos": "Consenti l’accesso alle foto",
     "title": "Backup di foto e video",
     "loading": "Caricamento…",
     "auto_backup": "Backup automatico",

@@ -1,4 +1,5 @@
 {
+    "allow_photos": "允许访问照片",
     "title": "照片和视频备份",
     "loading": "正在加载…",
     "auto_backup": "自动备份",

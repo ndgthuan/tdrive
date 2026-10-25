@@ -1,4 +1,6 @@
 {
+    "video_link_required": "Pega el enlace completo a un vídeo, no a la página principal ni a un canal de YouTube.",
+    "no_compatible_formats": "Este vídeo no tiene formatos que este dispositivo pueda descargar sin combinar vídeo y audio. Prueba otro vídeo o la aplicación de escritorio.",
     "button_label": "Descargar desde un enlace",
     "button_title": "Descargar desde un enlace",
     "title": "Descargar desde un enlace",

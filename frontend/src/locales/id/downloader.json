@@ -1,4 +1,6 @@
 {
+    "video_link_required": "Tempel tautan lengkap ke satu video, bukan beranda atau channel YouTube.",
+    "no_compatible_formats": "Video ini tidak memiliki format yang dapat diunduh perangkat ini tanpa menggabungkan video dan audio. Coba video lain atau aplikasi desktop.",
     "button_label": "Unduh dari tautan",
     "button_title": "Unduh dari tautan",
     "title": "Unduh dari tautan",

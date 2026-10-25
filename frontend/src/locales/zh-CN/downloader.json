@@ -1,4 +1,6 @@
 {
+    "video_link_required": "请粘贴单个视频的完整链接，而不是 YouTube 首页或频道链接。",
+    "no_compatible_formats": "此视频没有无需合并视频和音频即可在此设备上下载的格式。请尝试其他视频或使用桌面应用。",
     "button_label": "从链接下载",
     "button_title": "从链接下载",
     "title": "从链接下载",

@@ -1,4 +1,6 @@
 {
+    "video_link_required": "Collez le lien complet d’une vidéo, pas celui de l’accueil ou d’une chaîne YouTube.",
+    "no_compatible_formats": "Cette vidéo ne propose aucun format téléchargeable sur cet appareil sans fusionner la vidéo et l’audio. Essayez une autre vidéo ou l’application de bureau.",
     "button_label": "Télécharger depuis un lien",
     "button_title": "Télécharger depuis un lien",
     "title": "Télécharger depuis un lien",
