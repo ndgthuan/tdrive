@@ -265,7 +265,8 @@
         display: grid;
         gap: var(--space-2);
     }
-    .ab-rows { padding: 0; gap: 0; }
+    .ab-rows { padding: var(--space-2) var(--space-3); gap: var(--space-2); }
+    .ab-rows .ab-row { padding-left: 0; padding-right: 0; }
     .ab-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); }
     .ab-grow { flex: 1; min-width: 0; margin: 0; }
     .ab-label { margin: 0; font-size: var(--font-size-sm); font-weight: var(--weight-strong); }

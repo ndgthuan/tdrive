@@ -6,5 +6,9 @@
   "restart_confirm": "Reiniciar de todos modos",
   "downloading": "Descargando {version}…",
   "ready_detail": "Reinicia TDrive para terminar de instalar {version}.",
-  "available_detail": "Hay una versión más reciente lista para descargar."
+  "available_detail": "Hay una versión más reciente lista para descargar.",
+  "title": "App updates",
+  "ios_install_hint": "TDrive checks for new versions automatically. For this sideloaded iOS app, download the new IPA and install it with the same sideloading tool. iOS does not allow the app to replace itself.",
+  "android_install_hint": "TDrive checks for new versions automatically. Download the latest APK and open it to update. Android asks you to confirm installation.",
+  "open_downloads": "Open update download"
 }

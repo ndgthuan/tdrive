@@ -108,6 +108,8 @@ type Service struct {
 	asset      *Asset
 	checksums  map[string]string
 	payload    string // verified payload path while PhaseReady
+	manifest   []byte
+	signature  []byte
 	target     Target
 	targetErr  error
 	targetDone bool
@@ -163,6 +165,7 @@ func New(opts Options) *Service {
 	s.current = version
 	s.state.CurrentVersion = version.String()
 	pruneCache(opts.CacheDir, version)
+	s.restorePending()
 	return s
 }
 
@@ -252,6 +255,8 @@ type resolution struct {
 	installable bool
 	hint        string
 	payload     string
+	manifest    []byte
+	signature   []byte
 }
 
 func (s *Service) resolve(ctx context.Context, release Release) (resolution, error) {
@@ -331,6 +336,7 @@ func (s *Service) resolve(ctx context.Context, release Release) (resolution, err
 		return res, nil
 	}
 	res.checksums = sums
+	res.manifest, res.signature = body, envelope
 	res.installable = true
 
 	dest := s.payloadPath(name)
@@ -358,6 +364,7 @@ func (s *Service) applyResolutionLocked(release Release, res resolution) {
 	s.release = &rel
 	s.asset = res.asset
 	s.checksums = res.checksums
+	s.manifest, s.signature = res.manifest, res.signature
 
 	info := &ReleaseInfo{
 		Version: release.Version.String(),
@@ -379,6 +386,7 @@ func (s *Service) applyResolutionLocked(release Release, res resolution) {
 		s.payload = res.payload
 		s.state.Phase = PhaseReady
 		s.state.DownloadedBytes = info.AssetSize
+		s.savePendingLocked()
 		return
 	}
 	s.payload = ""
@@ -391,6 +399,7 @@ func (s *Service) setUpToDateLocked() {
 		_ = os.Remove(s.payload)
 	}
 	s.release, s.asset, s.checksums, s.payload = nil, nil, nil, ""
+	_ = os.Remove(s.pendingPath())
 	s.state.Phase = PhaseUpToDate
 	s.state.Latest = nil
 	s.state.Installable = false
@@ -462,6 +471,7 @@ func (s *Service) runDownload(ctx context.Context, id uint64, asset Asset, want,
 	s.state.Phase = PhaseReady
 	s.state.DownloadedBytes = asset.Size
 	s.state.TotalBytes = asset.Size
+	s.savePendingLocked()
 	s.emitLocked()
 }
 
@@ -549,6 +559,7 @@ func (s *Service) Install() error {
 		return err
 	}
 	s.state.Phase = PhaseInstalled
+	_ = os.Remove(s.pendingPath())
 	s.payload = ""
 	_ = os.Remove(payload)
 	s.emitLocked()

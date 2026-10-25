@@ -1,6 +1,6 @@
 {
   "title": "Modelli IA",
-  "subtitle": "Modelli per l’assistente IA e l’organizzazione dei file. Le chiavi API sono salvate in Windows Credential Manager.",
+  "subtitle": "Modelli per l’assistente IA e l’organizzazione dei file. Le chiavi API sono salvate in l’archivio sicuro delle credenziali del dispositivo.",
   "add_model": "Aggiungi modello",
   "loading": "Caricamento modelli…",
   "empty": "Nessun modello per ora. Aggiungine uno per usare l’assistente IA.",
@@ -28,7 +28,7 @@
   "key_saved": "Chiave salvata. Lascia vuoto per mantenerla.",
   "key_none": "Nessuna chiave salvata per ora.",
   "key_clear": "Rimuovi chiave salvata",
-  "key_note": "Archiviata in Windows Credential Manager, mai inviata a Telegram.",
+  "key_note": "Archiviata in l’archivio sicuro delle credenziali del dispositivo, mai inviata a Telegram.",
   "show_key": "Mostra chiave",
   "hide_key": "Nascondi chiave",
   "toggle_vision": "Consenti la lettura del contenuto delle immagini (visione)",

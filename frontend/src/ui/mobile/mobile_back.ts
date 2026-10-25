@@ -17,7 +17,7 @@ import { exitPhotos } from '../../modules/gallery';
 import { closeTrash } from '../../modules/trash/controller';
 import { clearSelection } from '../../modules/selection';
 import { closeChannel, openChannelKey } from '../channels/channel_store';
-import { activeTab, closeDriveSwitcher, driveSwitcherOpen } from './mobile_shell_store';
+import { activeTab, accountDetail, closeAccountDetail, closeDriveSwitcher, driveSwitcherOpen } from './mobile_shell_store';
 
 /** The name the native phone hosts call. Keep it in sync with MainActivity and main.m. */
 export const BACK_BRIDGE = '__tdriveHandleBack';
@@ -33,6 +33,10 @@ export function handleBackPress(): boolean {
     // Dialogs, sheets, the media players, the popover menus. They register
     // themselves, so a new one answers BACK without touching this file.
     if (closeTopSheet()) return true;
+    if (get(activeTab) === 'account' && get(accountDetail)) {
+        closeAccountDetail();
+        return true;
+    }
     if (get(driveSwitcherOpen)) {
         closeDriveSwitcher();
         return true;

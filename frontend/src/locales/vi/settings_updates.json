@@ -6,5 +6,9 @@
     "restart_confirm": "Vẫn khởi động lại",
     "downloading": "Đang tải {version}…",
     "ready_detail": "Khởi động lại TDrive để cài đặt {version}.",
-    "available_detail": "Đã có phiên bản mới để tải về."
+    "available_detail": "Đã có phiên bản mới để tải về.",
+    "title": "Cập nhật ứng dụng",
+    "ios_install_hint": "TDrive tự kiểm tra phiên bản mới. Với bản iOS cài ngoài, tải IPA mới và cài bằng công cụ sideload bạn đang dùng. iOS không cho ứng dụng tự thay thế bản cài.",
+    "android_install_hint": "TDrive tự kiểm tra phiên bản mới. Tải APK mới nhất và mở để cập nhật. Android sẽ yêu cầu bạn xác nhận cài đặt.",
+    "open_downloads": "Mở trang tải bản cập nhật"
 }

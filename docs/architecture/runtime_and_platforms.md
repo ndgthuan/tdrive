@@ -177,10 +177,24 @@ stops the mount, waits for handlers, closes the engine and releases the lock.
 | Android | Wails storage path overrides both data and cache before engine construction | App-private files, MediaStore access, foreground-service execution grant |
 | iOS | Wails storage path overrides data; cache stays in the app container's `Library/Caches` | Scoped folder bookmarks, native media and limited UIKit background time |
 
+Mobile exposes the same AI models and assistant through Account and the header.
+Provider keys stay in native credential storage: iOS uses device-only Keychain
+items, and Android wraps each model's key with an Android Keystore AES-GCM key
+and stores ciphertext in the no-backup directory. Neither implementation returns
+stored keys to the frontend. The desktop keyring implementations remain separate.
+
+The mobile upload menu offers a photo/video library picker as well as Files.
+iOS PHPicker grants only the selected resources and streams at most 20 selections
+within a 4 GiB staging budget. Temporary selections are released after the shared
+import flow; resumable uploads own their separate durable source copies. Android
+uses its document picker filtered to image and video MIME types, retaining the
+existing Go picker-source ownership and cleanup.
+
 Mobile tasks compile the shared frontend and mobile Go libraries, with native
 Android/iOS hosts around them. They do not package a desktop executable. Follow
 the [build guide](../../build/README.md) and platform Taskfiles for those entry
-points; OS mounts and desktop updater controls are omitted from the mobile shell.
+points; OS mounts are omitted from the mobile shell. Account has release checks
+and installation guidance appropriate to each mobile platform.
 
 Mobile photo discovery and staging require the foreground WebView. A granted
 native lease can finish an already active transfer after backgrounding, but the

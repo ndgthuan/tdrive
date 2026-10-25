@@ -6,6 +6,10 @@ on:
       - "v*"
   workflow_dispatch:
     inputs:
+      build_version:
+        description: Version for branch test builds (does not publish a release)
+        type: string
+        default: v3.0.2
       verify_android_signing:
         description: Build and verify a signed Android APK without creating a release
         type: boolean
@@ -72,9 +76,11 @@ jobs:
 
       - name: Sanitize artifact version
         shell: bash
+        env:
+          BUILD_VERSION: ${{ inputs.build_version || github.ref_name }}
         run: |
           set -euo pipefail
-          version="$(printf '%s' "$GITHUB_REF_NAME" | sed 's/[^[:alnum:]._-]/-/g')"
+          version="$(printf '%s' "$BUILD_VERSION" | sed 's/[^[:alnum:]._-]/-/g')"
           test -n "$version"
           echo "TDRIVE_ARTIFACT_VERSION=$version" >> "$GITHUB_ENV"
 
@@ -132,13 +138,14 @@ jobs:
           go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-      # Tag builds only; a dispatched branch build keeps the checked-in version.
+      # Branch test builds can carry a stable version without publishing it.
       - name: Stamp release version
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.build_version != ''
         shell: bash
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
+          version="${TDRIVE_ARTIFACT_VERSION#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           # Only the version line inside the info block: the top-level one is
           # the config schema. sed rather than yq, which the Windows runner lacks.
           sed -i.bak -E "/^info:/,/^[^[:space:]]/ s/^([[:space:]]+version:[[:space:]]*).*/\1\"${version}\"/" build/config.yml
@@ -282,10 +289,9 @@ jobs:
     continue-on-error: true
     env:
       GOFLAGS: ""
-      # A tag push builds the tag. An ios_only dispatch builds ios_version
-      # instead of the branch it was started on.
-      IOS_RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ios_only && inputs.ios_version || github.ref_name }}
-      IOS_STAMP_VERSION: ${{ (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.ios_only)) && 'true' || 'false' }}
+      # Version stamps are independent of the checked-out branch/ref.
+      IOS_RELEASE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.ios_only && inputs.ios_version || inputs.build_version || github.ref_name }}
+      IOS_STAMP_VERSION: ${{ (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && (inputs.ios_only || inputs.build_version != ''))) && 'true' || 'false' }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -537,6 +543,13 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Upload signed Android test build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: binary-android-signed
+          path: build/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
 
   release:
     name: Create GitHub Release

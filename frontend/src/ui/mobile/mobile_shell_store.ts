@@ -23,7 +23,7 @@ export const driveSwitcherOpen = writable(false);
  * the whole tab with its title and a back button in the top bar. The state lives
  * here so the top bar and the Account tab read the same value.
  */
-export type AccountDetail = 'appearance' | 'backup' | 'language' | 'about';
+export type AccountDetail = 'appearance' | 'backup' | 'language' | 'about' | 'ai' | 'updates';
 
 // Translation keys for the page titles; resolve them with $t_store in the component.
 export const ACCOUNT_DETAIL_TITLE_KEYS: Record<AccountDetail, string> = {
@@ -31,11 +31,14 @@ export const ACCOUNT_DETAIL_TITLE_KEYS: Record<AccountDetail, string> = {
     backup: 'mobile.account_backup_title',
     language: 'mobile.account_language',
     about: 'mobile.account_about',
+    ai: 'settings.nav_ai',
+    updates: 'settings_updates.title',
 };
 
 export const accountDetail = writable<AccountDetail | null>(null);
 
 export function openAccountDetail(detail: AccountDetail): void {
+    activeTab.set('account');
     accountDetail.set(detail);
 }
 

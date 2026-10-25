@@ -1,6 +1,6 @@
 {
     "title": "AI Models",
-    "subtitle": "Model dùng cho Trợ lý AI và sắp xếp file. Khóa API lưu trong Windows Credential Manager.",
+    "subtitle": "Model dùng cho Trợ lý AI và sắp xếp file. Khóa API lưu trong kho thông tin xác thực an toàn của thiết bị.",
     "add_model": "Thêm model",
     "loading": "Đang tải danh sách model…",
     "empty": "Chưa có model nào. Thêm một model để dùng Trợ lý AI.",
@@ -28,7 +28,7 @@
     "key_saved": "Đã lưu khóa. Để trống để giữ nguyên.",
     "key_none": "Chưa lưu khóa nào.",
     "key_clear": "Xóa khóa đã lưu",
-    "key_note": "Lưu trong Windows Credential Manager, không gửi lên Telegram.",
+    "key_note": "Lưu trong kho thông tin xác thực an toàn của thiết bị, không gửi lên Telegram.",
     "show_key": "Hiện khóa",
     "hide_key": "Ẩn khóa",
     "toggle_vision": "Cho phép đọc nội dung ảnh (vision)",

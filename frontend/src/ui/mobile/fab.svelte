@@ -1,6 +1,7 @@
 <script lang="ts">
     import { openNewFolderModal } from '../../modules/modals/folder';
-    import { chooseFilesForCurrentFolder, chooseFolderForCurrentFolder } from '../../modules/transfers';
+    import { chooseFilesForCurrentFolder, chooseFolderForCurrentFolder, choosePhotosForCurrentFolder } from '../../modules/transfers';
+    import { mediaPickerAvailable } from '../../modules/media_picker';
     import UploadMenu from '../chrome/upload_menu.svelte';
 
     interface Props {
@@ -29,6 +30,7 @@
     {#if dashboardVisible}
         <UploadMenu
             onFiles={chooseFilesForCurrentFolder}
+            onPhotos={mediaPickerAvailable() ? choosePhotosForCurrentFolder : undefined}
             onFolder={chooseFolderForCurrentFolder}
             onNewFolder={openNewFolderModal}
         />

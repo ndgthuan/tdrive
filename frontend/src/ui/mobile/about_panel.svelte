@@ -5,6 +5,7 @@
     import { author, notice_text, upstream_name } from '../settings/about_notice';
     import { getAppVersion } from '../../api/updates';
     import { copy_and_report } from '../../modules/diagnostics';
+    import tdriveLogo from '../../assets/images/tdrive_logo.png';
 
     // The About page of the phone's Account tab, as the board draws it: the app
     // mark and version, the attribution line, the one-sentence promise, and the
@@ -21,7 +22,7 @@
 
 <section class="about-panel" aria-label={$t_store('mobile.account_about')}>
     <div class="about-hero">
-        <div class="about-mark" aria-hidden="true">TD</div>
+        <img class="about-mark" src={tdriveLogo} alt="" width="72" height="72" />
         <div class="about-name">TDrive</div>
         <div class="about-version">
             {version ? $t_store('mobile.about_version', { version }) : $t_store('mobile.about_version_unknown')}
@@ -50,7 +51,7 @@
     .about-hero { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-4) 0; }
     .about-mark {
         display: grid; place-items: center; width: 72px; height: 72px; border-radius: 18px;
-        background: var(--color-surface-2); color: var(--color-accent); font-size: 1.5rem; font-weight: 700;
+        object-fit: contain;
     }
     .about-name { font-size: 1.5rem; font-weight: 700; color: var(--color-text); }
     .about-version { font-size: 0.875rem; color: var(--color-text-muted); }

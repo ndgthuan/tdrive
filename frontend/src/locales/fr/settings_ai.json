@@ -1,6 +1,6 @@
 {
   "title": "Modèles d’IA",
-  "subtitle": "Modèles pour l’assistant IA et le classement des fichiers. Les clés API sont stockées dans Windows Credential Manager.",
+  "subtitle": "Modèles pour l’assistant IA et le classement des fichiers. Les clés API sont stockées dans le stockage sécurisé des identifiants de l’appareil.",
   "add_model": "Ajouter un modèle",
   "loading": "Chargement des modèles…",
   "empty": "Aucun modèle pour l’instant. Ajoutez-en un pour utiliser l’assistant IA.",
@@ -28,7 +28,7 @@
   "key_saved": "Clé enregistrée. Laissez vide pour la conserver.",
   "key_none": "Aucune clé enregistrée pour l’instant.",
   "key_clear": "Supprimer la clé enregistrée",
-  "key_note": "Stockée dans Windows Credential Manager, jamais envoyée à Telegram.",
+  "key_note": "Stockée dans le stockage sécurisé des identifiants de l’appareil, jamais envoyée à Telegram.",
   "show_key": "Afficher la clé",
   "hide_key": "Masquer la clé",
   "toggle_vision": "Autoriser la lecture du contenu des images (vision)",

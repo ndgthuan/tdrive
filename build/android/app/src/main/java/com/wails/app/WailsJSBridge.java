@@ -20,6 +20,11 @@ import org.json.JSONObject;
  * Similar to iOS's WKScriptMessageHandler but using Android's addJavascriptInterface.
  */
 public class WailsJSBridge {
+    @JavascriptInterface
+    public void prepareMediaPicker() {
+        MainActivity activity = activity();
+        if (activity != null) activity.prepareMediaPicker();
+    }
     private static final String TAG = "WailsJSBridge";
     private static final boolean DEBUG = BuildConfig.DEBUG;
     // Pooled threads avoid unbounded thread creation under high call volume.

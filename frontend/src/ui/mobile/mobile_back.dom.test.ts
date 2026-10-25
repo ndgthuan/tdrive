@@ -18,7 +18,7 @@ import { selectionBarState } from '../selection/selection_bar_store';
 import { sidebarState } from '../sidebar/sidebar_store';
 import { openChannelKey } from '../channels/channel_store';
 import { activateMobileBack, BACK_BRIDGE, handleBackPress } from './mobile_back';
-import { activeTab, driveSwitcherOpen } from './mobile_shell_store';
+import { activeTab, accountDetail, driveSwitcherOpen, openAccountDetail } from './mobile_shell_store';
 
 beforeEach(() => {
     while (closeTopSheet());
@@ -26,6 +26,7 @@ beforeEach(() => {
     sidebarState.update((current) => ({ ...current, virtualView: null }));
     selectionBarState.set({ count: 0 });
     activeTab.set('files');
+    accountDetail.set(null);
     breadcrumbPath.set([]);
     openChannelKey.set(null);
     exitPhotos.mockClear();
@@ -39,6 +40,14 @@ afterEach(() => {
 });
 
 describe('android back', () => {
+    it('returns from backup to Account before going to Files', () => {
+        openAccountDetail('backup');
+        expect(handleBackPress()).toBe(true);
+        expect(get(accountDetail)).toBeNull();
+        expect(get(activeTab)).toBe('account');
+        expect(handleBackPress()).toBe(true);
+        expect(get(activeTab)).toBe('files');
+    });
     it('leaves the app at the drive root with nothing open', () => {
         expect(handleBackPress()).toBe(false);
         expect(exitPhotos).not.toHaveBeenCalled();

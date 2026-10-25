@@ -14,3 +14,4 @@
 # Native Go workers resolve these decoders by class and method name.
 -keep class com.wails.app.GalleryImage { *; }
 -keep class com.wails.app.GalleryVideo { *; }
+-keep class com.wails.app.AISecretStore { *; }

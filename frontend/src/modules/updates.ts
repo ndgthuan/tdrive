@@ -23,6 +23,7 @@ import { notify } from './notifications';
 import { humanizeBackendError } from './errors';
 import { isVersionSkipped, type UpdateState } from '../ui/updates/update_model';
 import { OPEN_SETTINGS_EVENT } from '../ui/settings/settings_store';
+import { openAccountDetail } from '../ui/mobile/mobile_shell_store';
 import {
     appVersionInfo,
     updatePrefs,
@@ -49,7 +50,7 @@ const autoDownloaded = new Set<string>();
 
 export function activateUpdates(): () => void {
     // Phones update through their app stores: no checks, panel, or toasts.
-    if (started || isMobilePlatform()) return teardownUpdates;
+    if (started) return teardownUpdates;
     started = true;
 
     stopUpdateState = onUpdateState(applyState);
@@ -114,6 +115,7 @@ function applyState(next: UpdateState | null | undefined): void {
 }
 
 function maybeAutoDownload(next: UpdateState): void {
+    if (isMobilePlatform()) return;
     if (get(appVersionInfo)?.storeManaged) return;
     if (next.phase !== 'available' || !next.installable || !next.latest) return;
     const prefs = get(updatePrefs);
@@ -245,7 +247,11 @@ export async function getRestartRisks(): Promise<string[]> {
 // gestures: reveal the General pane, where the version and the check live, and
 // always run a check so the action answers even from the login screen.
 export async function openUpdatesUI(): Promise<void> {
-    if (isMobilePlatform()) return;
+    if (isMobilePlatform()) {
+        openAccountDetail('updates');
+        await checkForUpdates({ explicit: true });
+        return;
+    }
     window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT, { detail: { section: 'general' } }));
     await checkForUpdates({ explicit: true });
 }
