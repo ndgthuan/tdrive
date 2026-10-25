@@ -362,7 +362,9 @@ jobs:
         run: wails3 task ios:package:ipa IOS_PLATFORM=device CODESIGN_IDENTITY=-
 
       - name: Exercise the bundled iOS downloader on Simulator
-        run: bash scripts/smoke_ios_downloader.sh
+        run: |
+          python3 -m unittest discover -s build/ios/mediadl -p 'test*.py'
+          bash scripts/smoke_ios_downloader.sh
 
       - name: Stage and verify unsigned IPA
         shell: bash

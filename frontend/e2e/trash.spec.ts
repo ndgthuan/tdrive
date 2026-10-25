@@ -230,8 +230,9 @@ test('on a phone the trash has its own bar and no upload button', async ({ page 
     await expect(bar.getByRole('button', { name: 'Empty' })).toBeVisible();
     await expect(page.locator('.topbar-files')).toBeHidden();
     await expect(page.locator('.mobile-fab')).toBeHidden();
-    // The chevron is the way out, and it goes back to the drive.
+    // The chevron returns to Account, which opened Trash.
     await bar.getByRole('button', { name: 'Back' }).click();
     await expect(page.locator('.main-content')).not.toHaveClass(/trash-mode/);
-    await expect(page.locator('.topbar-files')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Account', exact: true })).toBeVisible();
+    await expect(page.locator('.topbar-files')).toBeHidden();
 });
