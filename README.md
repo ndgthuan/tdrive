@@ -2,7 +2,7 @@
 
 <h1>TDrive</h1>
 
-<img src="build/appicon.png" width="110" alt="TDrive logo">
+<img src="assets/icon_animated.svg" width="110" alt="TDrive logo">
 
 <p><b>Your private cloud drive, built on Telegram.</b></p>
 

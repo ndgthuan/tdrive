@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="TDrive logo">
+  <style>
+    .cloud {
+      transform-box: view-box;
+      animation: float 3.6s ease-in-out infinite;
+    }
+    .plane {
+      transform-box: view-box;
+      transform-origin: 520px 540px;
+      animation: fly 3.6s ease-in-out infinite;
+    }
+    .trail {
+      stroke-dasharray: 22 30;
+      animation: trail 1.2s linear infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-16px); }
+    }
+    @keyframes fly {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(16px, -20px) rotate(-5deg); }
+    }
+    @keyframes trail {
+      to { stroke-dashoffset: -104; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cloud, .plane, .trail { animation: none; }
+    }
+  </style>
+
+  <g class="cloud">
+    <g fill="#2FA7E3">
+      <circle cx="270" cy="553" r="208"/>
+      <circle cx="560" cy="435" r="210"/>
+      <circle cx="755" cy="610" r="200"/>
+      <rect x="250" y="520" width="520" height="280" rx="140"/>
+    </g>
+  </g>
+
+  <g class="trail" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" opacity="0.6">
+    <path d="M 120 470 L 250 446"/>
+    <path d="M 150 575 L 290 548"/>
+  </g>
+
+  <g class="plane">
+    <polygon points="315,528 672,402 612,688 452,602" fill="#F2F9FD"/>
+    <polygon points="315,528 452,602 405,575" fill="#CFE9F8"/>
+    <polygon points="405,575 430,686 452,602" fill="#B5DDF3"/>
+  </g>
+</svg>
