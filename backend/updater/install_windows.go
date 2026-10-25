@@ -16,7 +16,10 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const mediaDirName = "media"
+const (
+	mediaDirName = "media"
+	toolsDirName = "tools"
+)
 
 type windowsInstaller struct {
 	executable func() (string, error)
@@ -41,10 +44,10 @@ func (w windowsInstaller) Target() (Target, error) {
 	return Target{Path: exe, Kind: "exe"}, nil
 }
 
-// Install swaps the executable and the bundled mpv runtime. Windows lets a
+// Install swaps the executable and the bundled media and downloader runtimes. Windows lets a
 // running .exe be renamed but not deleted, which is exactly what swapPaths
-// relies on; the media folder must not be in use, so callers close native
-// players first.
+// relies on; the runtime folders must not be in use, so callers close native
+// players and downloader processes first.
 func (w windowsInstaller) Install(payload string, target Target) error {
 	swap := w.swapPaths
 	if swap == nil {
@@ -68,36 +71,66 @@ func (w windowsInstaller) Install(payload string, target Target) error {
 
 	currentMedia := filepath.Join(dir, mediaDirName)
 	newMedia := filepath.Join(staging, mediaDirName)
-	mediaSwapped := false
-	mediaCreated := false
-	if info, err := os.Stat(newMedia); err == nil && info.IsDir() {
-		if _, err := os.Stat(currentMedia); err == nil {
-			if err := swap(currentMedia, newMedia); err != nil {
-				return fmt.Errorf("media runtime: %w", err)
-			}
-			mediaSwapped = true
-		} else if err := os.Rename(newMedia, currentMedia); err != nil {
-			return fmt.Errorf("media runtime: %w", err)
-		} else {
-			mediaCreated = true
-		}
+	mediaSwapped, mediaCreated, err := swapOptionalRuntimeDir(swap, currentMedia, newMedia, "media runtime")
+	if err != nil {
+		return err
+	}
+	currentTools := filepath.Join(dir, toolsDirName)
+	newTools := filepath.Join(staging, toolsDirName)
+	toolsSwapped, toolsCreated, err := swapOptionalRuntimeDir(swap, currentTools, newTools, "downloader runtime")
+	if err != nil {
+		_ = rollbackRuntimeDir(currentMedia, newMedia, mediaSwapped, mediaCreated)
+		return err
 	}
 
 	if err := swap(target.Path, newExe); err != nil {
-		if mediaSwapped {
-			// Put the old runtime back so the still-installed old exe keeps
-			// a matching mpv next to it.
-			_ = os.Rename(currentMedia, newMedia)
-			_ = os.Rename(currentMedia+previousSuffix, currentMedia)
-		} else if mediaCreated {
-			// There was no runtime before this install. Remove the newly
-			// created folder so a failed executable swap leaves the existing
-			// installation exactly as it was.
-			if rollbackErr := os.RemoveAll(currentMedia); rollbackErr != nil {
-				return fmt.Errorf("%w (removing newly installed media also failed: %v)", err, rollbackErr)
-			}
+		mediaRollbackErr := rollbackRuntimeDir(currentMedia, newMedia, mediaSwapped, mediaCreated)
+		toolsRollbackErr := rollbackRuntimeDir(currentTools, newTools, toolsSwapped, toolsCreated)
+		if mediaRollbackErr != nil || toolsRollbackErr != nil {
+			return fmt.Errorf("%w (runtime rollback failed: media=%v tools=%v)", err, mediaRollbackErr, toolsRollbackErr)
 		}
 		return err
+	}
+	return nil
+}
+
+// swapOptionalRuntimeDir installs one payload directory when present. Older
+// releases did not carry the downloader runtime, so a payload without tools
+// deliberately leaves an existing tools directory untouched.
+func swapOptionalRuntimeDir(swap func(current, fresh string) error, current, fresh, label string) (swapped, created bool, err error) {
+	info, err := os.Stat(fresh)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, false, nil
+	}
+	if err != nil {
+		return false, false, fmt.Errorf("%s: %w", label, err)
+	}
+	if !info.IsDir() {
+		return false, false, fmt.Errorf("%s: payload path is not a directory", label)
+	}
+	if _, err := os.Stat(current); err == nil {
+		if err := swap(current, fresh); err != nil {
+			return false, false, fmt.Errorf("%s: %w", label, err)
+		}
+		return true, false, nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return false, false, fmt.Errorf("%s: inspect installed directory: %w", label, err)
+	}
+	if err := os.Rename(fresh, current); err != nil {
+		return false, false, fmt.Errorf("%s: %w", label, err)
+	}
+	return false, true, nil
+}
+
+func rollbackRuntimeDir(current, fresh string, swapped, created bool) error {
+	if swapped {
+		if err := os.Rename(current, fresh); err != nil {
+			return err
+		}
+		return os.Rename(current+previousSuffix, current)
+	}
+	if created {
+		return os.RemoveAll(current)
 	}
 	return nil
 }
@@ -141,6 +174,9 @@ func (w windowsInstaller) Cleanup(target Target) error {
 		err = removeAllIgnoringMissing(target.Path + previousSuffix)
 		if mediaErr := removeAllIgnoringMissing(filepath.Join(dir, mediaDirName+previousSuffix)); err == nil {
 			err = mediaErr
+		}
+		if toolsErr := removeAllIgnoringMissing(filepath.Join(dir, toolsDirName+previousSuffix)); err == nil {
+			err = toolsErr
 		}
 		if stagingErr := removeStaging(dir); err == nil {
 			err = stagingErr

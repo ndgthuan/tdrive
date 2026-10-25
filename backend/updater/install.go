@@ -11,8 +11,8 @@ import (
 )
 
 // Target is the on-disk artifact the updater replaces: the .app bundle on
-// macOS, the executable (plus its media folder) on Windows, the AppImage file
-// on Linux.
+// macOS, the executable (plus its media and downloader folders) on Windows,
+// the AppImage file on Linux.
 type Target struct {
 	Path string
 	Kind string // "bundle" | "exe" | "appimage"

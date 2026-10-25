@@ -69,6 +69,14 @@ describe('native photo backup adapter', () => {
             .toEqual({ status: 'limited', detail: 'TDrive can only see the photos you picked.' });
     });
 
+    it('uses the iOS photo-access bridge instead of the Android bridge', async () => {
+        const requestPhotoAccess = vi.fn().mockResolvedValue({ status: 'authorized', detail: '' });
+        (window as IOSWindow).tdriveIOSPhotos = { requestPhotoAccess };
+        expect(await requestNativePhotoBackupAccess()).toEqual({ status: 'granted', detail: '' });
+        expect(requestPhotoAccess).toHaveBeenCalledOnce();
+        expect(bridge.callBridge).not.toHaveBeenCalled();
+    });
+
     it('keeps iOS Live Photo resources distinct and reads their capture time', async () => {
         (window as IOSWindow).tdriveIOSPhotos = {
             listPhotoBackupAssets: () => ({ assets: [

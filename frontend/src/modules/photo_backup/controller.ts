@@ -181,6 +181,17 @@ async function runDiscoveryScheduler(): Promise<void> {
             photoBackupError.set(current.status.message || unlock_message());
             return;
         }
+        // iOS has one implicit whole-library source and no folder-picker step
+        // where permission could be requested. Ask at the moment backup is
+        // enabled so the first scan does not spin on a native denial forever.
+        if (current.platform === 'ios' || current.platform === 'android') {
+            const access = await requestNativePhotoBackupAccess();
+            photoBackupAccessNote.set(access.status === 'limited' || access.status === 'denied' ? access.detail : '');
+            if (access.status === 'denied' || access.status === 'undetermined') {
+                photoBackupError.set(access.detail || t('photos.access_settings'));
+                return;
+            }
+        }
         await refreshNativePolicy();
         if (epoch !== schedulerEpoch) return;
         // Drain persisted work even when discovery already reached the end. A

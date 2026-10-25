@@ -7,7 +7,7 @@ export interface NativeAssetPage { assets: PhotoBackupAsset[]; nextCursor: strin
 /** What the host knows about the media grant, for the one line the panel shows. */
 export interface NativeAccess { status: string; detail: string; }
 export interface NativeMaterializedResource { path: string; releaseID: string; }
-interface IOSPhotosBridge { listPhotoBackupAssets?: (sourceID: string, cursor: string, limit: number) => unknown; pickPhotoBackupFolder?: () => unknown; materializePhotoBackupResource?: (assetID: string, version: string, maxBytes?: number, resourceID?: string) => unknown; releasePhotoBackupResource?: (token: string) => unknown; cancelMaterialization?: (requestID: string) => unknown; setBackgroundBackup?: (active: boolean) => unknown; getPowerStatus?: () => unknown; getNetworkStatus?: () => unknown; }
+interface IOSPhotosBridge { listPhotoBackupAssets?: (sourceID: string, cursor: string, limit: number) => unknown; pickPhotoBackupFolder?: () => unknown; requestPhotoAccess?: () => unknown; materializePhotoBackupResource?: (assetID: string, version: string, maxBytes?: number, resourceID?: string) => unknown; releasePhotoBackupResource?: (token: string) => unknown; cancelMaterialization?: (requestID: string) => unknown; setBackgroundBackup?: (active: boolean) => unknown; getPowerStatus?: () => unknown; getNetworkStatus?: () => unknown; }
 function iosBridge(): IOSPhotosBridge | null { return typeof window !== 'undefined' ? (window as Window & { tdriveIOSPhotos?: IOSPhotosBridge }).tdriveIOSPhotos ?? null : null; }
 async function nativeCall(value: unknown): Promise<Record<string, unknown>> { const result = await Promise.resolve(value); return typeof result === 'string' ? parse(result) : asRecord(result); }
 
@@ -60,9 +60,9 @@ export async function listNativePhotoBackupAssets(sourceID: string, cursor = '')
  * are two separate permissions and the app needs both.
  */
 export async function requestNativePhotoBackupAccess(): Promise<NativeAccess> {
-    const ios = iosBridge() as (IOSPhotosBridge & { requestAuthorization?: () => unknown }) | null;
-    if (ios?.requestAuthorization) {
-        const raw = await nativeCall(ios.requestAuthorization());
+    const ios = iosBridge();
+    if (ios?.requestPhotoAccess) {
+        const raw = await nativeCall(ios.requestPhotoAccess());
         const status = boundedText(raw.status, 64);
         return {
             status: status === 'authorized' ? 'granted' : status,

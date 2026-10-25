@@ -101,6 +101,16 @@ Section
         !warning "build/bin/media/mpv.exe is missing: this installer ships without the video player"
     !endif
 
+    # yt-dlp and ffmpeg are verified by scripts/package_mediadl_windows.ps1
+    # and kept beside the app so the updater can replace them atomically.
+    !if /FileExists "..\..\bin\tools\yt-dlp.exe"
+        SetOutPath "$INSTDIR\tools"
+        File /r "..\..\bin\tools\*.*"
+        SetOutPath "$INSTDIR"
+    !else
+        !warning "build/bin/tools/yt-dlp.exe is missing: this installer ships without the downloader runtime"
+    !endif
+
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     CreateShortCut "$DESKTOP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
 

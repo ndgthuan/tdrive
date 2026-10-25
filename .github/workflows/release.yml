@@ -229,9 +229,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           ./scripts/package_mpv_windows.ps1 "build/bin/TDrive.exe"
-          Compress-Archive -Force -Path "build/bin/TDrive.exe", "build/bin/media" -DestinationPath "dist/TDrive-$env:TDRIVE_ARTIFACT_VERSION-windows-amd64.zip"
+          ./scripts/package_mediadl_windows.ps1 -OutputDir "build/bin/tools" -Force
+          Compress-Archive -Force -Path "build/bin/TDrive.exe", "build/bin/media", "build/bin/tools" -DestinationPath "dist/TDrive-$env:TDRIVE_ARTIFACT_VERSION-windows-amd64.zip"
 
-          # Per-user installer with the same exe and media folder. Its version
+          # Per-user installer with the same exe, media folder, and downloader
+          # tools. Its version
           # metadata needs x.y.z, so branch builds keep the checked-in version.
           $installerArgs = @("task", "windows:installer", "INSTALL_SCOPE=user")
           $version = $env:TDRIVE_ARTIFACT_VERSION -replace '^v', ''
@@ -254,6 +256,9 @@ jobs:
 
           echo "Packaging application from: $APP_PATH"
           ./scripts/package_mpv_darwin.sh "$APP_PATH"
+          ./scripts/package_mediadl_unix.sh "$APP_PATH/Contents/MacOS/tools"
+          codesign --force --deep --sign - "$APP_PATH"
+          codesign --verify --deep --strict "$APP_PATH"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "dist/TDrive-${TDRIVE_ARTIFACT_VERSION}-macos-arm64.zip"
 
       - name: Package CLI (macOS/Linux)

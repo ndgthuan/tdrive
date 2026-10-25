@@ -33,7 +33,9 @@ package targets x64; native ARM64 packaging is not included.
 2. Prepare the qualified media runtime using
    `scripts/prepare_mpv_runtime.sh`, then run
    `./scripts/package_mpv_windows.ps1 build/bin/TDrive.exe` in PowerShell.
-3. Package the existing executable and sibling `media` directory:
+3. Stage the verified downloader runtime beside `media`:
+   `./scripts/package_mediadl_windows.ps1 -OutputDir build/bin/tools -Force`.
+4. Package the existing executable and sibling `media` and `tools` directories:
    `./scripts/package_msix.ps1 -AppExe build/bin/TDrive.exe -Version 3.0.1`.
 
 Default output is an unsigned package for Store submission. Microsoft signs
