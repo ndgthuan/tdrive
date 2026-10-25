@@ -5,6 +5,15 @@ covers the byte transport, platform routing, Matroska demuxing, fMP4/HLS output,
 track switching and teardown. File recognition, container support and codec
 support are separate decisions; a recognized extension does not guarantee playback.
 
+The audio viewer opens recognized audio files through the existing tokenized
+`OpenStream` session and an HTML audio element. Its in-app controls include play,
+pause, seek, ten-second skips, mute and playback-rate selection. It does not
+transcode unsupported codecs or reinterpret every WebM video as audio. Closing
+the viewer retains the existing session cleanup and encrypted-resource gate.
+Browser checks exercise a byte-range WAV stream in Chromium and macOS WebKit;
+the installed Windows WebKit build cannot decode that fixture, so its layout
+checks remain separate from the macOS playback check.
+
 Reading paths: [routing](#format-admission-and-platform-routing),
 [byte transport](#logical-reads-multipart-boundaries-and-encryption),
 [remux codecs](#remux-codec-and-track-contract),

@@ -13,6 +13,11 @@
     import Button from '../button.svelte';
     import ProgressBar from '../progress_bar.svelte';
     import SwitchRow from '../switch_row.svelte';
+    import CloudUploadIcon from 'phosphor-svelte/lib/CloudArrowUpIcon';
+    import LockIcon from 'phosphor-svelte/lib/LockKeyIcon';
+    import FolderIcon from 'phosphor-svelte/lib/FolderIcon';
+    import PauseIcon from 'phosphor-svelte/lib/PauseIcon';
+    import PlayIcon from 'phosphor-svelte/lib/PlayIcon';
     import {
         getAutoBackupState, openNativeAppSettings, readNativeDeviceIdentity, setAutoBackupChargingOnly,
         setAutoBackupDeviceIdentity, setAutoBackupEnabled, setAutoBackupFolderName, setAutoBackupPermission,
@@ -20,7 +25,7 @@
     } from '../../api/auto_backup';
     import { autoBackupProgress } from './auto_backup_runtime';
     import { requestNativePhotoBackupAccess, readNativePhotoBackupAccess, nativePhotoBackupAvailable } from '../../modules/photo_backup/native_adapter';
-    import { photoBackupError, photoBackupState, refreshPhotoBackup, startPhotoBackup } from '../../modules/photo_backup/controller';
+    import { pausePhotoBackupNow, resumePhotoBackupNow, retryPhotoBackupNow, photoBackupError, photoBackupState, refreshPhotoBackup, startPhotoBackup } from '../../modules/photo_backup/controller';
     import { describeBackup } from '../gallery/photo_backup_view';
     import { t_store } from '../../i18n/i18n';
     import {
@@ -34,9 +39,10 @@
         progress?: AutoBackupProgress | null;
         /** Opens the photo selection screen, used by the denied state. */
         onchoosephotos?: () => void;
+        onopenfiles?: (folderID: string, folderName: string) => void;
     }
 
-    let { page = false, progress = null, onchoosephotos }: Props = $props();
+    let { page = false, progress = null, onchoosephotos, onopenfiles }: Props = $props();
     // A caller's snapshot wins; otherwise the runtime's latest queue summary.
     const liveProgress = $derived(progress ?? $autoBackupProgress);
 
@@ -52,6 +58,13 @@
     const deviceWord = $derived(current?.platform === 'ios' ? $t_store('auto_backup.device_iphone') : $t_store('auto_backup.device_phone'));
     const settingsWord = $derived(current?.platform === 'ios' ? $t_store('auto_backup.settings_ios') : $t_store('auto_backup.settings_android'));
     const progressValue = $derived(liveProgress ? progressPercent(liveProgress.done, liveProgress.total) : 0);
+    const paused = $derived($photoBackupState?.manualPaused || liveProgress?.paused || false);
+    const locked = $derived(Boolean($photoBackupState?.encryptionRequired));
+    const running = $derived(Boolean(current?.enabled && !paused && !locked && ($photoBackupState?.status?.phase === 'uploading' || $photoBackupState?.status?.phase === 'scanning' || (liveProgress && liveProgress.total > liveProgress.done))));
+    const situation = $derived($photoBackupState?.status && $photoBackupState.settings ? describeBackup($photoBackupState) : null);
+    const stillDiscovering = $derived($photoBackupState?.sources?.some((source) => source.enabled && source.scanComplete === false) && $photoBackupState.status?.phase === 'complete');
+    const primaryLabel = $derived(locked ? 'photos.action_unlock_back_up' : paused ? 'photos.action_resume' : running ? 'photos.action_pause' : $photoBackupState?.status?.failed ? 'photos.action_retry' : 'auto_backup.back_up_now');
+    const statusTitle = $derived(locked ? $t_store('photos.locked_title') : paused ? $t_store('photos.paused_title') : running ? $t_store('auto_backup.backing_up') : stillDiscovering ? $t_store('photos.ready_to_back_up') : situation?.title || (current?.phase === 'up_to_date' ? $t_store('photos.preparing_next') : $t_store(phaseMessageKey(current?.phase ?? 'off'))));
 
     async function refresh(): Promise<void> {
         try {
@@ -169,9 +182,15 @@
         await openNativeAppSettings();
     }
 
-    async function backUpNow(): Promise<void> {
+    async function controlBackup(): Promise<void> {
+        if (busy) return;
         busy = true;
-        try { await refreshPhotoBackup(); await startPhotoBackup(); } finally { busy = false; }
+        try {
+            if (paused) await resumePhotoBackupNow();
+            else if (running) await pausePhotoBackupNow();
+            else if ($photoBackupState?.status?.failed) await retryPhotoBackupNow();
+            else { await refreshPhotoBackup(); await startPhotoBackup(); }
+        } finally { busy = false; }
     }
 
     function bytesText(value: number): string {
@@ -183,6 +202,37 @@
     {#if current === null}
         <p class="ab-muted">{loadError || $t_store('auto_backup.loading')}</p>
     {:else}
+        {#if current.enabled && !denied}
+            <div class="ab-status-card" class:is-paused={paused}>
+                <div class="ab-status-top">
+                    <span class="ab-status-symbol" aria-hidden="true">{#if locked}<LockIcon size={24} />{:else}<CloudUploadIcon size={26} />{/if}</span>
+                    <div class="ab-grow">
+                        <h2 class="ab-status-title" role="status">{statusTitle}</h2>
+                        <p class="ab-muted ab-small">{$t_store('auto_backup.drive_folder_path', { folder: current.folderName })}</p>
+                    </div>
+                </div>
+                {#if liveProgress && liveProgress.total > 0}
+                    <div class="ab-count"><strong>{liveProgress.done.toLocaleString()}</strong><span>/ {liveProgress.total.toLocaleString()}</span></div>
+                    <p class="ab-count-accessible">{$t_store('auto_backup.progress_count', { done: liveProgress.done, total: liveProgress.total })}</p>
+                    <ProgressBar value={progressValue} max={100} label={$t_store('auto_backup.backing_up')} />
+                    {#if liveProgress.currentName && !paused}
+                        <div class="ab-current-file"><span class="ab-file-dot" aria-hidden="true"></span><span>{liveProgress.currentName}</span><small>{bytesText(liveProgress.currentBytes)}</small></div>
+                    {/if}
+                {:else if running}
+                    <ProgressBar indeterminate label={$t_store('photos.preparing_next')} />
+                {/if}
+                {#if locked}<p class="ab-muted ab-small">{$t_store('photos.locked_body')}</p>{/if}
+                <div class="ab-status-actions">
+                    <Button variant={running ? 'secondary' : 'primary'} loading={busy} onclick={() => void controlBackup()}>
+                        {#if running}<PauseIcon size={16} aria-hidden="true" />{:else}<PlayIcon size={16} aria-hidden="true" />{/if}
+                        {$t_store(primaryLabel)}
+                    </Button>
+                    {#if onopenfiles && current.folderId}
+                        <Button variant="secondary" onclick={() => onopenfiles?.(current!.folderId, current!.folderName)}><FolderIcon size={16} aria-hidden="true" />{$t_store('mobile.tab_files')}</Button>
+                    {/if}
+                </div>
+            </div>
+        {/if}
         <div class="ab-card">
             <SwitchRow
                 title={$t_store('auto_backup.auto_backup')}
@@ -223,9 +273,6 @@
                 <div class="ab-grow">
                     <p class="ab-label">{$t_store('auto_backup.saved_to')}</p>
                     <p class="ab-muted">{$t_store('auto_backup.drive_folder_path', { folder: current.folderName })}</p>
-                    {#if !current.folderNameCustom}
-                        <p class="ab-muted ab-small">{$t_store('auto_backup.folder_name_hint', { name: current.defaultFolderName })}</p>
-                    {/if}
                 </div>
                 {#if !renaming}
                     <Button variant="secondary" size="sm" disabled={busy} onclick={startRename}>{$t_store('auto_backup.rename')}</Button>
@@ -250,6 +297,9 @@
                     </div>
                 </div>
             {/if}
+        </div>
+        <details class="ab-card ab-preferences" open>
+            <summary>{$t_store('settings.title')}</summary>
             <SwitchRow
                 title={$t_store('auto_backup.wifi_only')}
                 description={$t_store('auto_backup.wifi_only_hint')}
@@ -264,30 +314,13 @@
                 disabled={busy}
                 onchange={(value) => void changeCharging(value)}
             />
-        </div>
-
-        {#if liveProgress && liveProgress.enabled !== false && liveProgress.total > 0}
-            <div class="ab-card ab-progress">
-                <div class="ab-row">
-                    <p class="ab-label ab-grow">{$t_store('auto_backup.backing_up')}</p>
-                    <p class="ab-muted">{$t_store('auto_backup.progress_count', { done: liveProgress.done, total: liveProgress.total })}</p>
-                </div>
-                <ProgressBar value={progressValue} max={100} label={$t_store('auto_backup.backing_up')} />
-                <p class="ab-muted ab-small">{$t_store('auto_backup.current_file', { name: liveProgress.currentName, size: bytesText(liveProgress.currentBytes) })}</p>
-                <p class="ab-muted ab-small">{$t_store('auto_backup.back_up_later_note')}</p>
-            </div>
-        {/if}
-
-        {#if current.enabled && !denied}
-            <Button variant="primary" loading={busy} onclick={() => void backUpNow()}>
-                {$photoBackupState?.encryptionRequired ? $t_store('photos.action_unlock_back_up') : $t_store('auto_backup.back_up_now')}
-            </Button>
-        {/if}
-        {#if current.enabled && !denied && $photoBackupState?.encryptionRequired}
-            <p class="ab-muted ab-small" role="status">{$t_store('photos.locked_body')}</p>
-        {:else if current.phase === 'up_to_date'}
-            <p class="ab-muted ab-small" role="status">{$photoBackupState?.sources.some((source) => source.enabled && source.scanComplete !== true) && $photoBackupState.status.phase === 'complete' ? $t_store('photos.ready_to_back_up') : $photoBackupState ? describeBackup($photoBackupState).title : $t_store('photos.preparing_next')}</p>
-        {:else}
+        </details>
+        <details class="ab-encryption-note">
+            <summary><LockIcon size={14} aria-hidden="true" />{$t_store('mobile.account_encryption')}</summary>
+            <p class="ab-muted ab-small">{$t_store('modals.enc_setup_help')}</p>
+            <p class="ab-muted ab-small">{$t_store('modals.enc_setup_warning')}</p>
+        </details>
+        {#if !current.enabled || denied}
             <p class="ab-muted ab-small">{$t_store(phaseMessageKey(current.phase))}</p>
         {/if}
         {#if $photoBackupError}<p class="ab-error" role="alert">{$photoBackupError}</p>{/if}
@@ -308,6 +341,25 @@
         color: var(--text-main);
     }
     .auto-backup.is-page { padding: 0 14px 14px; }
+    .ab-status-card { display: grid; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-control); padding: var(--space-4); }
+    .ab-status-top { display: flex; align-items: center; gap: var(--space-3); }
+    .ab-status-symbol { display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-md); color: var(--accent); background: var(--overlay-accent-1); }
+    .ab-status-title { margin: 0 0 var(--space-1); font-size: var(--font-size-md); font-weight: var(--weight-strong); }
+    .ab-count { display: flex; align-items: baseline; gap: var(--space-2); font-variant-numeric: tabular-nums; }
+    .ab-count strong { font-size: 36px; line-height: 1.15; font-weight: 600; letter-spacing: -0.03em; }
+    .ab-count span { color: var(--text-muted); font-size: var(--font-size-md); }
+    .ab-count-accessible { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .ab-status-card :global(.ui-progress-header) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .ab-current-file { display: flex; gap: var(--space-2); align-items: center; min-width: 0; color: var(--text-muted); font-size: var(--font-size-xs); }
+    .ab-current-file > span:not(.ab-file-dot) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .ab-current-file small { flex-shrink: 0; }
+    .ab-file-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .ab-status-actions { display: flex; gap: var(--space-2); }
+    .ab-status-actions :global(.ui-button) { flex: 1; }
+    .ab-preferences summary { padding: var(--space-2) 0; font-size: var(--font-size-sm); font-weight: var(--weight-strong); cursor: pointer; }
+    .ab-encryption-note { font-size: var(--font-size-xs); color: var(--text-muted); }
+    .ab-encryption-note summary { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; padding: var(--space-2) 0; }
+    .ab-encryption-note p { margin: var(--space-2) 0; line-height: 1.5; }
     .ab-card {
         border: 1px solid var(--border);
         border-radius: var(--radius-lg);
@@ -324,7 +376,7 @@
     .ab-small { font-size: var(--font-size-xs); }
     .ab-title { margin: 0; font-weight: var(--weight-strong); }
     .ab-error { margin: 0; color: var(--danger); font-size: var(--font-size-sm); }
-    .ab-denied, .ab-limited, .ab-progress {
+    .ab-denied, .ab-limited {
         display: grid;
         gap: var(--space-2);
         border-radius: var(--radius-lg);

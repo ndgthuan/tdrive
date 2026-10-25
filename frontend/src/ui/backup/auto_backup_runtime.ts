@@ -4,8 +4,8 @@
 // photo backup engine's; this module only decides when to ask it to run.
 import { writable } from 'svelte/store';
 import { t } from '../../i18n/i18n';
-import { getAutoBackupState, onAutoBackupProgress, onAutoBackupState, setAutoBackupPowerState, type AutoBackupProgress } from '../../api/auto_backup';
-import { discoverAutomaticPhotoBackup } from '../../modules/photo_backup/controller';
+import { getAutoBackupProgress, getAutoBackupState, onAutoBackupProgress, onAutoBackupState, setAutoBackupPowerState, type AutoBackupProgress } from '../../api/auto_backup';
+import { discoverAutomaticPhotoBackup, photoBackupState } from '../../modules/photo_backup/controller';
 import { setPhotoBackupPolicy } from '../../api/photo_backup';
 import { onRuntimeEvent } from '../../api/runtime';
 import { nativePhotoBackupPolicy, nativePowerStatus } from '../../modules/photo_backup/native_adapter';
@@ -31,6 +31,8 @@ export function startAutoBackupRuntime(): () => void {
     let timer: ReturnType<typeof setInterval> | null = null;
     const stops: Array<() => void> = [];
     let stopped = false;
+    let readingProgress = false;
+    let stateEpoch = 0;
 
     const runNow = (): void => {
         if (!enabled || stopped) return;
@@ -67,61 +69,94 @@ export function startAutoBackupRuntime(): () => void {
         }
         const title = t('auto_backup.transfers_row', { done: view.done, total: view.total });
         if (!rowVisible) {
-            pushTransferStart({ id: ROW_ID, direction: 'up', name: title, total: view.total });
+            pushTransferStart({ id: ROW_ID, direction: 'up', name: title, total: 0 });
         } else {
             updateTransferName({ id: ROW_ID, direction: 'up', name: title });
         }
         updateTransferProgress({
             id: ROW_ID, direction: 'up', progress: view.percent,
+            bytes: 0, total: 0,
             itemsDone: view.done, itemsTotal: view.total,
-            items: progress.currentName ? [{ key: progress.currentName, name: progress.currentName, progress: 0, total: progress.currentBytes }] : [],
+            items: progress.currentName ? [{ key: progress.currentName, name: progress.currentName, progress: progress.currentBytes > 0 ? Math.min(100, (progress.currentBytesDone ?? 0) / progress.currentBytes * 100) : 0, total: progress.currentBytes }] : [],
         });
         rowVisible = true;
     };
 
     const onProgress = (progress: AutoBackupProgress): void => {
-        enabled = progress.enabled;
+        if (stopped || progress.enabled !== enabled) return;
         autoBackupProgress.set(progress);
         showRow(progress);
+    };
+
+    // Restored settings do not necessarily start the backend's event ticker.
+    // Read a snapshot immediately and while foregrounded so reopening the app
+    // cannot leave the backup page and Transfers empty during a running upload.
+    const refreshProgress = async (): Promise<void> => {
+        if (!enabled || stopped || readingProgress || document.visibilityState !== 'visible') return;
+        readingProgress = true;
+        const epoch = stateEpoch;
+        try {
+            const progress = await getAutoBackupProgress();
+            if (epoch === stateEpoch) onProgress(progress);
+        } catch { /* Keep the last observed progress; the controller exposes queue failures. */ }
+        finally { readingProgress = false; }
     };
 
     stops.push(onAutoBackupProgress(onProgress));
     stops.push(onAutoBackupState((state) => {
         const wasEnabled = enabled;
+        stateEpoch += 1;
         enabled = state.enabled;
+        if (!enabled) {
+            if (rowVisible) markTransferDone({ id: ROW_ID, direction: 'up', status: 'stopped' });
+            rowVisible = false;
+            autoBackupProgress.set(null);
+        }
         // Turning the toggle on is the first trigger: start the first run.
         if (enabled && !wasEnabled) {
             void pushReadings();
             runNow();
+            void refreshProgress();
         }
     }));
     stops.push(onRuntimeEvent('ios:PhotoBackupMediaChanged', () => { void pushReadings(); runNow(); }));
     stops.push(onRuntimeEvent('android:PhotoBackupMediaChanged', () => { void pushReadings(); runNow(); }));
 
+    const restoreState = async (): Promise<void> => {
+        const epoch = stateEpoch;
+        try {
+            const state = await getAutoBackupState();
+            if (stopped || epoch !== stateEpoch) return;
+            enabled = state.enabled;
+            if (enabled) { void pushReadings(); runNow(); void refreshProgress(); }
+        } catch { /* A later foreground entry or scope snapshot can retry readiness. */ }
+    };
     const onVisibility = (): void => {
         if (typeof document === 'undefined' || document.visibilityState !== 'visible') return;
-        void getAutoBackupState().then((state) => { enabled = state.enabled; }).catch(() => undefined).then(() => {
-            void pushReadings();
-            runNow();
-        });
+        void restoreState();
     };
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisibility);
 
-    void getAutoBackupState()
-        .then((state) => { enabled = state.enabled; })
-        .catch(() => undefined)
-        .then(() => {
-            if (enabled) {
-                void pushReadings();
-                runNow();
-            }
-        });
+    void restoreState();
+    let observedScope: string | null = null;
+    stops.push(photoBackupState.subscribe((state) => {
+        const scope = state?.destination.id ?? null;
+        if (scope === observedScope) return;
+        observedScope = scope;
+        stateEpoch += 1;
+        autoBackupProgress.set(null);
+        if (rowVisible) removeTransfer({ id: ROW_ID, direction: 'up' });
+        rowVisible = false;
+        if (scope !== null) void restoreState();
+    }));
 
     timer = setInterval(() => { void pushReadings(); }, AUTO_BACKUP_POLICY_INTERVAL_MS);
+    const progressTimer = setInterval(() => { void refreshProgress(); }, 1500);
 
     return () => {
         stopped = true;
         if (timer !== null) clearInterval(timer);
+        clearInterval(progressTimer);
         if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisibility);
         for (const stop of stops) stop();
         if (rowVisible) removeTransfer({ id: ROW_ID, direction: 'up' });

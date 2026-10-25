@@ -85,7 +85,7 @@ function watch_auto_backup(): void {
 
 export function syncPhotoBackupActivity(state: PhotoBackupState): void {
     watch_auto_backup();
-    if (auto_backup_on) {
+    if (auto_backup_on || ((state.platform === 'ios' || state.platform === 'android') && state.sources.some((source) => source.kind === 'device-library'))) {
         clearPhotoBackupActivity();
         return;
     }
@@ -94,7 +94,7 @@ export function syncPhotoBackupActivity(state: PhotoBackupState): void {
     // its way, so an active row with a progress bar was saying otherwise --
     // and Clear keeps what is still moving, which left "Photo backup paused"
     // sitting in the panel with no way to dismiss it.
-    const terminal = phase === 'complete' || phase === 'failed' || phase === 'idle' || phase === 'paused';
+    const terminal = !state.settings.enabled || phase === 'complete' || phase === 'failed' || phase === 'idle' || phase === 'paused';
     if (terminal) {
         if (visible) {
             // Each word stays close to its cause: switched off is over, paused
@@ -154,5 +154,5 @@ export function clearPhotoBackupActivity(): void {
  * offering a button that stops nothing.
  */
 export function isPhotoBackupActivity(id: string): boolean {
-    return id === transferKey('up', ACTIVITY_ID);
+    return id === transferKey('up', ACTIVITY_ID) || id === transferKey('up', 'auto-backup');
 }

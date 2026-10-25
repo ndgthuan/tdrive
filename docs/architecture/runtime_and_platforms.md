@@ -199,6 +199,16 @@ controller's errors and locked/scanning state, and offers a backup action even
 when the upload queue has zero items; an empty queue is not proof of a completed
 library scan.
 
+The automatic-backup runtime reads its progress snapshot immediately on startup
+and foreground entry, then every 1.5 seconds while visible and enabled. Events
+still update the same store; snapshots cover a restored enabled setting without
+an active backend progress ticker. A scope epoch discards late reads after a
+drive change or disable. The automatic device-library source never falls back
+to the legacy activity row, including while disabling. File counts are supplied
+as item counts, not as a transfer's byte total; unknown aggregate bytes have no
+byte speed or ETA. The status card exposes pause, resume, retry and destination
+navigation, and the existing shared controller remains the action owner.
+
 The automatic backup pane reads the actual iOS Photos authorization on entry
 and foreground resume. An enabled backup with an undetermined grant requests
 authorization on entry; a visible permission action also allows retrying without

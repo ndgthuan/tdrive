@@ -5,7 +5,7 @@ const state = { enabled: true, permission: 'undetermined', platform: 'ios', phas
 const mocks = vi.hoisted(() => ({ read: vi.fn(), request: vi.fn(), permission: vi.fn(), run: vi.fn(), get: vi.fn(), enable: vi.fn(), refresh: vi.fn() }));
 vi.mock('../../modules/photo_backup/controller', async () => {
     const { writable } = await import('svelte/store');
-    return { photoBackupState: writable(null), photoBackupError: writable(''), refreshPhotoBackup: mocks.refresh, startPhotoBackup: mocks.run };
+    return { photoBackupState: writable(null), photoBackupError: writable(''), refreshPhotoBackup: mocks.refresh, startPhotoBackup: mocks.run, pausePhotoBackupNow: vi.fn(), resumePhotoBackupNow: vi.fn(), retryPhotoBackupNow: vi.fn() };
 });
 vi.mock('../../api/auto_backup', () => ({
     getAutoBackupState: mocks.get, readNativeDeviceIdentity: async () => null,

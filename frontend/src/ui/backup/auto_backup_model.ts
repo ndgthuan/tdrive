@@ -11,6 +11,7 @@ export interface AutoBackupProgress {
     total: number;
     currentName: string;
     currentBytes: number;
+    currentBytesDone?: number;
     paused: boolean;
     /** Whether automatic backup is on; absent from older callers, which count as on. */
     enabled?: boolean;

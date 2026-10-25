@@ -207,7 +207,7 @@ jobs:
       # behave differently for video playback even when UI interactions work.
       - name: Run WebKit media contracts
         working-directory: frontend
-        run: npm run test:e2e -- --project=webkit-media
+        run: npm run test:e2e -- --project=webkit-media --project=webkit-mobile
 
       - name: Upload WebKit media failure artifacts
         if: failure()
