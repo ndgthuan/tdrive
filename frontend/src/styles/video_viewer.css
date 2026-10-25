@@ -271,6 +271,7 @@
 }
 
 .video-title-group {
+    flex: 1 1 auto;
     min-width: 0;
     color: #fff;
 }
@@ -1463,7 +1464,7 @@ html.mobile .video-error {
 }
 
 /* The '...' menu in the video top bar: Download and playback settings. */
-.video-more-wrap { position: relative; display: inline-flex; }
+.video-more-wrap { position: relative; display: inline-flex; flex: 0 0 auto; margin-left: auto; }
 .video-more-menu {
     position: absolute;
     top: calc(100% + 6px);

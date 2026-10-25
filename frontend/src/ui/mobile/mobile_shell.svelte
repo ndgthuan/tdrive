@@ -15,6 +15,7 @@
     import PhotosSurface from '../gallery/photos_surface.svelte';
     import SelectionBar from '../selection/selection_bar.svelte';
     import AccountTab from './account_tab.svelte';
+    import AiPanel from '../ai/ai_panel.svelte';
     import Fab from './fab.svelte';
     import DriveSwitcherSheet from './drive_switcher_sheet.svelte';
     import TabBar from './tab_bar.svelte';
@@ -286,6 +287,7 @@
     </div>
 
     <DriveSwitcherSheet />
+    {#if dashboardVisible}<AiPanel />{/if}
 
 </div>
 

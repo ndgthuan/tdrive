@@ -8,6 +8,7 @@
     import { t_store } from '../../i18n/i18n';
     import { guard_handler } from '../../modules/diagnostics';
     import { breadcrumbPath } from '../chrome/breadcrumb_store';
+    import { drive_root_name } from '../chrome/drive_root_name';
     import { fileSortState, setFileSortKey } from '../file_list/file_sort_store';
     import type { FileSortKey } from '../file_list/file_sort';
     import { navigateBack } from '../../modules/navigation';
@@ -21,6 +22,7 @@
     import { sidebarState } from '../sidebar/sidebar_store';
     import { askEmptyTrash, closeTrash, openTrash, trashEntries } from '../../modules/trash/controller';
     import SyncRing from './sync_ring.svelte';
+    import AiPanelToggle from '../ai/ai_panel_toggle.svelte';
     import ViewOnlyBadge from '../members/view_only_badge.svelte';
     import {
         ACCOUNT_DETAIL_TITLE_KEYS,
@@ -55,10 +57,8 @@
         : $t_store('mobile.items', { count: $trashEntries.length }),
     );
     const folderName = $derived($breadcrumbPath[$breadcrumbPath.length - 1]?.name ?? '');
-    const driveName = $derived($activeDrive?.title || $t_store('mobile.drive_fallback'));
-    // The board titles the personal drive with the app name; a shared drive
-    // keeps its own name because that is what tells two shared drives apart.
-    const headerTitle = $derived($activeDrive?.kind === 'personal' ? 'TDrive' : driveName);
+    const driveName = $derived(drive_root_name($activeDrive, $t_store));
+    const headerTitle = $derived(driveName);
     const driveKind = $derived($activeDrive?.kind === 'shared' ? $t_store('mobile.kind_shared') : $t_store('mobile.kind_personal'));
     const countLabel = $derived(
         $fileListCount === 0 ? $t_store('mobile.files_none')
@@ -325,6 +325,7 @@
                 >
                     <SearchIcon size={22} aria-hidden="true" />
                 </button>
+                <AiPanelToggle />
                 <div class="topbar-menu-wrap">
                     <button
                         bind:this={sortButtonEl}

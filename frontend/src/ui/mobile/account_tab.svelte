@@ -12,6 +12,10 @@
     import LanguageIcon from 'phosphor-svelte/lib/TranslateIcon';
     import InfoIcon from 'phosphor-svelte/lib/InfoIcon';
     import CloudUploadIcon from 'phosphor-svelte/lib/CloudArrowUpIcon';
+    import SparkleIcon from 'phosphor-svelte/lib/SparkleIcon';
+    import ArrowsClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
+    import AiModelsPane from '../settings/ai_models_pane.svelte';
+    import MobileUpdatesPane from '../updates/mobile_updates_pane.svelte';
     import Trash2Icon from 'phosphor-svelte/lib/TrashIcon';
     import Avatar from '../chrome/avatar.svelte';
     import { getStorageUsed } from '../../api';
@@ -58,8 +62,6 @@
     // because a switch with a page behind it unfolded at the bottom of a list of
     // unrelated rows left the thing being configured off screen. The open detail
     // lives in the shell store so the top bar and this tab agree on it.
-    let appearanceOpener = $state<HTMLButtonElement | null>(null);
-    let backupOpener = $state<HTMLButtonElement | null>(null);
     let scrollerEl = $state<HTMLElement | null>(null);
     let listScrollTop = 0;
     const currentThemeName = $derived(getThemeDefinition($themeState.resolvedThemeId).name);
@@ -104,7 +106,7 @@
         const onAccount = get(activeTab) === 'account';
         void tick().then(() => {
             if (scrollerEl) scrollerEl.scrollTop = top;
-            if (onAccount) (leaving === 'appearance' ? appearanceOpener : backupOpener)?.focus({ preventScroll: true });
+            if (onAccount) scrollerEl?.querySelector<HTMLButtonElement>(`[data-account-detail="${leaving}"]`)?.focus({ preventScroll: true });
         });
     });
 
@@ -196,6 +198,10 @@
                 <LanguagePane />
             {:else if $accountDetail === 'about'}
                 <AboutPanel />
+            {:else if $accountDetail === 'ai'}
+                <AiModelsPane />
+            {:else if $accountDetail === 'updates'}
+                <MobileUpdatesPane />
             {:else}
                 <AutoBackupPane page />
             {/if}
@@ -231,7 +237,7 @@
                 <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
             </button>
             <button
-                bind:this={backupOpener}
+                data-account-detail="backup"
                 type="button"
                 class="account-row"
                 onclick={() => openDetail('backup')}
@@ -292,7 +298,7 @@
         <h2 class="mobile-section-label">{$t_store('mobile.account_appearance')}</h2>
         <div class="account-card">
             <button
-                bind:this={appearanceOpener}
+                data-account-detail="appearance"
                 type="button"
                 class="account-row"
                 onclick={() => openDetail('appearance')}
@@ -308,6 +314,16 @@
     <section class="account-group" aria-label={$t_store('mobile.account_preferences')}>
         <h2 class="mobile-section-label">{$t_store('mobile.account_preferences')}</h2>
         <div class="account-card">
+            <button type="button" class="account-row" data-account-detail="ai" onclick={() => openDetail('ai')}>
+                <SparkleIcon class="account-row-icon" size={20} aria-hidden="true" />
+                <span class="account-row-label">{$t_store('settings.nav_ai')}</span>
+                <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
+            </button>
+            <button type="button" class="account-row" data-account-detail="updates" onclick={() => openDetail('updates')}>
+                <ArrowsClockwiseIcon class="account-row-icon" size={20} aria-hidden="true" />
+                <span class="account-row-label">{$t_store('settings_updates.title')}</span>
+                <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
+            </button>
             <button type="button" class="account-row" onclick={() => openDetail('language')}>
                 <LanguageIcon class="account-row-icon" size={20} aria-hidden="true" />
                 <span class="account-row-label">{$t_store('mobile.account_language')}</span>

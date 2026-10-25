@@ -1,6 +1,6 @@
 {
     "title": "AI Models",
-    "subtitle": "Models for the AI assistant and file organizing. API keys are stored in Windows Credential Manager.",
+    "subtitle": "Models for the AI assistant and file organizing. API keys are stored in the device secure credential store.",
     "add_model": "Add model",
     "loading": "Loading models…",
     "empty": "No models yet. Add one to use the AI assistant.",
@@ -28,7 +28,7 @@
     "key_saved": "Key saved. Leave empty to keep it.",
     "key_none": "No key saved yet.",
     "key_clear": "Remove saved key",
-    "key_note": "Stored in Windows Credential Manager, never sent to Telegram.",
+    "key_note": "Stored in the device secure credential store, never sent to Telegram.",
     "show_key": "Show key",
     "hide_key": "Hide key",
     "toggle_vision": "Allow reading image content (vision)",

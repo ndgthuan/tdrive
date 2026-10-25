@@ -294,3 +294,10 @@
 @media (prefers-reduced-motion: reduce) {
     .settings-switch::after { transition: none; }
 }
+
+html.mobile .account-detail .settings-pane { gap: 20px; }
+html.mobile .account-detail .settings-pane-header { padding-right: 0; }
+html.mobile .account-detail .settings-input { min-height: 44px; font-size: 16px; }
+html.mobile .account-detail .settings-btn { min-height: 44px; white-space: normal; }
+html.mobile .account-detail .settings-field { min-width: 0; }
+html.mobile .account-detail .ai-form-grid { grid-template-columns: minmax(0, 1fr); }

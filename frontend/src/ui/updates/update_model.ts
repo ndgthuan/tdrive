@@ -10,8 +10,8 @@ export type AppVersionInfo = AppVersion;
 export type UpdateState = UpdateSnapshot;
 
 export interface UpdatePrefs {
-    // Auto-download the payload as soon as a check finds one. Restarting is
-    // always a manual choice regardless.
+    // Auto-download verified desktop payloads. They install on the next launch;
+    // restarting immediately remains the user's choice.
     autoDownload: boolean;
     // Version string ("1.7.0") the user asked to skip; a newer release clears it.
     skippedVersion: string;

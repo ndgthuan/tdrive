@@ -2,6 +2,8 @@
 
 <script lang="ts">
     import ArrowsClockwiseIcon from 'phosphor-svelte/lib/ArrowsClockwiseIcon';
+    import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
+    import { installModalA11y } from '../modals/modal_a11y';
     import ClipboardTextIcon from 'phosphor-svelte/lib/ClipboardTextIcon';
     import { get } from 'svelte/store';
     import {
@@ -34,6 +36,14 @@
     }
 
     let { open, onclose }: Props = $props();
+
+    // Keep this overlay outside the Account card and its clipped scrollport.
+    function portal(node: HTMLElement): { destroy: () => void } {
+        document.body.appendChild(node);
+        const a11y = installModalA11y(node, { requestClose: onclose });
+        a11y.activate();
+        return { destroy: () => { a11y.deactivate(); node.remove(); } };
+    }
 
     // The quick options, in the order the backend's presets use. Values are what
     // Start accepts; labels come from the desktop downloader strings.
@@ -195,10 +205,11 @@
 <svelte:window onkeydown={on_keydown} />
 
 {#if open}
+    <div class="download-overlay" use:portal>
     <div class="scrim" role="presentation" onclick={onclose}></div>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="download-link-title">
         <header class="head">
-            <button type="button" class="text-btn" onclick={onclose}>{$t_store('downloader.cancel')}</button>
+            <button type="button" class="text-btn" aria-label={$t_store('mobile.back')} onclick={onclose}><CaretLeftIcon size={22} aria-hidden="true" /></button>
             <h2 id="download-link-title">{$t_store('downloader.title')}</h2>
             <span class="spacer" aria-hidden="true"></span>
         </header>
@@ -295,9 +306,11 @@
             </button>
         </footer>
     </div>
+    </div>
 {/if}
 
 <style>
+    .download-overlay { position: fixed; inset: 0; z-index: var(--z-modal); }
     .scrim {
         position: fixed;
         inset: 0;
@@ -310,17 +323,19 @@
         left: 0;
         right: 0;
         bottom: 0;
-        max-height: 92dvh;
+        top: max(var(--inset-top, 0px), 12px);
+        max-height: calc(100dvh - max(var(--inset-top, 0px), 12px));
         display: flex;
         flex-direction: column;
-        background: #000;
-        color: #e8eaed;
+        background: var(--color-canvas);
+        color: var(--color-text);
         border-radius: 20px 20px 0 0;
         z-index: 61;
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     .head {
+        flex: 0 0 auto;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -332,10 +347,13 @@
         margin: 0;
         font-size: 17px;
         font-weight: 600;
+        min-width: 0;
+        text-align: center;
     }
 
     .spacer {
-        width: 60px;
+        width: 44px;
+        flex: none;
     }
 
     .body {
@@ -346,9 +364,14 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
+        overscroll-behavior: contain;
+        overflow-x: hidden;
     }
 
+    .body > :global(*) { flex-shrink: 0; min-width: 0; }
+
     .foot {
+        flex: 0 0 auto;
         padding: 10px 16px 16px;
     }
 
@@ -363,7 +386,7 @@
 
     .grp,
     .card {
-        background: #1e2227;
+        background: var(--color-surface-2);
         border-radius: 16px;
         overflow: hidden;
     }
@@ -479,6 +502,8 @@
         font-weight: 600;
         cursor: pointer;
     }
+
+    .text-btn { min-width: 44px; min-height: 44px; padding: 0; flex: none; }
 
     .chip,
     .secondary {

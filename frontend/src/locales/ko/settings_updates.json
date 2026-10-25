@@ -6,5 +6,9 @@
     "restart_confirm": "그래도 다시 시작",
     "downloading": "{version} 다운로드 중…",
     "ready_detail": "TDrive를 다시 시작하여 {version} 설치를 완료하세요.",
-    "available_detail": "새 버전을 다운로드할 수 있습니다."
+    "available_detail": "새 버전을 다운로드할 수 있습니다.",
+    "title": "App updates",
+    "ios_install_hint": "TDrive checks for new versions automatically. For this sideloaded iOS app, download the new IPA and install it with the same sideloading tool. iOS does not allow the app to replace itself.",
+    "android_install_hint": "TDrive checks for new versions automatically. Download the latest APK and open it to update. Android asks you to confirm installation.",
+    "open_downloads": "Open update download"
 }

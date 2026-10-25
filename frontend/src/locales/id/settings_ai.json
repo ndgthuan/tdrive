@@ -1,6 +1,6 @@
 {
   "title": "Model AI",
-  "subtitle": "Model untuk asisten AI dan pengaturan file. Kunci API disimpan di Windows Credential Manager.",
+  "subtitle": "Model untuk asisten AI dan pengaturan file. Kunci API disimpan di penyimpanan kredensial aman perangkat.",
   "add_model": "Tambahkan model",
   "loading": "Memuat model…",
   "empty": "Belum ada model. Tambahkan satu untuk menggunakan asisten AI.",
@@ -28,7 +28,7 @@
   "key_saved": "Kunci tersimpan. Kosongkan untuk mempertahankannya.",
   "key_none": "Belum ada kunci yang tersimpan.",
   "key_clear": "Hapus kunci yang tersimpan",
-  "key_note": "Disimpan di Windows Credential Manager, tidak pernah dikirim ke Telegram.",
+  "key_note": "Disimpan di penyimpanan kredensial aman perangkat, tidak pernah dikirim ke Telegram.",
   "show_key": "Tampilkan kunci",
   "hide_key": "Sembunyikan kunci",
   "toggle_vision": "Izinkan membaca konten gambar (vision)",

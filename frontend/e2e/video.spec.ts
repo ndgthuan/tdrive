@@ -116,6 +116,25 @@ async function openTheVideo(page: Page): Promise<void> {
     }).toPass({ timeout: 15_000 });
 }
 
+test('landscape iPhone video keeps More next to Close', async ({ page }) => {
+    await page.setViewportSize({ width: 844, height: 390 });
+    await serveFixture(page);
+    await bootTDrive(page, {
+        GetMediaStats: resolves({ playback: {}, thumbnails: {} }),
+        UpdateMediaPlayback: resolves(null),
+        GetFolderContents: resolves({ folders: [], files: [VIDEO_FILE] }),
+        OpenMedia: resolves(opened()),
+    }, { url: '/?mobile=ios' });
+    await openTheVideo(page);
+    const [more, close] = await Promise.all([
+        page.locator('#video-more-button').boundingBox(), page.locator('#video-close').boundingBox(),
+    ]);
+    expect(close!.x - more!.x - more!.width).toBeLessThanOrEqual(16);
+    expect(close!.x - more!.x - more!.width).toBeGreaterThanOrEqual(0);
+    expect(Math.abs(close!.y - more!.y)).toBeLessThan(2);
+    await page.locator('#video-close').click();
+});
+
 test('plays a real file, and closing it releases the backend session', async ({ page }) => {
     await serveFixture(page);
     const mock = await bootTDrive(page, {
