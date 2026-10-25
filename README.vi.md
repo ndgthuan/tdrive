@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="build/appicon.png" width="110" alt="Logo TDrive">
-
 <h1>TDrive</h1>
+
+<img src="build/appicon.png" width="110" alt="Logo TDrive">
 
 <p><b>Ổ đám mây riêng tư của bạn, xây dựng trên Telegram.</b></p>
 
