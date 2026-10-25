@@ -18,7 +18,7 @@ import javax.crypto.spec.GCMParameterSpec;
 /** Native-only keys. Ciphertext is excluded from backup and bound to a model ID. */
 final class AISecretStore {
     private static final String ALIAS = "tdrive.ai.v1";
-    private static Context context;
+    private static volatile Context context;
     private static native void nativeInit();
     static void initialize(Context value) { context = value.getApplicationContext(); nativeInit(); }
 
