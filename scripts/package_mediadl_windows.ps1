@@ -18,7 +18,12 @@ function Get-ExpectedChecksum([string]$SumsUrl, [string]$AssetName) {
     catch {
         Fail "could not download checksum manifest $SumsUrl : $($_.Exception.Message)"
     }
-    foreach ($line in ($response.Content -split "`r?`n")) {
+    $body = if ($response.Content -is [byte[]]) {
+        [System.Text.Encoding]::UTF8.GetString($response.Content)
+    } else {
+        [string]$response.Content
+    }
+    foreach ($line in ($body -split "`r?`n")) {
         if ($line -match '^\s*([0-9a-fA-F]{64})\s+\*?(.+?)\s*$') {
             $name = [System.IO.Path]::GetFileName(($Matches[2] -replace '\\', '/'))
             if ($name -eq $AssetName) {
