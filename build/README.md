@@ -89,7 +89,15 @@ tests run in the Windows CI matrix; they do not prove hardware authentication.
 - `windows/info.json` - version/resource info embedded into the `.exe`.
 - `windows/wails.exe.manifest` - the application manifest.
 - `windows/installer/` - NSIS installer scripts (`project.nsi` +
-  `wails_tools.nsh`), used by `wails3 task windows:package`.
+  `wails_tools.nsh`), used by `wails3 task windows:package`. That task also
+  downloads and checksum-verifies the Windows yt-dlp and FFmpeg runtime into
+  `build/bin/tools`; the installer and portable zip carry that folder beside
+  `TDrive.exe`.
+  The macOS app bundle carries the matching universal yt-dlp binary and an
+  architecture-specific static FFmpeg binary in `Contents/MacOS/tools`.
+  Linux AppImages carry the matching Linux binaries in `usr/bin/tools`.
+  These folders are part of the update payload, so desktop updates replace
+  the downloader runtime together with the app.
 - `windows/store/` - Microsoft Store identity and MSIX assets. See the
   [Store packaging guide](windows/store/README.md) for CI test packages,
   laptop installation and manual publishing.

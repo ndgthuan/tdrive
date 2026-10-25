@@ -87,6 +87,9 @@ tasks:
           VERSION: '{{.VERSION}}'
     cmds:
       - task: create:app:bundle
+      - bash scripts/package_mediadl_unix.sh "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS/tools"
+      - codesign --force --deep --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.app"
+      - codesign --verify --deep --strict "{{.BIN_DIR}}/{{.APP_NAME}}.app"
 
   package:universal:
     summary: Packages darwin universal binary (arm64 + amd64)
@@ -96,6 +99,9 @@ tasks:
           VERSION: '{{.VERSION}}'
     cmds:
       - task: create:app:bundle
+      - bash scripts/package_mediadl_unix.sh "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS/tools"
+      - codesign --force --deep --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.app"
+      - codesign --verify --deep --strict "{{.BIN_DIR}}/{{.APP_NAME}}.app"
 
   create:app:bundle:
     summary: Creates an `.app` bundle

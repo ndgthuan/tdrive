@@ -61,14 +61,23 @@ tasks:
     vars:
       INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
 
+  prepare:tools:
+    summary: Downloads and verifies the Windows media downloader runtime
+    platforms: [windows]
+    cmds:
+      - pwsh -NoProfile -File "{{.ROOT_DIR}}/scripts/package_mediadl_windows.ps1" -OutputDir "{{.ROOT_DIR}}/{{.BIN_DIR}}/tools" -Force
+
   store:package:
     summary: Packages the existing Windows build and staged media as an MSIX
     desc: |
       Run windows:build and stage build/bin/media with package_mpv_windows.ps1
-      first. The default unsigned package requires a release-qualified media
-      runtime. TEST_SIGN=true creates a signed sideload test package and a
-      public certificate; PACKAGE_VERSION overrides build/config.yml's version.
+      plus build/bin/tools with package_mediadl_windows.ps1 first. The default
+      unsigned package requires a release-qualified media runtime. TEST_SIGN=true
+      creates a signed sideload test package and a public certificate;
+      PACKAGE_VERSION overrides build/config.yml's version.
     platforms: [windows]
+    deps:
+      - task: prepare:tools
     cmds:
       - pwsh -NoProfile -File scripts/package_msix.ps1 -AppExe "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" -OutputDir "{{.ROOT_DIR}}/dist" {{if .PACKAGE_VERSION}}-Version "{{.PACKAGE_VERSION}}"{{end}} {{if eq .TEST_SIGN "true"}}-TestSign{{end}}
 
@@ -86,6 +95,7 @@ tasks:
       - task: build
         vars:
           VERSION: '{{.VERSION}}'
+      - task: prepare:tools
     cmds:
       - task: installer
         vars:
@@ -96,7 +106,7 @@ tasks:
       INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "user"}}'
 
   # Installs per user by default. The in-app updater swaps the exe and the
-  # media folder in place next to the running app, which works in the user's
+  # media and tools folders in place next to the running app, which works in the user's
   # own Programs folder and would need elevation under Program Files.
   installer:
     summary: Creates the NSIS installer from build/bin (build and package the media runtime first)

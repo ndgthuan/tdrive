@@ -37,12 +37,14 @@ var errToolNotFound = errors.New("tool not found")
 const (
 	SOURCE_OVERRIDE = "override"
 	SOURCE_PATH     = "path"
+	SOURCE_BUNDLED  = "bundled"
 	SOURCE_MANAGED  = "managed"
 )
 
 // Paths is the on-disk layout. Tests point it at a temp directory.
 type Paths struct {
 	Bin      string
+	Bundled  string
 	Settings string
 	Tmp      string
 }
@@ -89,7 +91,8 @@ type tool_settings struct {
 }
 
 // Tools locates yt-dlp and ffmpeg. The order is: the user's override path, the
-// executable on PATH, then the app-managed copy in Paths.Bin.
+// verified copy bundled beside the app, an executable on PATH, then the
+// app-managed copy in Paths.Bin.
 type Tools struct {
 	paths     Paths
 	look_path func(string) (string, error)
@@ -98,7 +101,14 @@ type Tools struct {
 
 // NewTools builds the locator for a data directory.
 func NewTools(data_dir string) *Tools {
-	return &Tools{paths: paths_under(data_dir), look_path: exec.LookPath}
+	paths := paths_under(data_dir)
+	// Release packages place verified helpers beside the application in
+	// "tools". Resolve this lazily at startup so the same locator also works
+	// for portable zip installs and in-app updates.
+	if executable, err := os.Executable(); err == nil {
+		paths.Bundled = filepath.Join(filepath.Dir(executable), "tools")
+	}
+	return &Tools{paths: paths, look_path: exec.LookPath}
 }
 
 // Paths returns the on-disk layout the tools use.
@@ -114,6 +124,10 @@ func (t *Tools) locate(tool string) (string, string, error) {
 			return override, SOURCE_OVERRIDE, nil
 		}
 		slog.Warn("mediadl: override tool path is missing", "tool", tool)
+	}
+	bundled := filepath.Join(t.paths.Bundled, exe_name(tool))
+	if t.paths.Bundled != "" && is_regular_file(bundled) {
+		return bundled, SOURCE_BUNDLED, nil
 	}
 	if found, err := t.look_path(exe_name(tool)); err == nil && found != "" {
 		return found, SOURCE_PATH, nil

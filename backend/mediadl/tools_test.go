@@ -29,7 +29,7 @@ func write_fake_tool(t *testing.T, path string) {
 	}
 }
 
-func TestLocateOrderIsOverrideThenPathThenManaged(t *testing.T) {
+func TestLocateOrderIsOverrideThenBundledThenPathThenManaged(t *testing.T) {
 	tools := new_test_tools(t)
 	managed := filepath.Join(tools.paths.Bin, exe_name(TOOL_YTDLP))
 	write_fake_tool(t, managed)
@@ -61,6 +61,13 @@ func TestLocateOrderIsOverrideThenPathThenManaged(t *testing.T) {
 	}
 	if _, source, _ := tools.locate(TOOL_YTDLP); source != SOURCE_PATH {
 		t.Fatalf("clearing the override should restore PATH, got %s", source)
+	}
+
+	bundled := filepath.Join(t.TempDir(), exe_name(TOOL_YTDLP))
+	write_fake_tool(t, bundled)
+	tools.paths.Bundled = filepath.Dir(bundled)
+	if got, source, _ := tools.locate(TOOL_YTDLP); source != SOURCE_BUNDLED || got != bundled {
+		t.Fatalf("bundled copy should beat PATH: %q %s", got, source)
 	}
 }
 

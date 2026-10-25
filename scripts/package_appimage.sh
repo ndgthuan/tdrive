@@ -75,5 +75,8 @@ if [ -n "${TDRIVE_MPV_TEST_VERSION:-}" ]; then
 else
   bash "$SCRIPT_DIR/package_mpv_linux.sh" "$appdir"
 fi
+# The downloader runtime lives beside the AppImage executable at usr/bin/tools,
+# matching the desktop locator's bundled-tools search path.
+bash "$SCRIPT_DIR/package_mediadl_unix.sh" "$appdir/usr/bin/tools"
 mkdir -p "$output_dir"
 ARCH=x86_64 "$TDRIVE_APPIMAGETOOL" "$appdir" "$output_dir/TDrive-$version-x86_64.AppImage"

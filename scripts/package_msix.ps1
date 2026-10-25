@@ -121,6 +121,24 @@ function Assert-Media([string]$MediaDir) {
     return $metadata
 }
 
+function Assert-DownloaderTools([string]$ToolsDir) {
+    if (-not (Test-Path -LiteralPath $ToolsDir -PathType Container)) { Fail "tools directory missing" }
+    Assert-NoReparsePoints $ToolsDir
+    $files = @(Get-ChildItem -LiteralPath $ToolsDir -File -Force)
+    if (@(Get-ChildItem -LiteralPath $ToolsDir -Directory -Force).Count -ne 0) { Fail "tools directory must be flat" }
+    foreach ($file in $files) {
+        if ($file.Name -notmatch '^(?:yt-dlp\.exe|ffmpeg\.exe|SOURCE\.txt|THIRD_PARTY_NOTICES\.txt)$') {
+            Fail "unexpected downloader tool file: $($file.Name)"
+        }
+    }
+    foreach ($name in @("yt-dlp.exe", "ffmpeg.exe", "SOURCE.txt", "THIRD_PARTY_NOTICES.txt")) {
+        $path = Join-Path $ToolsDir $name
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item -LiteralPath $path).Length -eq 0) {
+            Fail "required downloader tool file missing or empty: $name"
+        }
+    }
+}
+
 if ($env:OS -ne "Windows_NT") { Fail "Windows host required" }
 if (-not (Test-Path -LiteralPath $AppExe -PathType Leaf)) { Fail "app executable missing: $AppExe" }
 $appPath = (Resolve-Path -LiteralPath $AppExe).Path
@@ -133,6 +151,7 @@ if (@(Get-ChildItem -LiteralPath $appDir -File -Force | Where-Object { $_.Name -
 }
 Assert-X64PE $appPath
 $media = Assert-Media (Join-Path $appDir "media")
+$downloaderTools = Assert-DownloaderTools (Join-Path $appDir "tools")
 $packageVersion = Get-StoreVersion
 $makeappx = Get-SdkTool "makeappx.exe"
 $signtool = if ($TestSign) { Get-SdkTool "signtool.exe" } else { $null }
@@ -151,6 +170,7 @@ try {
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
     Copy-Item -LiteralPath $appPath -Destination (Join-Path $stage "TDrive.exe")
     Copy-Item -LiteralPath (Join-Path $appDir "media") -Destination (Join-Path $stage "media") -Recurse
+    Copy-Item -LiteralPath (Join-Path $appDir "tools") -Destination (Join-Path $stage "tools") -Recurse
     Copy-Item -LiteralPath (Join-Path $storeRoot "Assets") -Destination (Join-Path $stage "Assets") -Recurse
     [xml]$manifest = Get-Content -LiteralPath (Join-Path $storeRoot "AppxManifest.xml") -Raw
     $manifest.Package.Identity.Version = $packageVersion

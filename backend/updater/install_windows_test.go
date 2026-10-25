@@ -11,13 +11,15 @@ import (
 	"testing"
 )
 
-func TestWindowsInstallSwapsExecutableAndMedia(t *testing.T) {
+func TestWindowsInstallSwapsExecutableAndBundledRuntimes(t *testing.T) {
 	isolate_data_dir(t)
 	work := t.TempDir()
 	payload := writeZip(t, map[string]string{
 		"TDrive-windows-amd64.exe": "new exe",
 		"media/mpv.exe":            "new mpv",
 		"media/libmpv-2.dll":       "new dll",
+		"tools/yt-dlp.exe":         "new yt-dlp",
+		"tools/ffmpeg.exe":         "new ffmpeg",
 	})
 	dir := filepath.Join(work, "app")
 	exe := filepath.Join(dir, "My TDrive.exe") // user-renamed executable
@@ -28,6 +30,12 @@ func TestWindowsInstallSwapsExecutableAndMedia(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, mediaDirName, "mpv.exe"), []byte("old mpv"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, toolsDirName), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, toolsDirName, "yt-dlp.exe"), []byte("old yt-dlp"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	target := Target{Path: exe, Kind: "exe"}
@@ -47,14 +55,20 @@ func TestWindowsInstallSwapsExecutableAndMedia(t *testing.T) {
 	if got, _ := os.ReadFile(filepath.Join(dir, mediaDirName+previousSuffix, "mpv.exe")); string(got) != "old mpv" {
 		t.Fatalf("previous media = %q", got)
 	}
+	if got, _ := os.ReadFile(filepath.Join(dir, toolsDirName, "ffmpeg.exe")); string(got) != "new ffmpeg" {
+		t.Fatalf("tools not replaced: %q", got)
+	}
+	if got, _ := os.ReadFile(filepath.Join(dir, toolsDirName+previousSuffix, "yt-dlp.exe")); string(got) != "old yt-dlp" {
+		t.Fatalf("previous tools = %q", got)
+	}
 	if err := (windowsInstaller{}).Cleanup(target); err != nil {
 		t.Fatalf("Cleanup: %v", err)
 	}
-	if exists(exe+previousSuffix) || exists(filepath.Join(dir, mediaDirName+previousSuffix)) {
+	if exists(exe+previousSuffix) || exists(filepath.Join(dir, mediaDirName+previousSuffix)) || exists(filepath.Join(dir, toolsDirName+previousSuffix)) {
 		t.Fatalf("Cleanup left previous copies behind")
 	}
 	entries, _ := os.ReadDir(dir)
-	if len(entries) != 2 {
+	if len(entries) != 3 {
 		t.Fatalf("unexpected entries after install: %v", entries)
 	}
 }
@@ -78,12 +92,13 @@ func TestWindowsInstallRejectsAmbiguousPayload(t *testing.T) {
 	}
 }
 
-func TestWindowsInstallRemovesNewMediaWhenExecutableSwapFails(t *testing.T) {
+func TestWindowsInstallRemovesNewRuntimesWhenExecutableSwapFails(t *testing.T) {
 	isolate_data_dir(t)
 	work := t.TempDir()
 	payload := writeZip(t, map[string]string{
 		"TDrive-windows-amd64.exe": "new exe",
 		"media/mpv.exe":            "new mpv",
+		"tools/yt-dlp.exe":         "new yt-dlp",
 	})
 	dir := filepath.Join(work, "app")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -117,6 +132,9 @@ func TestWindowsInstallRemovesNewMediaWhenExecutableSwapFails(t *testing.T) {
 	}
 	if exists(filepath.Join(dir, mediaDirName)) {
 		t.Fatalf("new media must be removed when executable installation fails")
+	}
+	if exists(filepath.Join(dir, toolsDirName)) {
+		t.Fatalf("new tools must be removed when executable installation fails")
 	}
 	entries, readErr := os.ReadDir(dir)
 	if readErr != nil {
