@@ -456,8 +456,12 @@
 
     .field input[type='url'] {
         flex: 1;
+        box-sizing: border-box;
         min-width: 0;
         height: 40px;
+        margin: 0;
+        padding: 0;
+        line-height: normal;
         border: 0;
         background: transparent;
         color: inherit;
