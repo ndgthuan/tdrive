@@ -159,5 +159,6 @@
     "download_install_action": "ダウンローダーを設定",
     "download_update_hint": "サイトは頻繁に変わります。リンクが動かないときは更新してください。",
     "download_to_drive": "TDrive にダウンロード",
-    "download_video_merge_note": "このリンクの映像と音声は別々です。このモバイル版ではまだ結合できません。音声付き動画はパソコン版TDriveで保存するか、下から音声を選んでください。"
+    "download_video_merge_note": "このリンクの映像と音声は別々です。このモバイル版ではまだ結合できません。音声付き動画はパソコン版TDriveで保存するか、下から音声を選んでください。",
+    "download_native_merge_note": "この iPhone では、互換性のある H.264 動画と AAC 音声を結合できます。一部の動画や画質は利用できない場合があります。"
 }
