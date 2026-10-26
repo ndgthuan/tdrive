@@ -135,7 +135,7 @@ jobs:
       - name: Install Wails
         shell: bash
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       # Branch test builds can carry a stable version without publishing it.
@@ -358,7 +358,7 @@ jobs:
         env:
           CGO_ENABLED: 0
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       # Device SDK build, ad-hoc signed, packaged as build/bin/TDrive.ipa with
@@ -476,7 +476,7 @@ jobs:
         env:
           CGO_ENABLED: 0
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Point the build at the Android NDK
@@ -612,7 +612,7 @@ jobs:
           CGO_ENABLED: 0
           GOFLAGS: ""
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Point the build at the Android NDK

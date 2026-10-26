@@ -389,7 +389,7 @@ jobs:
       # would fail on code nobody touched.
       - name: Install Wails
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       # The same flags generate:bindings passes; the gtk3 build tag arrives
@@ -601,7 +601,7 @@ jobs:
       - name: Install Wails
         shell: bash
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Test macOS and iOS signing isolation
@@ -782,7 +782,7 @@ jobs:
       - name: Install Wails task runner
         shell: bash
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       # This ephemeral certificate is for CI sideloading. Store submission uses
@@ -919,7 +919,7 @@ jobs:
         env:
           CGO_ENABLED: 0
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       # The Taskfile finds the newest NDK under $ANDROID_HOME/ndk when this is
@@ -1018,7 +1018,7 @@ jobs:
         env:
           CGO_ENABLED: 0
         run: |
-          go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+          bash scripts/install_wails.sh
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       # The simulator bundle is ad-hoc signed, so it needs no Apple account and

@@ -10,8 +10,13 @@ Houses the build assets consumed by the Taskfile-based Wails v3 build
 - The Wails CLI version used by this repository:
 
   ```bash
-  go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.22
+  bash scripts/install_wails.sh
   ```
+
+The installer uses the exact Wails module version in `go.mod` and builds the CLI
+inside that module, avoiding unrelated upstream latest-version metadata. It does
+not add CLI dependencies to the application's module files. On Windows, run the
+script with Git Bash.
 
 Install the native platform dependencies from the [Wails installation guide](https://v3.wails.io/getting-started/installation/), then run `wails3 doctor` to check your environment.
 
@@ -131,6 +136,13 @@ docker run --rm --network none --security-opt seccomp=unconfined \
 Run the mobile tasks from the repository root. They build the shared frontend and mobile Go libraries; they do not package the desktop executable.
 
 ### Android
+
+On MuMu's x86_64 Android image with ARM translation, updating a previous x86_64
+installation with the ARM64 release APK may retain the old ABI choice and fail
+with `libwails.so not found`. Use `adb install -r --abi arm64-v8a app-release.apk`
+to select the release's ABI while preserving app data. Check `primaryCpuAbi` in
+`adb shell dumpsys package com.jeetraj.tdrive`; physical ARM64 devices do not need
+this emulator-specific override.
 
 Use a macOS or Linux host with JDK 21, the Android SDK, and an Android NDK. Set `JAVA_HOME` and `ANDROID_HOME` for your installation; set `ANDROID_NDK_HOME` if the NDK is outside the SDK's `ndk/` directory. `wails3 task android:install:deps` checks dependencies and prompts before installing missing tools.
 
