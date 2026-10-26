@@ -35,16 +35,15 @@ describe('trashRow', () => {
         expect(row.thumbnail).toEqual({ channelId: 41, fileId: 2615, revision: 4 });
     });
 
-    // Whatever the drive can picture, the trash pictures; whatever it cannot
-    // (a .txt, and today a .HEIC too), the trash leaves as an icon rather than
-    // asking for a rendition that would come back empty.
-    it('gives a non-image no thumbnail rather than one that cannot resolve', () => {
+    // Keep thumbnails for supported image formats such as HEIC, and avoid
+    // requesting a rendition for files such as plain text.
+    it('keeps image thumbnails and gives non-images no thumbnail', () => {
         const row = trashRow(entry({ name: 'notes.txt' }), NOW, 41);
         if (row.kind !== 'file') throw new Error('expected a file row');
         expect(row.thumbnail).toBeUndefined();
         const heic = trashRow(entry({ name: 'IMG_0042.HEIC' }), NOW, 41);
         if (heic.kind !== 'file') throw new Error('expected a file row');
-        expect(heic.thumbnail).toBeUndefined();
+        expect(heic.thumbnail).toEqual({ channelId: 41, fileId: 2615, revision: 4 });
     });
 
     it('reports the countdown in the column the drive uses for the date', () => {

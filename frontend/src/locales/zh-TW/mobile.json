@@ -164,5 +164,6 @@
     "download_install_action": "設定下載器",
     "download_update_hint": "網站經常變動。連結失效時請更新。",
     "download_to_drive": "下載到 TDrive",
-    "download_video_merge_note": "此連結的影片和音訊是分開的。此行動版本暫時無法合併。請使用桌面版 TDrive 下載含聲音的影片，或在下方選擇音訊。"
+    "download_video_merge_note": "此連結的影片和音訊是分開的。此行動版本暫時無法合併。請使用桌面版 TDrive 下載含聲音的影片，或在下方選擇音訊。",
+    "download_native_merge_note": "此 iPhone 可合併相容的 H.264 影片與 AAC 音訊。部分影片或畫質可能無法使用。"
 }
