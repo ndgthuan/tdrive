@@ -28,7 +28,8 @@ import {
 import { calculateVisibleFolderStats } from './drive_data';
 import type { FileItem, FolderItem, FolderStat, RootFile } from '../types';
 import { refreshFolderIndex, collectDescendants } from './folder_index';
-import { chooseFilesForCurrentFolder, chooseFolderForCurrentFolder, enqueueDownload, enqueueFolderDownload } from './transfers';
+import { chooseFilesForCurrentFolder, choosePhotosForCurrentFolder, chooseFolderForCurrentFolder, enqueueDownload, enqueueFolderDownload } from './transfers';
+import { mediaPickerAvailable } from './media_picker';
 import { ensureUserNames, uploaderChipLabel } from './uploaders';
 import { renderGallery, setPhotosMode } from './gallery';
 import { renderTrashRows, setTrashMode } from './trash/view';
@@ -874,6 +875,7 @@ function publishLoadedFileData(list: HTMLElement, request: FileRefreshRequest, d
                 '',
                 ...(canEditHere ? [
                     { label: t('files.upload_files'), onClick: () => chooseFilesForCurrentFolder() },
+                    ...(mediaPickerAvailable() ? [{ label: t('chrome.photo_library'), onClick: () => choosePhotosForCurrentFolder() }] : []),
                     { label: t('files.upload_folder'), onClick: () => chooseFolderForCurrentFolder() },
                     { label: t('files.create_folder'), onClick: start_inline_folder_create },
                 ] : []),

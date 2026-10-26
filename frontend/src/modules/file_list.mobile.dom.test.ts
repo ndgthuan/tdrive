@@ -23,6 +23,8 @@ const actions = vi.hoisted(() => ({
     navigateToFolder: vi.fn(),
     enqueueDownload: vi.fn(),
     chooseFiles: vi.fn(),
+    choosePhotos: vi.fn(),
+    mediaPickerAvailable: vi.fn(() => false),
     chooseFolder: vi.fn(),
     move: vi.fn(),
     preview: vi.fn(),
@@ -33,10 +35,12 @@ vi.mock('./app_actions', () => ({ appActions: () => actions }));
 vi.mock('./navigation', () => ({ navigateToFolder: actions.navigateToFolder, navigateBack: vi.fn() }));
 vi.mock('./transfers', () => ({
     chooseFilesForCurrentFolder: actions.chooseFiles,
+    choosePhotosForCurrentFolder: actions.choosePhotos,
     chooseFolderForCurrentFolder: actions.chooseFolder,
     enqueueDownload: actions.enqueueDownload,
     enqueueFolderDownload: vi.fn(),
 }));
+vi.mock('./media_picker', () => ({ mediaPickerAvailable: actions.mediaPickerAvailable }));
 vi.mock('./connectivity', () => ({ isOffline: () => false }));
 vi.mock('./drag_drop', () => ({
     beginRowDrag: vi.fn(), endRowDrag: vi.fn(), canDropOnFolder: vi.fn(), setDropHighlight: vi.fn(), performDropMove: vi.fn(),
@@ -86,6 +90,7 @@ function row(name: string): HTMLElement {
 beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    actions.mediaPickerAvailable.mockReturnValue(false);
     state.activeChannel = { id: 1, title: 'Drive', kind: 'personal' };
     state.selectedItems.clear();
     state.searchQuery = '';
@@ -116,6 +121,19 @@ afterEach(async () => {
 });
 
 describe('phone file list', () => {
+    it('offers the native photo library in an empty drive when available', async () => {
+        actions.mediaPickerAvailable.mockReturnValue(true);
+        refreshFiles();
+        await vi.waitFor(() => {
+            flushSync();
+            expect(list.querySelectorAll('.file-state-actions button')).toHaveLength(4);
+        });
+        const buttons = Array.from(list.querySelectorAll<HTMLButtonElement>('.file-state-actions button'));
+        expect(buttons[1].textContent?.trim()).toBe('Photo & video library');
+        click(buttons[1]);
+        expect(actions.choosePhotos).toHaveBeenCalledTimes(1);
+        expect(actions.chooseFiles).not.toHaveBeenCalled();
+    });
     it('offers files, folders, and folder creation when the current folder is empty', async () => {
         state.currentFolderId = '';
         state.virtualView = null;
