@@ -3,7 +3,7 @@
 <script lang="ts">
     import { openExternalUrl } from '../../api';
     import { humanizeBackendError } from '../../modules/errors';
-    import { author, notice_text, repository_url, upstream_name } from './about_notice';
+    import { notice_text, repository_url, upstream_name } from './about_notice';
     import { formatBytes } from '../../utils';
     import { t_store } from '../../i18n/i18n';
     import {
@@ -57,13 +57,13 @@
     }
 </script>
 
-<section class="settings-pane" aria-labelledby="settings-general-title">
+<section class="settings-pane settings-general-pane" aria-labelledby="settings-general-title">
     <header class="settings-pane-header">
         <h3 id="settings-general-title" class="settings-pane-title">{$t_store('settings.general_title')}</h3>
         <p class="settings-pane-sub">{$t_store('settings.general_subtitle')}</p>
     </header>
 
-    <dl class="settings-facts">
+    <dl class="settings-facts settings-facts-grid">
         <div class="settings-fact">
             <dt>{$t_store('settings.app_version')}</dt>
             <dd>{version || '—'}</dd>
@@ -79,7 +79,7 @@
     {:else if dev_build}
         <p class="settings-note">{$t_store('misc.dev_build')}</p>
     {:else}
-        <div class="update-status" role="status" aria-live="polite">
+        <div class="update-status settings-update-card" role="status" aria-live="polite">
             {#if checking}
                 <p class="update-line">{$t_store('misc.checking')}</p>
             {:else if phase === 'up_to_date'}
@@ -162,7 +162,6 @@
                 <dd>{version || '—'}</dd>
             </div>
         </dl>
-        <p class="settings-note">{$t_store('settings.about_made_by', { author })}</p>
         <p class="settings-note">{$t_store('settings.about_based_on', { upstream: upstream_name })}</p>
         <div class="update-row">
             <button class="settings-btn ghost" type="button" onclick={() => openExternalUrl(repository_url)}>
@@ -192,8 +191,8 @@
 
 <style>
     .settings-facts {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         margin: 0;
         border: 1px solid var(--color-border-soft);
         border-radius: var(--radius-md);
@@ -202,19 +201,21 @@
 
     .settings-fact {
         display: flex;
+        min-width: 0;
         align-items: center;
         justify-content: space-between;
         gap: var(--space-3);
-        min-height: 44px;
-        padding: 0 var(--space-4);
+        min-height: 58px;
+        padding: 10px 16px;
     }
 
-    .settings-fact + .settings-fact { border-top: 1px solid var(--color-border-soft); }
+    .settings-fact + .settings-fact { border-top: 0; }
+    .settings-fact:nth-child(even) { border-left: 1px solid var(--color-border-soft); }
 
     .settings-fact dt {
         color: var(--color-text-muted);
         font-size: var(--type-base);
-        white-space: nowrap;
+        line-height: var(--leading-snug);
     }
 
     .settings-fact dd {
@@ -229,6 +230,14 @@
     }
 
     .update-status { display: flex; flex-direction: column; gap: var(--space-2); }
+
+    .settings-update-card {
+        min-width: 0;
+        padding: 14px 16px;
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-1);
+    }
 
     .update-line {
         margin: 0;
@@ -289,5 +298,11 @@
         line-height: var(--leading-snug);
         white-space: pre-wrap;
         overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 620px) {
+        .settings-facts { grid-template-columns: minmax(0, 1fr); }
+        .settings-fact:nth-child(even) { border-left: 0; }
+        .settings-fact + .settings-fact { border-top: 1px solid var(--color-border-soft); }
     }
 </style>

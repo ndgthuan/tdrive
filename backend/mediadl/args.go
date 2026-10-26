@@ -230,6 +230,13 @@ func build_download_args(request download_request) ([]string, error) {
 		"-o", OUTPUT_TEMPLATE,
 		"-f", selector,
 	}
+	if is_youtube_url(url_value) {
+		// YouTube's default WEB client can expose SABR-only formats that have
+		// metadata but no downloadable media URL. The Android downloader then
+		// fails at the byte request with HTTP 403. Use the Android player client
+		// for both probing and downloading so the listed formats match the URLs.
+		args = append(args, "--extractor-args", "youtube:player_client=android")
+	}
 	if request.FFmpegPath != "" {
 		args = append(args, "--ffmpeg-location", request.FFmpegPath)
 	}
@@ -249,5 +256,18 @@ func probe_args(raw_url string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []string{"--ignore-config", "--no-update", "--no-cache-dir", "--no-playlist", "--no-warnings", "--no-colors", "--skip-download", "--ignore-no-formats-error", "-J", "--", url_value}, nil
+	args := []string{"--ignore-config", "--no-update", "--no-cache-dir", "--no-playlist", "--no-warnings", "--no-colors", "--skip-download", "--ignore-no-formats-error", "-J"}
+	if is_youtube_url(url_value) {
+		args = append(args, "--extractor-args", "youtube:player_client=android")
+	}
+	return append(args, "--", url_value), nil
+}
+
+func is_youtube_url(raw string) bool {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	host := strings.TrimPrefix(strings.ToLower(parsed.Hostname()), "www.")
+	return host == "youtube.com" || host == "m.youtube.com" || host == "music.youtube.com" || host == "youtu.be"
 }

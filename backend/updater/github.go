@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -48,11 +51,18 @@ var ErrNoRelease = errors.New("no published release")
 // ErrRateLimited means GitHub refused the unauthenticated request for now.
 var ErrRateLimited = errors.New("github rate limit reached")
 
+type rateLimitError struct{ retryAfter time.Duration }
+
+func (e *rateLimitError) Error() string { return ErrRateLimited.Error() }
+func (e *rateLimitError) Unwrap() error { return ErrRateLimited }
+
 const (
 	githubAPIBase      = "https://api.github.com"
 	githubMaxBodyBytes = 1 << 20
 	githubTimeout      = 15 * time.Second
 )
+
+var releaseTagPattern = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
 
 // GitHubSource reads /repos/{repo}/releases/latest, which by definition skips
 // drafts and pre-releases — publishing the draft stays the release gate.
@@ -115,12 +125,21 @@ func (g *GitHubSource) LatestRelease(ctx context.Context) (Release, error) {
 	case http.StatusNotFound:
 		return Release{}, ErrNoRelease
 	case http.StatusForbidden, http.StatusTooManyRequests:
-		if resp.Header.Get("X-RateLimit-Remaining") == "0" || resp.StatusCode == http.StatusTooManyRequests {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4<<10))
+		limited, retryAfter := githubRateLimit(resp, body, time.Now())
+		if limited {
 			// Published release assets are served separately from the API quota.
 			if release, err := g.latestMetadata(ctx); err == nil {
 				return release, nil
 			}
-			return Release{}, ErrRateLimited
+			// Older releases may predate release.json. The stable latest page
+			// redirects to its published tag without consuming the REST API
+			// quota; this is enough to report that an already-newer local build
+			// is current, and lets newer legacy releases remain visible manually.
+			if release, err := g.latestReleasePage(ctx); err == nil {
+				return release, nil
+			}
+			return Release{}, &rateLimitError{retryAfter: retryAfter}
 		}
 		return Release{}, fmt.Errorf("github responded with status %d", resp.StatusCode)
 	default:
@@ -132,6 +151,89 @@ func (g *GitHubSource) LatestRelease(ctx context.Context) (Release, error) {
 		return Release{}, fmt.Errorf("decode github release: %w", err)
 	}
 	return parseGitHubRelease(payload)
+}
+
+func githubRateLimit(resp *http.Response, body []byte, now time.Time) (bool, time.Duration) {
+	if resp == nil {
+		return false, 0
+	}
+	retryAfter := time.Duration(0)
+	rawRetryAfter := strings.TrimSpace(resp.Header.Get("Retry-After"))
+	if seconds, err := strconv.ParseInt(rawRetryAfter, 10, 64); err == nil && seconds > 0 {
+		retryAfter = time.Duration(seconds) * time.Second
+	} else if retryAt, err := http.ParseTime(rawRetryAfter); err == nil && retryAt.After(now) {
+		retryAfter = retryAt.Sub(now)
+	}
+	if reset, err := strconv.ParseInt(resp.Header.Get("X-RateLimit-Reset"), 10, 64); err == nil && reset > 0 {
+		if untilReset := time.Unix(reset, 0).Sub(now); untilReset > retryAfter {
+			retryAfter = untilReset
+		}
+	}
+	message := strings.ToLower(string(body))
+	limited := resp.StatusCode == http.StatusTooManyRequests ||
+		resp.Header.Get("X-RateLimit-Remaining") == "0" || retryAfter > 0 ||
+		strings.Contains(message, "rate limit") || strings.Contains(message, "rate-limit")
+	return limited, retryAfter
+}
+
+func (g *GitHubSource) latestReleasePage(ctx context.Context) (Release, error) {
+	base := g.WebBaseURL
+	if base == "" {
+		base = "https://github.com"
+	}
+	parsedBase, err := url.Parse(base)
+	if err != nil || parsedBase.Scheme != "https" && parsedBase.Scheme != "http" || parsedBase.Host == "" {
+		return Release{}, errors.New("invalid GitHub web base URL")
+	}
+	ctx, cancel := context.WithTimeout(ctx, githubTimeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+"/"+g.Repo+"/releases/latest", nil)
+	if err != nil {
+		return Release{}, err
+	}
+	if g.UserAgent != "" {
+		req.Header.Set("User-Agent", g.UserAgent)
+	}
+	resp, err := g.Client.Do(req)
+	if err != nil {
+		return Release{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return Release{}, fmt.Errorf("latest release page status %d", resp.StatusCode)
+	}
+	finalURL := resp.Request.URL
+	if finalURL == nil || finalURL.Scheme != parsedBase.Scheme || !strings.EqualFold(finalURL.Host, parsedBase.Host) {
+		return Release{}, errors.New("latest release redirect left GitHub")
+	}
+	parts := strings.Split(strings.Trim(finalURL.Path, "/"), "/")
+	owner, repoName, ok := strings.Cut(g.Repo, "/")
+	if !ok || strings.Contains(repoName, "/") || len(parts) != 5 || parts[0] != owner || parts[1] != repoName || parts[2] != "releases" || parts[3] != "tag" {
+		return Release{}, errors.New("latest release redirect did not resolve to a release tag")
+	}
+	tag := parts[4]
+	if !releaseTagPattern.MatchString(tag) {
+		return Release{}, errors.New("latest release redirect has an invalid tag")
+	}
+	version, err := ParseVersion(tag)
+	if err != nil {
+		return Release{}, err
+	}
+	pageURL := "https://github.com/" + g.Repo + "/releases/tag/" + tag
+	root := "https://github.com/" + g.Repo + "/releases/download/" + tag + "/"
+	names := []string{
+		"TDrive-" + tag + "-macos-arm64.zip",
+		"TDrive-" + tag + "-windows-amd64.zip",
+		"TDrive-" + tag + "-x86_64.AppImage",
+		"TDrive-" + tag + "-linux-amd64.AppImage",
+		checksumsAssetName,
+		checksumsSignatureAssetName,
+	}
+	assets := make([]Asset, 0, len(names))
+	for _, name := range names {
+		assets = append(assets, Asset{Name: name, URL: root + name})
+	}
+	return Release{Tag: tag, Version: version, PageURL: pageURL, Assets: assets}, nil
 }
 
 // latestMetadata uses the published stable release redirect, so a draft remains

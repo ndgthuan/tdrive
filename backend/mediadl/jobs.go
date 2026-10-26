@@ -373,7 +373,7 @@ func (m *Manager) run(ctx context.Context, j *job, ytdlp string, args []string) 
 		return
 	}
 	if runErr != nil {
-		m.finish(j, STAGE_ERROR, first_nonempty(error_from_lines(lines), "the download failed"), "")
+		m.finish(j, STAGE_ERROR, first_nonempty(error_from_lines(lines), error_from_error(runErr), "the download failed"), "")
 		return
 	}
 

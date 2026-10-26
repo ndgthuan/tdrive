@@ -31,13 +31,18 @@ release and compares versions using [semantic version parsing](../../backend/upd
 A development version that cannot be parsed disables the updater. Initialization
 does not itself start network discovery; the frontend owns the check schedule.
 
-When the API returns a quota error (403 with zero remaining requests, or 429),
+When the API returns a rate-limit response (primary or secondary 403, or 429),
 discovery falls back to the published stable release's `release.json` asset.
 The release workflow generates this inventory with exact payload sizes before
 signing checksums. Repository, tag and asset URLs must agree; payload installation
-still requires the existing trusted signature and SHA-256 verification. Drafts
-remain invisible through GitHub's latest-release download redirect. Older clients
-without this fallback may need a manual upgrade while their API quota is exhausted.
+still requires the existing trusted signature and SHA-256 verification. If the
+metadata asset is absent on a legacy release, discovery follows GitHub's stable
+latest-release redirect and reconstructs only the fixed desktop asset names;
+the signed checksum manifest remains mandatory before automatic installation.
+The updater also enforces a ten-minute successful-check cooldown and a
+rate-limit backoff, honoring GitHub's reset headers when available. Drafts remain
+invisible through GitHub's latest-release redirect. Older clients without these
+fallbacks may need a manual upgrade while their API quota is exhausted.
 
 Asset selection uses exact names from [platform.go](../../backend/updater/platform.go),
 so similarly named CLI archives cannot be selected as desktop payloads.

@@ -2,7 +2,10 @@
 
 package mediadl
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestParseProgressLine(t *testing.T) {
 	sample, ok := parse_progress_line("TDLP|512|2048|NA|1048576.5|7")
@@ -55,6 +58,16 @@ func TestMergingAndErrorLines(t *testing.T) {
 	}
 	if got := error_from_lines([]string{"noise"}); got != "" {
 		t.Fatalf("no error expected, got %q", got)
+	}
+}
+
+func TestErrorFromMobileBridgeError(t *testing.T) {
+	err := errors.New("Binding call failed: Bound method returned an error: WARNING: stream note\nERROR: unable to download video data: HTTP Error 403: Forbidden")
+	if got := error_from_error(err); got != "unable to download video data: HTTP Error 403: Forbidden" {
+		t.Fatalf("error_from_error = %q", got)
+	}
+	if got := error_from_error(errors.New("bridge failed without yt-dlp output")); got != "" {
+		t.Fatalf("error_from_error without ERROR line = %q", got)
 	}
 }
 

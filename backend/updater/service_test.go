@@ -526,12 +526,43 @@ func TestSourceFailureKeepsPreviousPhase(t *testing.T) {
 	f.waitPhase(PhaseReady)
 
 	f.source.err = errors.New("dial tcp: connection refused")
+	f.service.nextCheck = time.Time{}
 	got := f.service.Check(context.Background())
 	if got.Phase != PhaseReady || got.ErrorStage != "check" || got.Error == "" {
 		t.Fatalf("a failed re-check must keep the verified payload, got %+v", got)
 	}
 	if err := f.service.Install(); err != nil {
 		t.Fatalf("Install after failed re-check: %v", err)
+	}
+}
+
+func TestRateLimitedChecksAreBackedOff(t *testing.T) {
+	isolate_data_dir(t)
+	f := newFixture(t, "1.6.0", "1.7.0")
+	now := time.Now()
+	f.service.opts.Now = func() time.Time { return now }
+	f.source.err = ErrRateLimited
+	first := f.service.Check(context.Background())
+	if first.ErrorStage != "check" || first.Error == "" {
+		t.Fatalf("expected rate-limit state, got %+v", first)
+	}
+	f.source.mu.Lock()
+	calls := f.source.calls
+	f.source.err = nil
+	f.source.mu.Unlock()
+	if got := f.service.Check(context.Background()); got.Error != first.Error {
+		t.Fatalf("repeat check during backoff should return cached state, got %+v", got)
+	}
+	f.source.mu.Lock()
+	if f.source.calls != calls {
+		f.source.mu.Unlock()
+		t.Fatal("repeat check called GitHub during backoff")
+	}
+	f.source.mu.Unlock()
+	now = now.Add(rateLimitCooldown + time.Second)
+	got := f.service.Check(context.Background())
+	if got.Error != "" || got.Phase != PhaseAvailable {
+		t.Fatalf("check after cooldown should retry and recover, got %+v", got)
 	}
 }
 
@@ -704,6 +735,7 @@ func TestNewerReleaseSupersedesReadyPayload(t *testing.T) {
 	f.source.mu.Unlock()
 	f.setManifest(sha256Hex(f.payload) + "  " + newName + "\n")
 
+	f.service.nextCheck = time.Time{}
 	got := f.service.Check(context.Background())
 	if got.Phase != PhaseAvailable || got.Latest.Version != "1.8.0" {
 		t.Fatalf("state = %+v", got)

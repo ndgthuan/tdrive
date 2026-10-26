@@ -251,7 +251,7 @@ html.mobile .drive-header {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 3px;
     padding: 4px 0;
 }
 html.mobile .drive-header-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -288,8 +288,8 @@ html.mobile .drive-header-chevron {
     margin-left: 4px;
     color: var(--color-text-muted);
 }
-html.mobile .drive-header-name { font-size: 2rem; line-height: 2.4rem; }
-html.mobile .drive-header-meta { font-size: var(--mobile-type-meta); color: var(--color-text-muted); }
+html.mobile .drive-header-name { font-size: 1.3rem; line-height: 1.65rem; }
+html.mobile .drive-header-meta { margin-top: 2px; font-size: var(--mobile-type-meta); color: var(--color-text-muted); }
 /* The view-only pill sits on its own line under the meta, at its natural width. */
 html.mobile .drive-header .view-only-badge { align-self: flex-start; margin-top: 4px; }
 
@@ -1056,6 +1056,17 @@ html.mobile .switcher-header {
     justify-content: space-between;
     padding: 4px 0 12px;
 }
+html.mobile .switcher-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+html.mobile .switcher-back {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-text);
+}
 html.mobile .switcher-title { font-size: 1.0625rem; font-weight: var(--weight-strong); color: var(--color-text); }
 /* A 32px disc inside a 44px target: the margins give back what the box gained,
    so the header keeps its height and the disc stays exactly where it was. */
@@ -1105,6 +1116,8 @@ html.mobile .switcher-list .drive-item {
     color: var(--color-text);
 }
 html.mobile .switcher-list .drive-item.active { background: var(--overlay-accent-1); color: var(--color-accent); }
+html.mobile .switcher-list .shared-folder-item { gap: 12px; }
+html.mobile .switcher-list .shared-folder-count { margin-left: auto; color: var(--color-text-muted); font-size: var(--type-sm); }
 html.mobile .switcher-list .drive-item:focus-visible {
     outline: none;
     box-shadow: inset 0 0 0 2px var(--color-accent);
@@ -1264,7 +1277,6 @@ html.mobile .toast-body {
 /* Focus rings stay visible for keyboard users on tablets and hardware keyboards
    (accessibility-1). */
 html.mobile .tab-item:focus-visible,
-html.mobile .drive-header-btn:focus-visible,
 html.mobile .topbar-back:focus-visible,
 html.mobile .topbar-done:focus-visible,
 html.mobile .topbar-icon-btn:focus-visible,
@@ -1277,6 +1289,26 @@ html.mobile .topbar-menu-item:focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: -2px;
     border-radius: var(--radius-md);
+}
+
+/* Keep the drive-switcher keyboard focus visible without drawing a tight box
+   across the large drive name. On Android the focused button can retain focus
+   after a tap, making the inset outline collide visually with the glyphs. */
+html.mobile .drive-header-btn:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 8px;
+    padding-inline: 6px;
+    margin-inline: -6px;
+}
+
+/* Touching the drive title should not leave a focus rectangle over the text.
+   Keep the keyboard ring for desktop pointers where :focus-visible is useful. */
+@media (pointer: coarse) {
+    html.mobile .drive-header-btn:focus-visible {
+        outline: none;
+        box-shadow: none;
+    }
 }
 
 /* ============================ ITEM STATUS ============================ */

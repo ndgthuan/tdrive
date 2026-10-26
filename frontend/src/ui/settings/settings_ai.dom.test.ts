@@ -131,6 +131,7 @@ describe('AI models pane', () => {
         await settle();
 
         expect(list_models).toHaveBeenCalled();
+        expect(host?.textContent).not.toContain('Models for the AI assistant');
         const cards = host?.querySelectorAll('.ai-card') ?? [];
         expect(cards).toHaveLength(2);
 

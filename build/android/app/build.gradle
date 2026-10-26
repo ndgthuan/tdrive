@@ -5,6 +5,7 @@ plugins {
 android {
     namespace 'com.wails.app'
     compileSdk 35
+    buildToolsVersion '35.0.0'
 
     buildFeatures {
         buildConfig = true
@@ -76,6 +77,11 @@ android {
 
     // Packaging options
     packagingOptions {
+        jniLibs {
+            // youtubedl-android loads libpython.zip.so by path during first-use init.
+            // Extract native libraries so the bundled Python runtime can find it.
+            useLegacyPackaging true
+        }
         // Don't strip Go symbols in debug builds
         doNotStrip '*/arm64-v8a/libwails.so'
         doNotStrip '*/x86_64/libwails.so'

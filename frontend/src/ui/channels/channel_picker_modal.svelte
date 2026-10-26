@@ -438,6 +438,39 @@
         box-shadow: none;
         background: transparent;
     }
+    /* The modal-wide input rule has a stronger selector than the bare search
+       field reset on Android. Keep these framed groups to one visible outline. */
+    :global(#channel-picker-modal .channel-picker-search input:not([type="radio"]):not([type="checkbox"])),
+    :global(#channel-picker-modal .channel-picker-search input:not([type="radio"]):not([type="checkbox"]):focus),
+    :global(#channel-picker-modal .channel-picker-search input:not([type="radio"]):not([type="checkbox"]):focus-visible),
+    :global(#channel-picker-modal .channel-picker-public-field input:not([type="radio"]):not([type="checkbox"])),
+    :global(#channel-picker-modal .channel-picker-public-field input:not([type="radio"]):not([type="checkbox"]):focus),
+    :global(#channel-picker-modal .channel-picker-public-field input:not([type="radio"]):not([type="checkbox"]):focus-visible) {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        outline: 0;
+        box-shadow: none;
+        background: transparent;
+    }
+    /* The picker has one wrapper border per field. Keep the Android WebView's
+       global modal-input focus styling from drawing a second rectangle inside. */
+    :global(#channel-picker-modal .channel-picker-search:focus-within),
+    :global(#channel-picker-modal .channel-picker-public-field:focus-within) {
+        border-color: var(--accent) !important;
+        box-shadow: var(--focus-ring) !important;
+    }
+    :global(#channel-picker-modal .channel-picker-search input:focus),
+    :global(#channel-picker-modal .channel-picker-search input:focus-visible),
+    :global(#channel-picker-modal .channel-picker-public-field input:focus),
+    :global(#channel-picker-modal .channel-picker-public-field input:focus-visible) {
+        border: 0 !important;
+        outline: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
     .channel-picker-public-field input::placeholder { color: var(--text-muted); }
     .channel-picker-check { min-height: var(--control-md); height: var(--control-md); padding: 0 var(--space-3); white-space: nowrap; font-size: var(--type-sm); }
     .channel-picker-check:disabled { color: var(--text-muted); cursor: default; opacity: 0.8; }

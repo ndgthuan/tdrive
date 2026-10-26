@@ -245,6 +245,47 @@ func TestLeaveSharedDriveDeletesLocalRowsAndSwitchesToPersonal(t *testing.T) {
 	}
 }
 
+type leaveFailClient struct {
+	*tgclient.Fake
+	err error
+}
+
+func (c *leaveFailClient) LeaveChannel(context.Context, tgclient.InputPeer) error {
+	return c.err
+}
+
+func TestLeaveSharedDriveRetainsLocalStateWhenTelegramRefuses(t *testing.T) {
+	svc, tg, _, active := newService(t)
+	peer := tgclient.InputPeer{ChannelID: 77778, AccessHash: 88889}
+	tg.SeedChannel(peer, "Still here")
+	if err := projection.InsertChannel(svc.DB, projection.Channel{
+		ChannelID:            peer.ChannelID,
+		AccessHash:           peer.AccessHash,
+		Title:                "Still here",
+		Kind:                 projection.KindShared,
+		PersonalBackfillDone: true,
+	}); err != nil {
+		t.Fatalf("seed channel: %v", err)
+	}
+	*active = peer.ChannelID
+	failure := errors.New("creator cannot leave until ownership is transferred")
+	svc.TG = &leaveFailClient{Fake: tg, err: failure}
+
+	err := svc.LeaveSharedDrive(context.Background(), peer.ChannelID)
+	if !errors.Is(err, failure) {
+		t.Fatalf("leave error = %v, want wrapped Telegram refusal", err)
+	}
+	if _, err := projection.GetChannel(svc.DB, peer.ChannelID); err != nil {
+		t.Fatalf("local shared drive was deleted after refusal: %v", err)
+	}
+	if *active != peer.ChannelID {
+		t.Fatalf("active = %d, want shared drive %d retained", *active, peer.ChannelID)
+	}
+	if left := tg.LeftChannels(); len(left) != 0 {
+		t.Fatalf("fake Telegram client recorded a leave despite refusal: %+v", left)
+	}
+}
+
 type joinRecordingClient struct {
 	*tgclient.Fake
 	joins int

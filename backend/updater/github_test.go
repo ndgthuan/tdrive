@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func githubServer(t *testing.T, status int, headers map[string]string, body string) *GitHubSource {
@@ -84,6 +86,75 @@ func TestGitHubRateLimitUsesPublishedMetadata(t *testing.T) {
 				t.Fatalf("release = %+v", release)
 			}
 		})
+	}
+}
+
+func TestGitHubRateLimitFallsBackToLatestReleaseRedirect(t *testing.T) {
+	isolate_data_dir(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/owner/repo/releases/latest":
+			w.Header().Set("X-RateLimit-Remaining", "0")
+			w.WriteHeader(http.StatusForbidden)
+		case "/owner/repo/releases/latest/download/release.json":
+			http.NotFound(w, r)
+		case "/owner/repo/releases/latest":
+			http.Redirect(w, r, "/owner/repo/releases/tag/v3.1.0", http.StatusFound)
+		case "/owner/repo/releases/tag/v3.1.0":
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(server.Close)
+	source := NewGitHubSource("owner/repo", "TDrive/test", server.Client())
+	source.BaseURL, source.WebBaseURL = server.URL, server.URL
+	release, err := source.LatestRelease(t.Context())
+	if err != nil {
+		t.Fatalf("latest release fallback: %v", err)
+	}
+	if release.Tag != "v3.1.0" || release.Version.String() != "3.1.0" {
+		t.Fatalf("fallback release = %+v", release)
+	}
+	if _, ok := release.asset("TDrive-v3.1.0-windows-amd64.zip"); !ok {
+		t.Fatalf("fallback should include the known desktop payload names: %+v", release.Assets)
+	}
+	if _, ok := release.asset(checksumsAssetName); !ok {
+		t.Fatalf("fallback should include the signed checksum manifest: %+v", release.Assets)
+	}
+}
+
+func TestGitHubSecondaryRateLimitWithoutRemainingHeader(t *testing.T) {
+	isolate_data_dir(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/repos/owner/repo/releases/latest":
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = fmt.Fprint(w, `{"message":"You have exceeded a secondary rate limit."}`)
+		case "/owner/repo/releases/latest/download/release.json", "/owner/repo/releases/latest":
+			http.NotFound(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	source := NewGitHubSource("owner/repo", "TDrive/test", server.Client())
+	source.BaseURL, source.WebBaseURL = server.URL, server.URL
+	if _, err := source.LatestRelease(t.Context()); !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("LatestRelease error = %v, want rate-limit error", err)
+	}
+}
+
+func TestGitHubRateLimitParsesRetryAfterDate(t *testing.T) {
+	now := time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)
+	retryAt := now.Add(5 * time.Minute)
+	resp := &http.Response{
+		StatusCode: http.StatusForbidden,
+		Header:     http.Header{"Retry-After": []string{retryAt.Format(http.TimeFormat)}},
+	}
+	limited, delay := githubRateLimit(resp, nil, now)
+	if !limited || delay != 5*time.Minute {
+		t.Fatalf("githubRateLimit() = (%v, %s), want (true, 5m)", limited, delay)
 	}
 }
 

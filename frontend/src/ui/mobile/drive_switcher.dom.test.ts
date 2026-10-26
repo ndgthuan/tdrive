@@ -72,6 +72,35 @@ describe('actions', () => {
         expect(get(driveSwitcherOpen)).toBe(false);
         expect(actions.join).toHaveBeenCalledOnce();
     });
+
+    it('opens shared drives as a nested Shared folder and closes only after a drive is chosen', () => {
+        sidebarState.set({
+            personal: [{ id: 1, title: 'My Drive', kind: 'personal', isActive: true, inviteLink: '' }],
+            shared: [
+                { id: 2, title: 'Survival', kind: 'shared', isActive: false, inviteLink: '' },
+                { id: 3, title: 'Bugging', kind: 'shared', isActive: false, inviteLink: '' },
+            ],
+            pending: [],
+            activeChannelId: 1,
+            virtualView: null,
+        });
+        openDriveSwitcher();
+        flushSync();
+
+        const sharedFolder = sheet().querySelector<HTMLButtonElement>('.shared-folder-item');
+        expect(sharedFolder?.textContent).toContain('Shared');
+        expect(sharedFolder?.textContent).toContain('2');
+        sharedFolder?.click();
+        flushSync();
+
+        expect(get(driveSwitcherOpen)).toBe(true);
+        expect(sheet().querySelector('.switcher-title')?.textContent).toBe('Shared');
+        expect(sheet().querySelectorAll('.drive-item[data-channel-id]')).toHaveLength(2);
+
+        sheet().querySelector<HTMLButtonElement>('.drive-item[data-channel-id="2"]')?.click();
+        flushSync();
+        expect(get(driveSwitcherOpen)).toBe(false);
+    });
 });
 
 afterEach(() => {

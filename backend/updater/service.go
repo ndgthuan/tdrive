@@ -93,6 +93,8 @@ var (
 const (
 	progressEmitInterval = 150 * time.Millisecond
 	eventQueueSize       = 128
+	updateCheckCooldown  = 10 * time.Minute
+	rateLimitCooldown    = 30 * time.Minute
 )
 
 // Service is safe for concurrent use. One instance lives for the process.
@@ -116,6 +118,7 @@ type Service struct {
 	cancel     context.CancelFunc
 	downloadID uint64
 	lastEmit   time.Time
+	nextCheck  time.Time
 	events     chan State
 	closed     bool
 }
@@ -202,7 +205,7 @@ func (s *Service) ReleasePageURL() string {
 // cache against it. It is a no-op while a download or install is running.
 func (s *Service) Check(ctx context.Context) State {
 	s.mu.Lock()
-	if s.dev || !s.checkAllowedLocked() {
+	if s.dev || !s.checkAllowedLocked() || s.opts.Now().Before(s.nextCheck) {
 		snapshot := s.snapshotLocked()
 		s.mu.Unlock()
 		return snapshot
@@ -225,14 +228,25 @@ func (s *Service) Check(ctx context.Context) State {
 	switch {
 	case errors.Is(err, ErrNoRelease):
 		s.setUpToDateLocked()
+		s.nextCheck = s.opts.Now().Add(updateCheckCooldown)
 	case err != nil:
 		s.state.Phase = previous
 		s.state.Error = userMessage(err)
 		s.state.ErrorStage = "check"
+		if errors.Is(err, ErrRateLimited) {
+			cooldown := rateLimitCooldown
+			var limited *rateLimitError
+			if errors.As(err, &limited) && limited.retryAfter > cooldown {
+				cooldown = limited.retryAfter
+			}
+			s.nextCheck = s.opts.Now().Add(cooldown)
+		}
 	case !release.Version.Newer(s.current):
 		s.setUpToDateLocked()
+		s.nextCheck = s.opts.Now().Add(updateCheckCooldown)
 	default:
 		s.applyResolutionLocked(release, res)
+		s.nextCheck = s.opts.Now().Add(updateCheckCooldown)
 	}
 	s.emitLocked()
 	return s.snapshotLocked()

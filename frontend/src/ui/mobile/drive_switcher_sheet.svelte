@@ -1,7 +1,10 @@
 <script lang="ts">
     import FolderPlusIcon from 'phosphor-svelte/lib/FolderPlusIcon';
+    import FolderIcon from 'phosphor-svelte/lib/FolderIcon';
     import Link2Icon from 'phosphor-svelte/lib/LinkSimpleIcon';
     import XIcon from 'phosphor-svelte/lib/XIcon';
+    import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
+    import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import {
         handleDriveClick,
         handlePendingClick,
@@ -29,6 +32,11 @@
     } from '../../modules/channel_sources';
 
     let sheetEl = $state<HTMLElement | null>(null);
+    let showingSharedDrives = $state(false);
+
+    $effect(() => {
+        if (!$driveSwitcherOpen) showingSharedDrives = false;
+    });
 
     $effect(() => {
         if ($driveSwitcherOpen) retryLoadChannels();
@@ -168,7 +176,9 @@
     // dismisses the sheet. The shared-drive actions button is a sibling, so it
     // never matches here and keeps the sheet open for its context menu.
     function onDriveNavClick(event: MouseEvent): void {
-        if ((event.target as HTMLElement).closest('.drive-item')) closeDriveSwitcher();
+        const target = event.target as HTMLElement;
+        if (target.closest('.shared-folder-item')) return;
+        if (target.closest('.drive-item')) closeDriveSwitcher();
     }
 
     function openJoin(): void {
@@ -229,7 +239,16 @@
     <div class="switcher-grab">
         <div class="switcher-grip" aria-hidden="true"><span></span></div>
         <div class="switcher-header">
-            <h2 class="switcher-title">{$t_store('mobile.drives')}</h2>
+            <div class="switcher-heading">
+                {#if showingSharedDrives}
+                    <button type="button" class="switcher-back" aria-label={$t_store('mobile.back')} onclick={() => (showingSharedDrives = false)}>
+                        <CaretLeftIcon size={20} aria-hidden="true" />
+                    </button>
+                    <h2 class="switcher-title">{$t_store('mobile.kind_shared')}</h2>
+                {:else}
+                    <h2 class="switcher-title">{$t_store('mobile.drives')}</h2>
+                {/if}
+            </div>
             <button type="button" class="switcher-close" aria-label={$t_store('mobile.close')} onclick={closeDriveSwitcher}>
                 <XIcon size={20} aria-hidden="true" />
             </button>
@@ -241,34 +260,46 @@
          this listener needs no key handler of its own. -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_click_events_have_key_events -->
     <nav id="drives-nav" class="switcher-list" tabindex="-1" aria-label={$t_store('mobile.drives')} onclick={onDriveNavClick}>
-        <!-- Two groups rather than one list: the phone shows the same split the
-             desktop sidebar does, and each is its own stacking column. -->
-        <div class="switcher-group">
-            <h2 class="switcher-label">{$t_store('mobile.my_drive_label')}</h2>
-            <DriveList kind="personal" onDriveClick={handleDriveClick} />
-        </div>
-        <div class="switcher-group">
-            <h2 class="switcher-label">{$t_store('mobile.shared_drives_label')}</h2>
-            <DriveList
-                kind="shared"
-                showRoles
-                onDriveClick={handleDriveClick}
-                onDriveActions={showSharedActionsMenu}
-                onPendingClick={handlePendingClick}
-                onPendingActions={showPendingActionsMenu}
-            />
-        </div>
-        <div class="switcher-group">
-            <ChannelNav
-                sources={$channelSources}
-                activeKey={$openChannel ? sourceKey($openChannel) : null}
-                loadPhoto={channelPhoto}
-                onSelect={openSourceChannel}
-                onActions={showChannelActions}
-                onAdd={addChannel}
-                onRetry={loadChannelSources}
-            />
-        </div>
+        {#if showingSharedDrives}
+            <div class="switcher-group">
+                <h2 class="switcher-label">{$t_store('mobile.shared_drives_label')}</h2>
+                <DriveList
+                    kind="shared"
+                    showRoles
+                    onDriveClick={handleDriveClick}
+                    onDriveActions={showSharedActionsMenu}
+                    onPendingClick={handlePendingClick}
+                    onPendingActions={showPendingActionsMenu}
+                />
+            </div>
+        {:else}
+            <!-- A virtual folder keeps shared drives from crowding the mobile
+                 switcher as the account joins more teams. -->
+            <div class="switcher-group">
+                <h2 class="switcher-label">{$t_store('mobile.my_drive_label')}</h2>
+                <DriveList kind="personal" onDriveClick={handleDriveClick} />
+            </div>
+            <div class="switcher-group">
+                <h2 class="switcher-label">{$t_store('mobile.drives')}</h2>
+                <button type="button" class="drive-item shared-folder-item" onclick={() => (showingSharedDrives = true)}>
+                    <FolderIcon size={18} aria-hidden="true" />
+                    <span class="drive-item-title">{$t_store('mobile.kind_shared')}</span>
+                    <span class="shared-folder-count">{$sidebarState.shared.length}</span>
+                    <CaretRightIcon size={18} aria-hidden="true" />
+                </button>
+            </div>
+            <div class="switcher-group">
+                <ChannelNav
+                    sources={$channelSources}
+                    activeKey={$openChannel ? sourceKey($openChannel) : null}
+                    loadPhoto={channelPhoto}
+                    onSelect={openSourceChannel}
+                    onActions={showChannelActions}
+                    onAdd={addChannel}
+                    onRetry={loadChannelSources}
+                />
+            </div>
+        {/if}
     </nav>
 
     <div class="switcher-actions">

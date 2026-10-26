@@ -57,6 +57,7 @@ describe('General pane updates', () => {
     it('shows the current version and a Check for updates button', () => {
         mountInto(GeneralPane);
         expect(host?.textContent).toContain('1.7.2');
+        expect(host?.textContent).not.toContain('Made by');
         const button = Array.from(host?.querySelectorAll<HTMLButtonElement>('button') ?? [])
             .find((item) => item.textContent?.trim() === 'Check for updates');
         expect(button).toBeDefined();

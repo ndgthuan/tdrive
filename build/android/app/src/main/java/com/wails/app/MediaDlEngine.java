@@ -23,7 +23,6 @@ import org.json.JSONObject;
  * goes back through the callback the bridge was given, and each output line goes
  * to the web view as window.tdriveMediaDlLine(requestId, line), which relays it to Go.
  *
- * Unverified: this file has not been compiled against the library on this host.
  */
 final class MediaDlEngine {
     private static final String TAG = "MediaDlEngine";
@@ -84,6 +83,7 @@ final class MediaDlEngine {
                 }
                 done.finish(answer.toString(), "");
             } catch (Exception e) {
+                Log.e(TAG, "downloader status failed", e);
                 done.finish("", message_of(e, "The video downloader could not be read."));
             }
         });
@@ -99,6 +99,7 @@ final class MediaDlEngine {
                 sink.line(request_id, "done|100");
                 done.finish("", "");
             } catch (Exception e) {
+                Log.e(TAG, "downloader setup failed", e);
                 done.finish("", message_of(e, "The downloader could not be set up."));
             }
         });
@@ -113,6 +114,7 @@ final class MediaDlEngine {
                 String version = YoutubeDL.getInstance().version(app_context);
                 done.finish("yt-dlp " + version + " (" + outcome + ")", "");
             } catch (Exception e) {
+                Log.e(TAG, "yt-dlp update failed", e);
                 done.finish("", message_of(e, "yt-dlp could not update itself."));
             }
         });

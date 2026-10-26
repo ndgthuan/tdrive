@@ -3,6 +3,7 @@
 <script lang="ts">
     import DotsIcon from 'phosphor-svelte/lib/DotsThreeIcon';
     import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
+    import SparkleIcon from 'phosphor-svelte/lib/SparkleIcon';
     import { onMount } from 'svelte';
     import { delete_model, Provider, set_default_model, type ModelView } from '../../api/ai';
     import { configured_models, refresh_configured_models } from '../ai/ai_models_store';
@@ -104,7 +105,6 @@
         <header class="ai-header">
             <div class="ai-header-copy">
                 <h3 id="settings-ai-title" class="settings-pane-title">{$t_store('settings_ai.title')}</h3>
-                <p class="settings-pane-sub">{$t_store('settings_ai.subtitle')}</p>
             </div>
             <button type="button" class="settings-btn primary ai-add" onclick={() => openForm(null)}>
                 <PlusIcon size={16} aria-hidden="true" />
@@ -119,7 +119,14 @@
         {#if loading}
             <p class="settings-note" role="status">{$t_store('settings_ai.loading')}</p>
         {:else if models.length === 0}
-            <p class="settings-note ai-empty">{$t_store('settings_ai.empty')}</p>
+            <div class="ai-empty-state" role="status">
+                <span class="ai-empty-mark" aria-hidden="true"><SparkleIcon size={20} /></span>
+                <p class="ai-empty">{$t_store('settings_ai.empty')}</p>
+                <button type="button" class="settings-btn primary" onclick={() => openForm(null)}>
+                    <PlusIcon size={16} aria-hidden="true" />
+                    {$t_store('settings_ai.add_model')}
+                </button>
+            </div>
         {:else}
             <ul class="ai-list" aria-label={$t_store('settings_ai.title')}>
                 {#each models as model (model.id)}
@@ -194,7 +201,9 @@
             </ul>
         {/if}
 
-        <p class="settings-note ai-footnote">{$t_store('settings_ai.default_note')}</p>
+        {#if models.length > 0}
+            <p class="settings-note ai-footnote">{$t_store('settings_ai.default_note')}</p>
+        {/if}
     </section>
 {/if}
 
@@ -343,6 +352,30 @@
 
     .ai-confirm-actions { display: flex; gap: var(--space-2); flex: none; }
 
-    .ai-empty { padding: var(--space-4) 0; }
+    .ai-empty-state {
+        display: flex;
+        min-height: 280px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        padding: 28px;
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-1);
+        text-align: center;
+    }
+
+    .ai-empty-mark {
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border-radius: var(--radius-sm);
+        background: var(--overlay-accent-1);
+        color: var(--color-accent);
+    }
+
+    .ai-empty { max-width: 430px; color: var(--color-text); font-size: var(--type-base); line-height: var(--leading-snug); }
     .ai-footnote { margin-top: auto; }
 </style>

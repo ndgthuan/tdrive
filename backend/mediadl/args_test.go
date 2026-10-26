@@ -154,3 +154,29 @@ func TestProbeArgsAreMetadataOnly(t *testing.T) {
 		t.Fatalf("probe must not download: %v", args)
 	}
 }
+
+func TestYoutubeUsesDownloadablePlayerClient(t *testing.T) {
+	for name, build := range map[string]func(string) ([]string, error){
+		"probe": probe_args,
+		"download": func(raw string) ([]string, error) {
+			return build_download_args(download_request{URL: raw, Choice: PRESET_BEST, OutDir: "tmp"})
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			args, err := build("https://youtu.be/example")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Contains(args, "--extractor-args") || !slices.Contains(args, "youtube:player_client=android") {
+				t.Fatalf("YouTube player client override missing: %v", args)
+			}
+		})
+	}
+	args, err := probe_args("https://example.com/video")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slices.Contains(args, "--extractor-args") {
+		t.Fatalf("non-YouTube sites must keep their default extractor: %v", args)
+	}
+}

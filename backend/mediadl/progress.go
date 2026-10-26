@@ -113,3 +113,14 @@ func error_from_lines(lines []string) string {
 	}
 	return message
 }
+
+// error_from_error extracts yt-dlp's actionable ERROR line from a mobile
+// bridge error. Android reports Python output inside the binding error instead
+// of forwarding it as separate output lines; returning only the generic
+// fallback hid the actual HTTP or extractor failure from the Transfers screen.
+func error_from_error(err error) string {
+	if err == nil {
+		return ""
+	}
+	return error_from_lines(strings.Split(err.Error(), "\n"))
+}

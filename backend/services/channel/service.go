@@ -10,9 +10,9 @@
 // The package degrades rather than fails. A drive is created even when
 // exporting its invite link fails, since the UI can retry. Polling an
 // approval-gated join records a transport error on the pending row and still
-// reports "pending", so a network blip never looks like a rejection. Leaving is
-// local-wins: the local row goes even if Telegram refuses, and the active drive
-// falls back to the personal one. A joined drive whose initial sync fails keeps
+// reports "pending", so a network blip never looks like a rejection. Leaving
+// is remote-first: if Telegram refuses, local membership and cached drive data
+// stay intact so the user can retry. A joined drive whose initial sync fails keeps
 // its membership and local row but reports an error so the invite can be retried.
 //
 // Access hashes are cached in the projection and rotate on their own: a call
@@ -378,13 +378,11 @@ func (s *Service) LeaveSharedDrive(ctx context.Context, channelID int64) error {
 		return err
 	}
 	peer, err := tg.ResolveDriveChannel(ctx, channelID)
-	if err == nil {
-		err = tg.LeaveChannel(ctx, peer)
-	}
 	if err != nil {
-		// Even if Telegram refused, still drop local state — the user
-		// asked to leave; they can rejoin via invite link if needed.
-		fmt.Printf("warn: telegram leave failed: %v\n", err)
+		return fmt.Errorf("resolve shared drive before leaving: %w", err)
+	}
+	if err := tg.LeaveChannel(ctx, peer); err != nil {
+		return fmt.Errorf("Telegram did not let this account leave the shared drive: %w", err)
 	}
 
 	if err := projection.DeleteChannel(s.DB, channelID); err != nil {
