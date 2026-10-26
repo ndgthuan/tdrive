@@ -36,6 +36,7 @@ type Gotd struct {
 	sharedDriveMu       sync.Mutex
 	sharedDriveChecked  map[int64]time.Time
 	sharedDriveLastScan time.Time
+	sharedDriveCursor   int
 
 	// mediaMu guards the per-data-center connections that carry file bytes:
 	// CDN invokers and upload.getFile pools. They belong to the run scope and
