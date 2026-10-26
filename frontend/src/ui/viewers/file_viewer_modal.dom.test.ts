@@ -60,6 +60,22 @@ afterEach(async () => {
 });
 
 describe('FileViewerModal source (channel) viewing', () => {
+    it('waits for an audio stream URL before mounting the media element', async () => {
+        const audioView = {
+            kind: 'audio' as const, token: '', url: '', title: 'sample.mp3',
+            meta: 'MP3', mimeType: 'audio/mpeg', loading: true, error: '',
+        };
+        openFileViewerView(audioView);
+        mountViewer();
+        await waitForElement('.audio-viewer');
+        expect(host.querySelector('audio')).toBeNull();
+        expect(host.querySelector('.audio-subtitle')?.textContent).toBe('Opening');
+        openFileViewerView({ ...audioView, token: 'sample', url: 'http://127.0.0.1/media/sample', loading: false });
+        const audio = await waitForElement<HTMLAudioElement>('audio');
+        audio.dispatchEvent(new Event('error'));
+        await settle();
+        expect(host.querySelector('.audio-subtitle')?.textContent).toBe('Could not load this audio stream');
+    });
     function open_image(readOnly: boolean, downloadable = false, protectedContent = false): void {
         openFileViewerView({
             kind: 'image',

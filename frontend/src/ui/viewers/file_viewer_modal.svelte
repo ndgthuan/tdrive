@@ -574,6 +574,7 @@
             </div>
         {:else if $fileViewerState.kind === 'audio'}
             <div class="audio-viewer">
+                {#if $fileViewerState.url}
                 <audio
                     bind:this={audioEl}
                     src={$fileViewerState.url}
@@ -591,13 +592,14 @@
                         audioError = t('viewer.audio_stream_failed');
                     }}
                 ></audio>
+                {/if}
                 <div class="audio-hero">
                     <div class="audio-art" aria-hidden="true">
                         <Music2Icon size={24} />
                     </div>
                     <div class="audio-copy">
                         <div class="audio-title" title={$fileViewerState.title}>{$fileViewerState.title}</div>
-                        <div class="audio-subtitle" role={audioError ? 'alert' : 'status'}>{audioError || (audioWaiting ? $t_store('viewer.audio_buffering') : audioPaused ? $t_store('viewer.audio_ready') : $t_store('viewer.audio_streaming'))}</div>
+                        <div class="audio-subtitle" role={audioError ? 'alert' : 'status'}>{audioError || ($fileViewerState.loading ? $t_store('viewer.status_opening') : audioWaiting ? $t_store('viewer.audio_buffering') : audioPaused ? $t_store('viewer.audio_ready') : $t_store('viewer.audio_streaming'))}</div>
                     </div>
                 </div>
                 <div class="audio-timeline">
