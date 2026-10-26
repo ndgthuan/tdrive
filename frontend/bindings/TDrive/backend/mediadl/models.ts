@@ -73,6 +73,7 @@ export interface StartRequest {
 export interface Status {
     "yt_dlp": ToolStatus;
     "ffmpeg": ToolStatus;
+    "native_merge"?: boolean;
 
     /**
      * CanInstall is false on platforms where the managed download is not

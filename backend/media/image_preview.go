@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"path"
+	"strings"
 
 	"TDrive/backend/thumbnail"
 )
@@ -19,6 +21,30 @@ const (
 // Only an explicit image-viewer open may substitute resized bytes. Other media
 // streams retain their original-byte contract and direct-display admission.
 func (s *Service) admitViewerImage(ctx context.Context, session *Session, allowPreview bool) error {
+	if session == nil {
+		return ErrSessionNotFound
+	}
+	if isHEICName(session.Name()) {
+		if !allowPreview {
+			return ErrUnsupportedMediaType
+		}
+		preview, err := s.loadImagePreview(ctx, session)
+		if err != nil {
+			return err
+		}
+		if err := validateImagePreview(preview); err != nil {
+			clear(preview)
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			clear(preview)
+			return err
+		}
+		session.previewData = preview
+		session.previewSize = int64(len(preview))
+		session.mimeType = "image/jpeg"
+		return nil
+	}
 	mime, err := admitImage(ctx, session, session.Name(), s.imageLimits)
 	if err == nil {
 		session.mimeType = mime
@@ -45,6 +71,11 @@ func (s *Service) admitViewerImage(ctx context.Context, session *Session, allowP
 	session.previewSize = int64(len(preview))
 	session.mimeType = "image/jpeg"
 	return nil
+}
+
+func isHEICName(name string) bool {
+	ext := strings.ToLower(path.Ext(strings.TrimSpace(name)))
+	return ext == ".heic" || ext == ".heif"
 }
 
 func (s *Service) loadImagePreview(ctx context.Context, session *Session) ([]byte, error) {

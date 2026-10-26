@@ -20,6 +20,8 @@ func TestIsImage(t *testing.T) {
 		"c.gif":         true,
 		"d.webp":        true,
 		"e.bmp":         true,
+		"f.heic":        true,
+		"g.HEIF":        true,
 		"vector.svg":    false, // deliberately excluded
 		"clip.mp4":      false,
 		"doc.pdf":       false,

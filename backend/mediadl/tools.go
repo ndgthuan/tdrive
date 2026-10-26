@@ -77,8 +77,9 @@ type ToolStatus struct {
 
 // Status is the combined tool state the dialog reads before it lays out.
 type Status struct {
-	YtDlp  ToolStatus `json:"yt_dlp"`
-	FFmpeg ToolStatus `json:"ffmpeg"`
+	YtDlp       ToolStatus `json:"yt_dlp"`
+	FFmpeg      ToolStatus `json:"ffmpeg"`
+	NativeMerge bool       `json:"native_merge,omitempty"`
 	// CanInstall is false on platforms where the managed download is not
 	// published. The dialog then only offers the override path.
 	CanInstall bool `json:"can_install"`

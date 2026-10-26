@@ -17,7 +17,7 @@ const VIDEO_EXTENSIONS = new Set([
     "mpg",
 ]);
 
-const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"]);
+const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif", "svg"]);
 
 const AUDIO_EXTENSIONS = new Set([
     "mp3",

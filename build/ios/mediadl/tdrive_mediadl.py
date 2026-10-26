@@ -11,11 +11,15 @@ splits it into lines.
 """
 
 import io
+import os
 import sys
 import threading
 
 _state_lock = threading.Lock()
 _cancelled = set()
+_native_merge_context = threading.local()
+_native_merger_installed = False
+_native_merger_install_lock = threading.Lock()
 
 # The yt-dlp this build ships. It is pinned in build/ios/Taskfile.yml and only
 # changes with an app update, because the app cannot install packages itself.
@@ -88,14 +92,86 @@ def status():
         version = yt_dlp.version.__version__
     except Exception:
         return {"installed": False, "version": "", "ffmpeg": False}
-    # iOS has no ffmpeg in this build, so merged and audio-extracted formats
-    # are not offered; the Go side reads ffmpeg=false and avoids them.
-    return {"installed": True, "version": version or BUNDLED_VERSION_FALLBACK, "ffmpeg": False}
+    # iOS has no ffmpeg in this build. The app can stream-copy compatible
+    # H.264/AAC tracks with AVFoundation, but it cannot transcode them.
+    return {
+        "installed": True,
+        "version": version or BUNDLED_VERSION_FALLBACK,
+        "ffmpeg": False,
+        "native_merge": True,
+    }
 
 
-def run(request_id, argv, on_line):
+def _install_native_merger():
+    """Make yt-dlp's merger use the per-call AVFoundation callback on iOS."""
+    global _native_merger_installed
+    with _native_merger_install_lock:
+        if _native_merger_installed:
+            return
+
+        from yt_dlp.postprocessor.ffmpeg import FFmpegMergerPP, FFmpegPostProcessorError
+        from yt_dlp.utils import prepend_extension
+
+        original_available = FFmpegMergerPP.available
+        original_run = FFmpegMergerPP.run
+
+        @property
+        def available(processor):
+            if getattr(_native_merge_context, "callback", None) is not None:
+                return True
+            return original_available.__get__(processor, type(processor))
+
+        def run_native(processor, info):
+            callback = getattr(_native_merge_context, "callback", None)
+            if callback is None:
+                return original_run(processor, info)
+
+            filename = info["filepath"]
+            requested = info.get("requested_formats") or []
+            video_path = None
+            audio_path = None
+            for fmt in requested:
+                filepath = fmt.get("filepath")
+                if not filepath or not os.path.isfile(filepath):
+                    continue
+                if fmt.get("vcodec") not in (None, "none") and fmt.get("acodec") == "none":
+                    video_path = filepath
+                elif fmt.get("acodec") not in (None, "none") and fmt.get("vcodec") == "none":
+                    audio_path = filepath
+            if not video_path or not audio_path:
+                raise FFmpegPostProcessorError(
+                    "The selected video and audio files are not available for native merging")
+
+            temp_filename = prepend_extension(filename, "temp")
+            processor.to_screen(f'Merging formats into "{filename}" with AVFoundation')
+            try:
+                callback(video_path, audio_path, temp_filename)
+                if not os.path.isfile(temp_filename) or os.path.getsize(temp_filename) == 0:
+                    raise FFmpegPostProcessorError("AVFoundation produced an empty video file")
+                os.replace(temp_filename, filename)
+            except Exception as error:
+                try:
+                    os.remove(temp_filename)
+                except OSError:
+                    pass
+                if isinstance(error, FFmpegPostProcessorError):
+                    raise
+                raise FFmpegPostProcessorError(f"AVFoundation could not merge the video and audio: {error}") from error
+            return info["__files_to_merge"], info
+
+        FFmpegMergerPP.available = available
+        FFmpegMergerPP.run = run_native
+        _native_merger_installed = True
+
+
+def run(request_id, argv, on_line, on_merge=None):
     """Runs yt-dlp with argv and returns its exit code (0 on success)."""
     import yt_dlp
+
+    if on_merge is not None:
+        _install_native_merger()
+        _native_merge_context.callback = lambda video, audio, output: on_merge(
+            request_id, video, audio, output)
 
     sink = _LineSink(request_id, on_line)
     saved_out, saved_err = sys.stdout, sys.stderr
@@ -110,6 +186,7 @@ def run(request_id, argv, on_line):
     finally:
         sys.stdout, sys.stderr = saved_out, saved_err
         sink.flush()
+        _native_merge_context.callback = None
         with _state_lock:
             _cancelled.discard(request_id)
     return code

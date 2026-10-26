@@ -113,10 +113,9 @@ func isPreset(value string) bool {
 }
 
 // format_selector returns the yt-dlp -f expression and whether the job needs
-// ffmpeg for merging or audio extraction. ffmpeg_ok says whether ffmpeg is
-// available; without it, merge and extraction choices are refused and the
-// selector falls back to single-file formats where that is possible.
-func format_selector(choice string, ffmpeg_ok bool) (selector string, needs_ffmpeg bool, err error) {
+// ffmpeg for merging or audio extraction. native_merge enables stream-copy
+// merges for the host's supported codecs without enabling ffmpeg conversions.
+func format_selector(choice string, ffmpeg_ok bool, native_merge bool) (selector string, needs_ffmpeg bool, err error) {
 	format_id, merge_audio, err := validate_choice(choice)
 	if err != nil {
 		return "", false, err
@@ -126,20 +125,35 @@ func format_selector(choice string, ffmpeg_ok bool) (selector string, needs_ffmp
 		if ffmpeg_ok {
 			return "bv*+ba/b", false, nil
 		}
+		if native_merge {
+			return "bv*[ext=mp4][vcodec^=avc1]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a]", false, nil
+		}
 		return "b", false, nil
 	case preset_heights[format_id] > 0:
 		height := preset_heights[format_id]
 		if ffmpeg_ok {
 			return fmt.Sprintf("bv*[height<=%d]+ba/b[height<=%d]", height, height), false, nil
 		}
+		if native_merge {
+			return fmt.Sprintf("bv*[ext=mp4][vcodec^=avc1][height<=%d]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a][height<=%d]", height, height), false, nil
+		}
 		return fmt.Sprintf("b[height<=%d]", height), false, nil
 	case format_id == PRESET_AUDIO_MP3 || format_id == PRESET_AUDIO_M4A:
 		if ffmpeg_ok {
 			return "ba/b", true, nil
 		}
+		if native_merge {
+			if format_id == PRESET_AUDIO_MP3 {
+				return "", true, errors.New("MP3 conversion needs ffmpeg; choose M4A audio instead")
+			}
+			return "ba[ext=m4a][acodec^=mp4a]", false, nil
+		}
 		return "ba", false, nil
 	}
 	if merge_audio {
+		if native_merge && !ffmpeg_ok {
+			return format_id + "+ba[ext=m4a][acodec^=mp4a]", false, nil
+		}
 		if !ffmpeg_ok {
 			return "", true, errors.New("this format has no audio and needs ffmpeg to add it; install ffmpeg or pick a combined format")
 		}
@@ -168,7 +182,10 @@ type download_request struct {
 	// FFmpegEmbedded is true when the host app supplies ffmpeg itself (a phone).
 	// No --ffmpeg-location flag is passed then.
 	FFmpegEmbedded bool
-	OutDir         string
+	// NativeMerge is true when the host app can mux compatible video and audio
+	// streams without ffmpeg. It does not enable audio transcoding.
+	NativeMerge bool
+	OutDir      string
 }
 
 // PROGRESS_TEMPLATE prints one machine-readable line per progress tick.
@@ -189,7 +206,8 @@ func build_download_args(request download_request) ([]string, error) {
 		return nil, errors.New("download directory is missing")
 	}
 	ffmpeg_ok := request.FFmpegPath != "" || request.FFmpegEmbedded
-	selector, needs_ffmpeg, err := format_selector(request.Choice, ffmpeg_ok)
+	merge_ok := ffmpeg_ok || request.NativeMerge
+	selector, needs_ffmpeg, err := format_selector(request.Choice, ffmpeg_ok, request.NativeMerge)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +233,7 @@ func build_download_args(request download_request) ([]string, error) {
 	}
 	if format := audio_format(request.Choice); format != "" && ffmpeg_ok {
 		args = append(args, "-x", "--audio-format", format)
-	} else if ffmpeg_ok {
+	} else if merge_ok {
 		// Only used when yt-dlp actually merges two streams; harmless otherwise.
 		args = append(args, "--merge-output-format", "mp4")
 	}

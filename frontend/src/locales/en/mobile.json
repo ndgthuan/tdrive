@@ -164,5 +164,6 @@
     "download_install_action": "Set up downloader",
     "download_update_hint": "Sites change often. Update when a link fails.",
     "download_to_drive": "Download to TDrive",
-    "download_video_merge_note": "This link has separate video and audio streams. This mobile build cannot combine them yet. Use TDrive on desktop for video with sound, or choose audio below."
+    "download_video_merge_note": "This link has separate video and audio streams. This mobile build cannot combine them yet. Use TDrive on desktop for video with sound, or choose audio below.",
+    "download_native_merge_note": "This iPhone can combine compatible H.264 video and AAC audio. Some videos or qualities may not be available."
 }

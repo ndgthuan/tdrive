@@ -31,7 +31,7 @@ xcrun --sdk iphonesimulator clang -fobjc-arc -fblocks \
     -isysroot "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
     -Fbuild/ios/mediadl/cache/py/Python.xcframework/ios-arm64_x86_64-simulator \
     -framework Python -Wl,-rpath,@executable_path/Frameworks \
-    -framework Foundation -framework UIKit -framework WebKit \
+    -framework Foundation -framework UIKit -framework WebKit -framework AVFoundation \
     build/ios/mediadl/smoke.m -o "$app/smoke"
 codesign --force --sign - --timestamp=none "$app"
 device="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); print(next(d["udid"] for devices in data["devices"].values() for d in devices if "iPhone" in d["name"]))')"

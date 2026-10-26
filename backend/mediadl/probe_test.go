@@ -56,3 +56,29 @@ func TestParseProbeOutputPrefersJSONAndReportsErrors(t *testing.T) {
 		t.Fatalf("json line not used: %v %+v", err, result)
 	}
 }
+
+func TestNativeMergeProbeKeepsOnlyAVCAndAACFormats(t *testing.T) {
+	result, err := parse_probe_json([]byte(sample_probe_json))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result = filter_native_merge_formats(result)
+	if len(result.Formats) != 3 {
+		t.Fatalf("native merge formats = %+v", result.Formats)
+	}
+	if result.Formats[0].Choice != "137+ba" || result.Formats[1].Choice != "18" || result.Formats[2].ID != "140" {
+		t.Fatalf("unexpected native merge choices: %+v", result.Formats)
+	}
+
+	without_audio := strings.ReplaceAll(sample_probe_json, `{"format_id":"140","ext":"m4a","vcodec":"none","acodec":"mp4a","filesize":300,"format_note":"medium"}`, `{"format_id":"251","ext":"webm","vcodec":"none","acodec":"opus","filesize":300,"format_note":"medium"}`)
+	result, err = parse_probe_json([]byte(without_audio))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result = filter_native_merge_formats(result)
+	for _, format := range result.Formats {
+		if format.HasVideo && !format.HasAudio {
+			t.Fatalf("video-only format without matching M4A audio must be filtered: %+v", format)
+		}
+	}
+}

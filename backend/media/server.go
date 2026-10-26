@@ -453,6 +453,8 @@ var streamTypesByExt = map[string]streamTypeInfo{
 	".gif":      {kind: StreamKindImage, mime: "image/gif", imageFormat: "gif"},
 	".webp":     {kind: StreamKindImage, mime: "image/webp", imageFormat: "webp"},
 	".bmp":      {kind: StreamKindImage, mime: "image/bmp", imageFormat: "bmp"},
+	".heic":     {kind: StreamKindImage, mime: "image/heic", imageFormat: "heic"},
+	".heif":     {kind: StreamKindImage, mime: "image/heif", imageFormat: "heif"},
 	".txt":      {kind: StreamKindText, mime: "text/plain; charset=utf-8"},
 	".log":      {kind: StreamKindText, mime: "text/plain; charset=utf-8"},
 	".md":       {kind: StreamKindText, mime: "text/plain; charset=utf-8"},

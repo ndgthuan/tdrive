@@ -34,7 +34,7 @@ type PreviewSelection =
 
 // Direct viewing is limited to raster formats whose dimensions and encoded
 // bytes the backend can validate before exposing a loopback capability.
-const SUPPORTED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp"]);
+const SUPPORTED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif"]);
 
 const PREVIEW_CHROME_HIDE_DELAY_MS = 1600;
 

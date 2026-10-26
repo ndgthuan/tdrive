@@ -164,6 +164,25 @@ func TestMobileDownloadWithoutFFmpegFallsBackToSingleFileSelector(t *testing.T) 
 	}
 }
 
+func TestMobileDownloadWithNativeMuxerUsesAVCAndAAC(t *testing.T) {
+	engine := &fake_mobile_engine{status: MobileStatus{Installed: true, NativeMerge: true}, write: "clip.mp4"}
+	log := new_event_log()
+	manager := new_mobile_manager(t, engine, &fake_destination{}, log)
+	if _, err := manager.Start(context.Background(), 7, StartRequest{URL: "https://example.com/v", PresetOrFormatID: PRESET_BEST}); err != nil {
+		t.Fatal(err)
+	}
+	if done := wait_terminal(t, log); done.Stage != STAGE_DONE {
+		t.Fatalf("stage = %s, error = %s", done.Stage, done.Error)
+	}
+	args := engine.recorded_args()
+	if !slices.Contains(args, "bv*[ext=mp4][vcodec^=avc1]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a]") {
+		t.Fatalf("native merger must only request iOS-compatible streams: %v", args)
+	}
+	if !slices.Contains(args, "--merge-output-format") || slices.Contains(args, "-x") || slices.Contains(args, "--ffmpeg-location") {
+		t.Fatalf("native merger must not request ffmpeg conversions: %v", args)
+	}
+}
+
 func TestMobileCancelStopsEngineRun(t *testing.T) {
 	engine := &fake_mobile_engine{status: MobileStatus{Installed: true}, block: true, started: make(chan struct{})}
 	log := new_event_log()
@@ -183,12 +202,15 @@ func TestMobileCancelStopsEngineRun(t *testing.T) {
 }
 
 func TestMobileStatusMapsToToolStatus(t *testing.T) {
-	status := MobileToolStatus(MobileStatus{Installed: true, Version: "2026.10.12", FFmpeg: false})
+	status := MobileToolStatus(MobileStatus{Installed: true, Version: "2026.10.12", FFmpeg: false, NativeMerge: true})
 	if !status.YtDlp.Found || status.YtDlp.Source != SOURCE_EMBEDDED || status.YtDlp.Version != "2026.10.12" {
 		t.Fatalf("yt-dlp status wrong: %+v", status.YtDlp)
 	}
 	if status.FFmpeg.Found {
 		t.Fatalf("ffmpeg should be absent: %+v", status.FFmpeg)
+	}
+	if !status.NativeMerge {
+		t.Fatal("native merger capability must remain separate from ffmpeg")
 	}
 	if !status.CanInstall {
 		t.Fatal("mobile engines can always be installed")
