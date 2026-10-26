@@ -31,13 +31,13 @@
 
 </div>
 
+TDrive biến kho lưu trữ Telegram riêng tư thành ổ đĩa để bạn duyệt, tìm kiếm, xem trước, chia sẻ và gắn vào máy tính.
+
+## Ảnh chụp màn hình
+
 ### Máy tính
 
 ![TDrive trên máy tính hiển thị My Drive với các tệp ví dụ](docs/screenshots/01_library.png)
-
-| Trợ lý AI | Tải từ liên kết |
-| :---: | :---: |
-| ![Trợ lý AI với các thao tác ví dụ](docs/screenshots/04_ai_agent.png) | ![Hộp thoại tải từ liên kết với nội dung ví dụ](docs/screenshots/06_download_from_link.png) |
 
 ### Điện thoại
 
@@ -52,7 +52,14 @@
 </table>
 </div>
 
-TDrive biến kho lưu trữ Telegram riêng tư thành ổ đĩa để bạn duyệt, tìm kiếm, xem trước, chia sẻ và gắn vào máy tính.
+<details>
+<summary>Xem thêm ảnh trên máy tính</summary>
+
+| Trợ lý AI | Tải từ liên kết |
+| :---: | :---: |
+| ![Trợ lý AI với các thao tác ví dụ](docs/screenshots/04_ai_agent.png) | ![Hộp thoại tải từ liên kết với nội dung ví dụ](docs/screenshots/06_download_from_link.png) |
+
+</details>
 
 ## Tính năng chính
 

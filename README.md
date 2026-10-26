@@ -31,13 +31,13 @@
 
 </div>
 
+TDrive turns your private Telegram storage into a drive you can browse, search, preview, share and mount.
+
+## Screenshots
+
 ### Desktop
 
 ![TDrive desktop showing My Drive with example files](docs/screenshots/01_library.png)
-
-| AI assistant | Download from link |
-| :---: | :---: |
-| ![AI assistant with example actions](docs/screenshots/04_ai_agent.png) | ![Download from link dialog with example media](docs/screenshots/06_download_from_link.png) |
 
 ### Mobile
 
@@ -52,7 +52,14 @@
 </table>
 </div>
 
-TDrive turns your private Telegram storage into a drive you can browse, search, preview, share and mount.
+<details>
+<summary>More desktop screenshots</summary>
+
+| AI assistant | Download from link |
+| :---: | :---: |
+| ![AI assistant with example actions](docs/screenshots/04_ai_agent.png) | ![Download from link dialog with example media](docs/screenshots/06_download_from_link.png) |
+
+</details>
 
 ## Core capabilities
 
