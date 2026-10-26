@@ -88,11 +88,26 @@
     const ffmpeg_ready = $derived(tool_status?.ffmpeg.found ?? false);
     const native_merge_ready = $derived(tool_status?.native_merge ?? false);
     const can_merge_streams = $derived(ffmpeg_ready || native_merge_ready);
-    const preset_options = $derived(PRESET_OPTIONS.filter((option) => ffmpeg_ready || (native_merge_ready && option.value !== 'audio_mp3')));
     const available_formats = $derived((probe?.formats ?? []).filter((format) => (can_merge_streams || !format.has_video || format.has_audio) && (!ios || (format.has_video ? ['mp4', 'm4v', 'mov'].includes(format.ext) : ['m4a', 'mp3', 'aac', 'wav'].includes(format.ext)))));
     const unavailable_video = $derived(!can_merge_streams && Boolean(probe?.formats?.some((format) => format.has_video && !format.has_audio)));
     const has_video = $derived(available_formats.some((format) => format.has_video));
+    const has_audio = $derived(available_formats.some((format) => format.has_audio && !format.has_video));
+    const preset_options = $derived(PRESET_OPTIONS.filter((option) => {
+        if (!ffmpeg_ready && !native_merge_ready) return false;
+        if (option.value.startsWith('audio_')) return has_audio && (option.value !== 'audio_mp3' || ffmpeg_ready);
+        if (!has_video) return false;
+        if (option.value === 'best') return true;
+        const max_height = Number.parseInt(option.value, 10);
+        return Number.isFinite(max_height) && available_formats.some((format) => format.has_video && format.height > 0 && format.height <= max_height);
+    }));
     const can_start = $derived(yt_dlp_ready && probe !== null && !probe_loading && !probe_error && is_video_link(url) && choice !== '' && !starting && destination.drive_id !== 0);
+
+    function readable_format_note(note: string): string {
+        const value = note.trim();
+        // Some extractors put a bare format ID in format_note. Height is
+        // already shown in the title, so don't expose those internal codes.
+        return /^\d{2,4}p?$/i.test(value) ? '' : value;
+    }
 
     function changed_link(): void {
         probe = null;
@@ -308,17 +323,27 @@
                         <span>{$t_store(option.label_key)}</span>
                     </label>
                 {/each}
-                {#each [true, false] as video (video)}
-                {@const formats = available_formats.filter((format) => format.has_video === video)}
-                {#if formats.length > 0}<p class="format-heading">{$t_store(video ? 'downloader.format_combined' : 'downloader.format_audio_only')}</p>{/if}
-                {#each formats as format (format.choice)}
-                    <label class="opt">
-                        <input type="radio" name="download-quality" value={format.choice} bind:group={choice} />
-                        <span class="format-copy"><strong>{format.height ? `${format.height}p · ` : ''}{format.ext.toUpperCase()}</strong><small>{[format.note, human_size(format.approx_size)].filter(Boolean).join(' · ') || format.id}</small></span>
-                    </label>
-                {/each}
-                {/each}
             </div>
+            {#if available_formats.length > 0}
+                <details class="format-details">
+                    <summary>{$t_store('downloader.group_formats')}</summary>
+                    <div class="grp format-options" role="radiogroup" aria-label={$t_store('downloader.group_formats')}>
+                        {#each available_formats as format (format.choice)}
+                            <label class="opt">
+                                <input type="radio" name="download-quality" value={format.choice} bind:group={choice} />
+                                <span class="format-copy">
+                                    <strong>{format.height ? `${format.height}p · ` : ''}{format.ext.toUpperCase()}</strong>
+                                    <small>
+                                        {$t_store(format.has_video ? (format.has_audio ? 'downloader.format_combined' : 'mobile.download_format_video_only') : 'downloader.format_audio_only')}
+                                        {#if readable_format_note(format.note)} · {readable_format_note(format.note)}{/if}
+                                        {#if format.approx_size > 0} · {human_size(format.approx_size)}{/if}
+                                    </small>
+                                </span>
+                            </label>
+                        {/each}
+                    </div>
+                </details>
+            {/if}
             {#if probe && tool_status && !tool_status.ffmpeg.found && has_video}
                 {#if native_merge_ready}
                     <p class="muted">{$t_store('mobile.download_native_merge_note')}</p>
@@ -441,7 +466,9 @@
         overflow: hidden;
     }
     .grp:empty { display: none; }
-    .format-heading { margin: 0; padding: var(--space-2) var(--space-3); color: var(--text-muted); font-size: var(--font-size-xs); }
+    .format-details { display: flex; flex-direction: column; gap: var(--space-2); }
+    .format-details > summary { color: var(--color-accent); font-size: 14px; font-weight: 600; cursor: pointer; padding: 4px; }
+    .format-options { margin: 0; }
     .format-copy { display: grid; gap: var(--space-1); min-width: 0; }
     .format-copy strong { font-size: var(--font-size-sm); font-weight: var(--weight-strong); }
     .format-copy small { color: var(--text-muted); font-size: var(--font-size-xs); overflow-wrap: anywhere; }

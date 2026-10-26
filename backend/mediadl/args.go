@@ -126,7 +126,9 @@ func format_selector(choice string, ffmpeg_ok bool, native_merge bool) (selector
 			return "bv*+ba/b", false, nil
 		}
 		if native_merge {
-			return "bv*[ext=mp4][vcodec^=avc1]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a]", false, nil
+			// Select a video-only stream here. bv* may itself include audio,
+			// which would be duplicated when the following AAC stream is added.
+			return "bv[ext=mp4][vcodec^=avc1][acodec=none]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a]", false, nil
 		}
 		return "b", false, nil
 	case preset_heights[format_id] > 0:
@@ -135,7 +137,7 @@ func format_selector(choice string, ffmpeg_ok bool, native_merge bool) (selector
 			return fmt.Sprintf("bv*[height<=%d]+ba/b[height<=%d]", height, height), false, nil
 		}
 		if native_merge {
-			return fmt.Sprintf("bv*[ext=mp4][vcodec^=avc1][height<=%d]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a][height<=%d]", height, height), false, nil
+			return fmt.Sprintf("bv[ext=mp4][vcodec^=avc1][acodec=none][height<=%d]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a][height<=%d]", height, height), false, nil
 		}
 		return fmt.Sprintf("b[height<=%d]", height), false, nil
 	case format_id == PRESET_AUDIO_MP3 || format_id == PRESET_AUDIO_M4A:

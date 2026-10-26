@@ -180,16 +180,22 @@ stops the mount, waits for handlers, closes the engine and releases the lock.
 Mobile exposes the same AI models and assistant through Account and the header.
 The Account link downloader uses the same in-tab detail navigation as photo
 backup and inherits the active theme. On hosts without FFmpeg, it offers only
-probed combined or audio-only formats, rather than merge/transcode presets.
+probed formats that can be saved without transcoding. iOS can natively mux
+compatible H.264 video-only MP4 streams with AAC audio-only M4A streams; its
+format selector must request a video-only stream before adding audio, or the
+result may contain an unintended extra audio stream. Other hosts without a
+native muxer offer only combined or audio-only formats.
 Native downloader output is drained through the frontend relay before the
 completion reply removes its Go broker request, including metadata-only probes.
 The iOS picker limits downloads to the containers its in-app player admits
 (MP4/M4V/MOV video and M4A/MP3/AAC/WAV audio). An audio-only WebM is not offered
-as a playable iPhone download. Video and audio choices are grouped separately;
-audio is never automatically selected as the fallback for a video request.
-When only separate video/audio streams exist, the pane explains that this
-mobile build cannot merge them and points to the desktop downloader. This is
-an explicit remaining capability limit, not a successful video download.
+as a playable iPhone download. Preset choices are shown first and detailed
+format IDs stay in a collapsed list. Detailed rows identify video-only, combined
+and audio-only streams; audio is never automatically selected as the fallback
+for a video request.
+When only separate streams exist and they are incompatible with the host's
+native muxer, the pane explains the limitation and points to the desktop
+downloader. It does not treat an audio-only download as a successful video.
 
 Automatic backup triggers the frontend photo discovery controller on enable,
 foreground entry and media changes. Running the backend upload queue alone

@@ -175,8 +175,8 @@ func TestMobileDownloadWithNativeMuxerUsesAVCAndAAC(t *testing.T) {
 		t.Fatalf("stage = %s, error = %s", done.Stage, done.Error)
 	}
 	args := engine.recorded_args()
-	if !slices.Contains(args, "bv*[ext=mp4][vcodec^=avc1]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a]") {
-		t.Fatalf("native merger must only request iOS-compatible streams: %v", args)
+	if !slices.Contains(args, "bv[ext=mp4][vcodec^=avc1][acodec=none]+ba[ext=m4a][acodec^=mp4a]/b[ext=mp4][vcodec^=avc1][acodec^=mp4a]") {
+		t.Fatalf("native merger must request one iOS-compatible video-only stream and one AAC stream: %v", args)
 	}
 	if !slices.Contains(args, "--merge-output-format") || slices.Contains(args, "-x") || slices.Contains(args, "--ffmpeg-location") {
 		t.Fatalf("native merger must not request ffmpeg conversions: %v", args)
