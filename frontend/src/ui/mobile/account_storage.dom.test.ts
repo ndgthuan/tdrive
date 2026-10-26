@@ -4,14 +4,16 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
+import { get } from 'svelte/store';
 
-const mocks = vi.hoisted(() => ({ getStorageUsed: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getStorageUsed: vi.fn(), handleDriveClick: vi.fn() }));
 
 vi.mock('../../api', () => ({
     getStorageUsed: mocks.getStorageUsed,
     isMobilePlatform: () => true,
 }));
 vi.mock('../../modules/channels', () => ({ switchActiveChannel: vi.fn() }));
+vi.mock('../../modules/sidebar', () => ({ handleDriveClick: mocks.handleDriveClick }));
 vi.mock('../../modules/modals/encryption_settings', () => ({ openEncryptionSettingsModal: vi.fn() }));
 vi.mock('../../modules/modals/join_drive', () => ({ openJoinDriveModal: vi.fn() }));
 vi.mock('../../modules/modals/new_drive', () => ({ openNewDriveModal: vi.fn() }));
@@ -32,10 +34,10 @@ function storageRow(): string {
     return host.querySelector('.account-row-static')?.textContent ?? '';
 }
 
-function setDrive(id: number, title: string): void {
+function setDrive(id: number, title: string, shared: { id: number; title: string; kind: 'shared'; isActive: boolean; inviteLink: string }[] = []): void {
     sidebarState.set({
         personal: [{ id, title, kind: 'personal', isActive: true, inviteLink: '' }],
-        shared: [],
+        shared,
         pending: [],
         activeChannelId: id,
         virtualView: null,
@@ -67,6 +69,34 @@ afterEach(async () => {
 });
 
 describe('Account storage row', () => {
+    it('groups shared drives under Shared and opens a selected drive from that folder', async () => {
+        mocks.getStorageUsed.mockResolvedValue(10);
+        setDrive(1, 'My Drive', [
+            { id: 2, title: 'Survival', kind: 'shared', isActive: false, inviteLink: '' },
+            { id: 3, title: 'Bugging', kind: 'shared', isActive: false, inviteLink: '' },
+        ]);
+        app = mount(AccountTab, { target: host });
+        flushSync();
+
+        const sharedFolder = host.querySelector<HTMLButtonElement>('[data-account-detail="shared"]');
+        expect(sharedFolder?.textContent).toContain('Shared');
+        expect(sharedFolder?.textContent).toContain('2');
+        expect(host.textContent).not.toContain('Survival');
+        expect(host.textContent).not.toContain('Bugging');
+
+        sharedFolder?.click();
+        flushSync();
+        expect(host.querySelector('.account-detail')?.getAttribute('aria-label')).toBe('Shared drives');
+        expect(host.textContent).toContain('Survival');
+        expect(host.textContent).toContain('Bugging');
+
+        host.querySelector<HTMLButtonElement>('.account-detail .account-row')?.click();
+        flushSync();
+        expect(mocks.handleDriveClick).toHaveBeenCalledWith(2);
+        expect(get(activeTab)).toBe('files');
+        expect(get(accountDetail)).toBeNull();
+    });
+
     it('restores the Appearance row and its focus when the top-bar back closes the detail', async () => {
         mocks.getStorageUsed.mockResolvedValue(10);
         app = mount(AccountTab, { target: host });

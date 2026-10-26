@@ -934,6 +934,12 @@ html.mobile .account-row-value {
     white-space: nowrap;
 }
 html.mobile .account-row .account-row-chevron { flex: 0 0 auto; color: var(--color-text-subtle); }
+html.mobile .account-empty {
+    padding: 18px 14px;
+    color: var(--color-text-muted);
+    font-size: var(--mobile-type-meta);
+    text-align: center;
+}
 
 html.mobile .account-about { padding: 16px; gap: 4px; }
 html.mobile .account-about-name { font-size: 1rem; font-weight: var(--weight-strong); color: var(--color-text); }

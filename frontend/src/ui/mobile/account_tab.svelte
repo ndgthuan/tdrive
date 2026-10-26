@@ -68,7 +68,6 @@
         !$profileLoaded ? $t_store('mobile.account_loading') : $profileUser?.displayName || $t_store('mobile.account_telegram'),
     );
     const handle = $derived(($profileUser?.username || '').trim());
-    const drives = $derived([...$sidebarState.personal, ...$sidebarState.shared]);
     // The settings that are a screen rather than a row: each opens at the top of
     // the tab with its title and a back button in the top bar (TopBar owns both),
     // because a switch with a page behind it unfolded at the bottom of a list of
@@ -203,7 +202,27 @@
 <div bind:this={scrollerEl} class="mobile-scroll account-tab">
     {#if $accountDetail}
         <section class="account-detail" aria-label={$t_store(ACCOUNT_DETAIL_TITLE_KEYS[$accountDetail])}>
-            {#if $accountDetail === 'appearance'}
+            {#if $accountDetail === 'shared'}
+                {#if $driveListFailed}
+                    <button type="button" class="drive-retry account-retry" onclick={retryLoadChannels}>
+                        <span>{$t_store('mobile.shared_load_failed')}</span>
+                        <span class="drive-retry-action">{$t_store('mobile.retry')}</span>
+                    </button>
+                {/if}
+                <div class="account-card">
+                    {#if $sidebarState.shared.length === 0}
+                        <div class="account-empty">{$t_store('sidebar.no_shared')}</div>
+                    {:else}
+                        {#each $sidebarState.shared as channel (channel.id)}
+                            <button type="button" class="account-row" onclick={() => openDrive(channel)}>
+                                <FolderIcon class="account-row-icon" size={20} aria-hidden="true" />
+                                <span class="account-row-label">{channel.title || $t_store('mobile.untitled')}</span>
+                                <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
+                            </button>
+                        {/each}
+                    {/if}
+                </div>
+            {:else if $accountDetail === 'appearance'}
                 <AppearancePanel autofocus />
             {:else if $accountDetail === 'language'}
                 <LanguagePane />
@@ -273,14 +292,20 @@
                     <span class="drive-retry-action">{$t_store('mobile.retry')}</span>
                 </button>
             {/if}
-            {#each drives as channel (channel.id)}
+            {#each $sidebarState.personal as channel (channel.id)}
                 <button type="button" class="account-row" onclick={() => openDrive(channel)}>
                     <FolderIcon class="account-row-icon" size={20} aria-hidden="true" />
                     <span class="account-row-label">{channel.title || $t_store('mobile.untitled')}</span>
-                    <span class="account-row-value">{channel.kind === 'shared' ? $t_store('mobile.kind_shared') : $t_store('mobile.kind_personal')}</span>
+                    <span class="account-row-value">{$t_store('mobile.kind_personal')}</span>
                     <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
                 </button>
             {/each}
+            <button data-account-detail="shared" type="button" class="account-row" onclick={() => openDetail('shared')}>
+                <FolderIcon class="account-row-icon" size={20} aria-hidden="true" />
+                <span class="account-row-label">{$t_store('mobile.kind_shared')}</span>
+                <span class="account-row-value">{$sidebarState.shared.length}</span>
+                <ChevronRightIcon class="account-row-chevron" size={18} aria-hidden="true" />
+            </button>
             <button type="button" class="account-row" onclick={openJoinDriveModal}>
                 <Link2Icon class="account-row-icon" size={20} aria-hidden="true" />
                 <span class="account-row-label">{$t_store('mobile.account_join_link')}</span>

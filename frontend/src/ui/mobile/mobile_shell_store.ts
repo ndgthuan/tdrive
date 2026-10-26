@@ -23,13 +23,14 @@ export const driveSwitcherOpen = writable(false);
  * the whole tab with its title and a back button in the top bar. The state lives
  * here so the top bar and the Account tab read the same value.
  */
-export type AccountDetail = 'appearance' | 'backup' | 'language' | 'about' | 'ai' | 'updates' | 'download';
+export type AccountDetail = 'appearance' | 'backup' | 'language' | 'about' | 'ai' | 'updates' | 'download' | 'shared';
 
 // Translation keys for the page titles; resolve them with $t_store in the component.
 export const ACCOUNT_DETAIL_TITLE_KEYS: Record<AccountDetail, string> = {
     appearance: 'mobile.account_appearance',
     backup: 'mobile.account_backup_title',
     download: 'downloader.title',
+    shared: 'mobile.shared_drives_label',
     language: 'mobile.account_language',
     about: 'mobile.account_about',
     ai: 'settings.nav_ai',

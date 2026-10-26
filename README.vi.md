@@ -31,14 +31,14 @@
 
 </div>
 
-![Thư viện TDrive](docs/screenshots/01_library.png)
+![Bộ chuyển ổ trên iPhone, nhóm ổ cá nhân và ổ dùng chung](docs/screenshots/shared_01_home_drive_switcher.png)
 
 TDrive biến một kênh Telegram riêng tư thành cây thư mục mà bạn có thể duyệt, tìm kiếm, phát trực tiếp, chia sẻ và gắn làm ổ đĩa. Tệp vẫn nằm trên Telegram. TDrive bổ sung phần sắp xếp, xem trước và dọn dẹp có hỗ trợ AI.
 
 ## Tính năng chính
 
 - **Tệp và thư mục** — Thư mục lồng nhau với đổi tên, di chuyển, kéo thả, tìm kiếm và Thùng rác có thể khôi phục hoặc làm trống.
-- **Ổ dùng chung với vai trò** — Cộng tác trong ổ dùng chung với các vai trò Chủ sở hữu (Owner), Quản lý (Manager), Biên tập (Editor) hoặc Người xem (Viewer).
+- **Ổ dùng chung với vai trò** — Cộng tác trong ổ dùng chung với các vai trò Chủ sở hữu (Owner), Quản lý (Manager), Biên tập (Editor) hoặc Người xem (Viewer). Trên điện thoại, các ổ dùng chung đã tham gia được gom trong thư mục Shared ở cả Home và Account.
 - **Gắn ổ đĩa trên Windows** — Gắn ổ của bạn vào Windows Explorer, nơi ổ hiển thị với tên Telegram Drive.
 - **Sao lưu tự động từ điện thoại** — Sao lưu ảnh và video từ điện thoại vào một thư mục trong Ổ của tôi, được đặt tên theo thiết bị.
 - **Tải xuống từ liên kết** — Lưu nội dung đa phương tiện từ liên kết bằng yt-dlp và tải thẳng lên Telegram. Có trên máy tính, Android và iPhone.
@@ -77,14 +77,10 @@ Muốn tự biên dịch? Xem [Build từ mã nguồn](#build-từ-mã-nguồn).
 
 | | |
 |---|---|
-| ![Ổ của tôi: thư mục và tệp trong một danh sách](docs/screenshots/01_library.png) | ![Ảnh: thư viện ảnh nhóm theo tháng](docs/screenshots/02_photos.png) |
-| **Ổ của tôi.** Thư mục và tệp trong một danh sách, các thao tác luôn hiển thị. | **Ảnh.** Thư viện ảnh nhóm theo tháng. |
-| ![Nguồn: kênh Telegram công khai hiển thị dạng lưới chỉ đọc](docs/screenshots/03_sources_grid.png) | ![Trợ lý AI: đổi tên và di chuyển có Undo](docs/screenshots/04_ai_agent.png) |
-| **Nguồn.** Một kênh Telegram công khai dưới dạng lưới chỉ đọc. | **Trợ lý AI.** Đổi tên và di chuyển có Undo, và hỏi trước khi chuyển vào thùng rác. |
-| ![Mô hình AI: kết nối nhà cung cấp và chọn mặc định](docs/screenshots/05_ai_models.png) | ![Tải từ liên kết: chọn chất lượng và đích lưu](docs/screenshots/06_download_from_link.png) |
-| **Mô hình AI.** Kết nối Gemini hoặc Claude và chọn mặc định. | **Tải từ liên kết.** Chọn chất lượng và đích lưu, rồi tải lên Telegram. |
-| ![Cài đặt ngôn ngữ: 19 ngôn ngữ giao diện](docs/screenshots/07_settings_language.png) | ![Chọn nhiều: thao tác trên nhiều tệp cùng lúc](docs/screenshots/08_select_many.png) |
-| **Ngôn ngữ.** 19 ngôn ngữ giao diện, áp dụng ngay. | **Chọn nhiều.** Tải xuống, di chuyển hoặc xóa một loạt tệp cùng lúc. |
+| ![Bộ chuyển ổ ở Home có thư mục Shared](docs/screenshots/shared_01_home_drive_switcher.png) | ![Danh sách ổ dùng chung trong thư mục Shared ở Home](docs/screenshots/shared_02_home_shared_drives.png) |
+| **Home · Drives.** Ổ cá nhân và ổ dùng chung được nhóm gọn trong bộ chuyển ổ. | **Home · Shared.** Mở thư mục để chọn một ổ dùng chung. |
+| ![Trang Account có thư mục Shared và số lượng ổ](docs/screenshots/shared_03_account_folder.png) | ![Danh sách ổ dùng chung mở từ Account](docs/screenshots/shared_04_account_drives.png) |
+| **Account.** Thư mục Shared hiển thị số ổ bạn đã tham gia. | **Account · Shared drives.** Mở ổ dùng chung ngay từ trang tài khoản. |
 
 ## Hỗ trợ nền tảng và tình trạng
 

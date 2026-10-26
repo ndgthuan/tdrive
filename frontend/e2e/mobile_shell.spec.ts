@@ -25,6 +25,7 @@ const overrides = {
         { id: 1, title: 'My Drive', kind: 'personal', is_active: true, invite_link: '' },
         { id: 2, title: 'Team assets', kind: 'shared', is_active: false, invite_link: 'https://t.me/x' },
     ]),
+    SetActiveChannel: resolves(null),
     GetFolderContents: byFirstArg({ '': resolves(rootContents), r1: resolves(reportsContents) }, resolves({ folders: [], files: [] })),
     ListTrash: resolves([]),
 };
@@ -67,17 +68,17 @@ test('iPhone Account keeps backup navigation, logo, AI settings and updates reac
     await page.screenshot({ path: '../.task/mobile-polish-about.png' });
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await page.getByRole('button', { name: 'AI Models', exact: true }).click();
-    const description = await page.locator('.ai-header p').boundingBox();
-    const add = await page.getByRole('button', { name: 'Add model', exact: true }).boundingBox();
-    expect(description!.x).toBeGreaterThanOrEqual(4);
-    expect(description!.x).toBeLessThanOrEqual(12);
-    expect(description!.width).toBeGreaterThan(340);
-    expect(add!.x).toBeCloseTo(description!.x, 0);
-    expect(add!.y).toBeGreaterThanOrEqual(description!.y + description!.height);
+    const aiTitle = await page.locator('.ai-header .settings-pane-title').boundingBox();
+    const add = await page.locator('.ai-header').getByRole('button', { name: 'Add model', exact: true }).boundingBox();
+    expect(aiTitle!.x).toBeGreaterThanOrEqual(4);
+    expect(aiTitle!.x).toBeLessThanOrEqual(12);
+    expect(aiTitle!.width).toBeGreaterThan(340);
+    expect(add!.x).toBeCloseTo(aiTitle!.x, 0);
+    expect(add!.y).toBeGreaterThanOrEqual(aiTitle!.y + aiTitle!.height);
     const title = await page.locator('.topbar-account-detail h1').boundingBox();
     expect(title!.x).toBeLessThanOrEqual(60);
     await page.screenshot({ path: '../.task/mobile-polish-ai-layout.png' });
-    await page.getByRole('button', { name: 'Add model', exact: true }).click();
+    await page.locator('.ai-header').getByRole('button', { name: 'Add model', exact: true }).click();
     await expect(page.getByLabel('API key', { exact: true })).toBeVisible();
     await page.screenshot({ path: '../.task/mobile-polish-ai-model.png' });
     expect(await page.locator('.account-tab').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -201,28 +202,79 @@ test('tab bar switches between surfaces', async ({ page }) => {
     await expect(page.locator('.main-content')).toBeVisible();
 });
 
-test('drive switcher opens from the header and closes', async ({ page }) => {
+test('drive switcher groups shared drives in a folder and opens a selected drive', async ({ page }) => {
     await bootMobile(page);
     await expect(page.locator('.drive-switcher-sheet')).not.toHaveClass(/open/);
 
     await page.getByRole('button', { name: /Switch drive/ }).click();
     await expect(page.locator('.drive-switcher-sheet')).toHaveClass(/open/);
-    // Personal drives and shared drives are still two groups in the sheet, in
-    // that order, the way the desktop sidebar splits them.
+    // Shared drives live behind one virtual folder so a long list does not
+    // crowd the switcher.
     const groups = page.locator('.drive-switcher-sheet .switcher-group');
     await expect(groups.nth(0).getByRole('button', { name: 'My Drive', exact: true })).toBeVisible();
-    await expect(groups.nth(1).getByRole('button', { name: 'Team assets', exact: true })).toBeVisible();
+    const sharedFolder = page.locator('.shared-folder-item');
+    await expect(sharedFolder).toContainText('Shared');
+    await sharedFolder.click();
+    await expect(page.locator('.switcher-title')).toHaveText('Shared');
+    await expect(page.getByRole('button', { name: 'Team assets', exact: true })).toBeVisible();
     const list = page.locator('.drive-switcher-sheet .switcher-list');
     expect(await list.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-    const sharedRow = groups.nth(1).locator('.sidebar-drive-row');
+    const sharedRow = page.locator('.drive-switcher-sheet .sidebar-drive-row');
     const action = sharedRow.getByRole('button', { name: 'Actions for Team assets' });
     const [rowBox, actionBox] = await Promise.all([sharedRow.boundingBox(), action.boundingBox()]);
     expect(rowBox).not.toBeNull();
     expect(actionBox).not.toBeNull();
     expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width + 1);
 
-    await page.locator('.switcher-close').click();
+    await page.getByRole('button', { name: 'Team assets', exact: true }).click();
     await expect(page.locator('.drive-switcher-sheet')).not.toHaveClass(/open/);
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('Team assets');
+});
+
+test('Account groups shared drives and opens one from its Shared folder', async ({ page }) => {
+    await bootMobile(page);
+    await tab(page, /^Account/).click();
+    const sharedFolder = page.locator('[data-account-detail="shared"]');
+    await expect(sharedFolder).toContainText('Shared');
+    await expect(sharedFolder).toContainText('1');
+    await sharedFolder.click();
+    await expect(page.locator('.topbar-account-detail h1')).toHaveText('Shared drives');
+    await expect(page.getByRole('button', { name: 'Team assets', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Team assets', exact: true }).click();
+    await expect(tab(page, /^Files/)).toHaveClass(/active/);
+    await expect(page.locator('.topbar-account-detail')).toBeHidden();
+    await expect(page.getByRole('button', { name: /Switch drive/ })).toContainText('Team assets');
+});
+
+test('iPhone Shared screenshot capture covers both drive switcher and Account', async ({ page }) => {
+    await bootTDrive(page, overrides, { url: '/?mobile=ios' });
+    const capture = async (name: string) => {
+        if (process.env.TDRIVE_CAPTURE_README === '1') {
+            await page.screenshot({ path: `../docs/screenshots/${name}.png`, scale: 'device' });
+        }
+    };
+
+    await page.getByRole('button', { name: /Switch drive/ }).click();
+    await expect(page.locator('.drive-switcher-sheet')).toHaveClass(/open/);
+    await expect(page.locator('.shared-folder-item')).toContainText('Shared');
+    await capture('shared_01_home_drive_switcher');
+
+    await page.locator('.shared-folder-item').click();
+    await expect(page.locator('.switcher-title')).toHaveText('Shared');
+    await expect(page.getByRole('button', { name: 'Team assets', exact: true })).toBeVisible();
+    await capture('shared_02_home_shared_drives');
+
+    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await tab(page, /^Account/).click();
+    const sharedFolder = page.locator('[data-account-detail="shared"]');
+    await expect(sharedFolder).toContainText('Shared');
+    await expect(sharedFolder).toContainText('1');
+    await capture('shared_03_account_folder');
+
+    await sharedFolder.click();
+    await expect(page.locator('.topbar-account-detail h1')).toHaveText('Shared drives');
+    await expect(page.getByRole('button', { name: 'Team assets', exact: true })).toBeVisible();
+    await capture('shared_04_account_drives');
 });
 
 test('FAB opens the upload menu', async ({ page }) => {

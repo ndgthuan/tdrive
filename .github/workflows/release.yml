@@ -277,9 +277,8 @@ jobs:
 
   # Unsigned iOS IPA for sideloading (TrollStore, Sideloadly, AltStore). The
   # app is ad-hoc signed by the build (CODESIGN_IDENTITY is "-") and carries no
-  # Apple developer certificate or provisioning profile. Marked
-  # continue-on-error so an iOS toolchain failure cannot block the other
-  # platforms; the release job then ships without the IPA.
+  # Apple developer certificate or provisioning profile. This is required for
+  # a release: do not publish a multi-platform release that silently omits iOS.
   ios-unsigned:
     name: Unsigned iOS IPA
     needs: validate-release-ref
@@ -291,7 +290,6 @@ jobs:
       (github.event_name != 'workflow_dispatch' || inputs.ios_only || !inputs.verify_android_signing) }}
     runs-on: macos-15
     timeout-minutes: 45
-    continue-on-error: true
     env:
       GOFLAGS: ""
       # Version stamps are independent of the checked-out branch/ref.
@@ -573,8 +571,7 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-22.04
     timeout-minutes: 45
-    # ios-unsigned is continue-on-error, so a failed iOS job still lets this
-    # job run; it then ships without the IPA.
+    # The iOS IPA is a required release asset alongside the desktop packages.
     needs: [build, ios-unsigned]
     if: startsWith(github.ref, 'refs/tags/') && !(github.event_name == 'workflow_dispatch' && inputs.ios_only)
     environment: release-signing
@@ -624,6 +621,9 @@ jobs:
           pattern: binary-*
           path: dist
           merge-multiple: true
+
+      - name: Require the iOS IPA
+        run: test -s "dist/TDrive-${GITHUB_REF_NAME}-ios-unsigned.ipa"
 
       - name: Build Android library
         env:

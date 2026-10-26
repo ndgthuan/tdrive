@@ -31,14 +31,14 @@
 
 </div>
 
-![TDrive library view](docs/screenshots/01_library.png)
+![iPhone drive switcher with personal and shared drives grouped](docs/screenshots/shared_01_home_drive_switcher.png)
 
 TDrive turns a private Telegram channel into a folder tree you can browse, search, stream, share and mount. Files stay in Telegram. TDrive adds the organizing, previewing and AI-assisted tidying on top.
 
 ## Core capabilities
 
 - **Files and folders** — Nested folders with rename, move, drag and drop, search, and a Trash that can be restored or emptied.
-- **Shared drives with roles** — Collaborate in shared drives with the roles Owner, Manager, Editor or Viewer.
+- **Shared drives with roles** — Collaborate in shared drives with the roles Owner, Manager, Editor or Viewer. On phones, joined shared drives are grouped in a Shared folder in both Home and Account.
 - **Windows drive mount** — Mount your drive in Windows Explorer, where it appears as Telegram Drive.
 - **Automatic phone backup** — Back up photos and videos from your phone into a My Drive folder named after the device.
 - **Download from link** — Save media from a link with yt-dlp and upload it straight to Telegram. Available on desktop, Android and iPhone.
@@ -77,14 +77,10 @@ Prefer to compile it yourself? See [Build from source](#build-from-source).
 
 | | |
 |---|---|
-| ![My Drive: folders and files in one list](docs/screenshots/01_library.png) | ![Photos: a gallery grouped by month](docs/screenshots/02_photos.png) |
-| **My Drive.** Folders and files in one list, with actions always visible. | **Photos.** A gallery grouped by month. |
-| ![Sources: a public Telegram channel shown as a read-only grid](docs/screenshots/03_sources_grid.png) | ![AI agent: renames and moves with Undo](docs/screenshots/04_ai_agent.png) |
-| **Sources.** A public Telegram channel as a read-only grid. | **AI agent.** Renames and moves with Undo, and asks before trashing. |
-| ![AI models: connect a provider and pick a default](docs/screenshots/05_ai_models.png) | ![Download from link: choose quality and destination](docs/screenshots/06_download_from_link.png) |
-| **AI models.** Connect Gemini or Claude and pick a default. | **Download from link.** Pick quality and destination, then upload to Telegram. |
-| ![Language settings: 19 interface languages](docs/screenshots/07_settings_language.png) | ![Multi-select: act on a batch of files](docs/screenshots/08_select_many.png) |
-| **Languages.** 19 interface languages, applied instantly. | **Multi-select.** Download, move or delete a batch at once. |
+| ![Home drive switcher with the Shared folder](docs/screenshots/shared_01_home_drive_switcher.png) | ![Shared drives listed inside Home's Shared folder](docs/screenshots/shared_02_home_shared_drives.png) |
+| **Home · Drives.** Personal and shared drives stay organized in the switcher. | **Home · Shared.** Open the folder to choose a shared drive. |
+| ![Account screen with a Shared folder and drive count](docs/screenshots/shared_03_account_folder.png) | ![Shared drives list opened from Account](docs/screenshots/shared_04_account_drives.png) |
+| **Account.** A Shared folder shows how many drives you belong to. | **Account · Shared drives.** Open a drive from the account page. |
 
 ## Platform support and status
 
