@@ -184,7 +184,17 @@ test('390x844 mobile source picker has no sheet bleed', async ({ page }) => {
     await page.getByRole('button', { name: /Switch drive/ }).click();
     await page.locator('.channel-nav-add').click();
     const dialog = page.getByRole('dialog', { name: 'Add a source' });
+    const search = dialog.locator('#channel-picker-search');
     const link = dialog.getByLabel('Public channel link');
+    for (const field of [
+        { input: search, wrapper: dialog.locator('.channel-picker-search') },
+        { input: link, wrapper: dialog.locator('.channel-picker-public-field') },
+    ]) {
+        expect(await field.input.evaluate((input) => getComputedStyle(input).borderWidth)).toBe('0px');
+        expect(await field.input.evaluate((input) => getComputedStyle(input).boxShadow)).toBe('none');
+        await field.input.focus();
+        expect(await field.wrapper.evaluate((wrapper) => getComputedStyle(wrapper).boxShadow)).not.toBe('none');
+    }
     expect(await link.evaluate((input) => parseFloat(getComputedStyle(input).fontSize))).toBeGreaterThanOrEqual(16);
     await link.fill('@techtalks');
     await dialog.getByRole('button', { name: 'Check link' }).click();
