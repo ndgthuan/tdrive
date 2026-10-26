@@ -14,8 +14,6 @@
     import DriveList from '../sidebar/drive_list.svelte';
     import { activeTab, driveSwitcherOpen, closeDriveSwitcher } from './mobile_shell_store';
     import { load_drive_role, load_member_count } from '../members/members_store';
-    import { get } from 'svelte/store';
-    import { driveListFailed } from '../sidebar/sidebar_store';
     import { retryLoadChannels } from '../../modules/channels';
     import { sidebarState } from '../sidebar/sidebar_store';
     import { t_store } from '../../i18n/i18n';
@@ -32,13 +30,15 @@
 
     let sheetEl = $state<HTMLElement | null>(null);
 
+    $effect(() => {
+        if ($driveSwitcherOpen) retryLoadChannels();
+    });
+
     // Each shared drive's role is asked for when the switcher opens, so its row
     // can say whether this account manages it or only reads it. Telegram's own
     // one-minute cache answers repeat opens, so this does not hammer the server.
     $effect(() => {
         if (!$driveSwitcherOpen) return;
-        // Read without subscribing: the retry itself flips this store.
-        if (get(driveListFailed)) retryLoadChannels();
         for (const drive of $sidebarState.shared) {
             void load_drive_role(drive.id);
             void load_member_count(drive.id);

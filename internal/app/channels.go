@@ -1,7 +1,10 @@
 package app
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
+	"time"
 
 	"TDrive/backend/core"
 	"TDrive/backend/projection"
@@ -96,6 +99,11 @@ func (s *DriveService) ListChannels() ([]ChannelInfo, error) {
 	svc, err := s.requireChannelService()
 	if err != nil {
 		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(s.host.appContext(), 15*time.Second)
+	defer cancel()
+	if err := svc.DiscoverSharedDrives(ctx); err != nil {
+		slog.Warn("shared drive discovery incomplete", "error", err)
 	}
 	rows, err := svc.ListChannels()
 	if err != nil {

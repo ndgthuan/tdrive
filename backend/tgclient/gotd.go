@@ -31,8 +31,11 @@ type Gotd struct {
 	conn    *liveConn
 	writes  *writeCoordinator
 
-	mu     sync.Mutex
-	client *telegram.Client
+	mu                  sync.Mutex
+	client              *telegram.Client
+	sharedDriveMu       sync.Mutex
+	sharedDriveChecked  map[int64]time.Time
+	sharedDriveLastScan time.Time
 
 	// mediaMu guards the per-data-center connections that carry file bytes:
 	// CDN invokers and upload.getFile pools. They belong to the run scope and

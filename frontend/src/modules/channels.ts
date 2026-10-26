@@ -5,7 +5,6 @@
 // state.activeChannel in sync; tells the sidebar to re-render on every
 // change.
 
-import { get } from 'svelte/store';
 import { state, invalidateFolderIndex, resetFolderCaches, resetSelection } from '../state';
 import { resetRenditions } from './renditions/runtime';
 import {
@@ -58,6 +57,7 @@ interface ChannelRenderers {
 let renderSidebar: () => void = () => undefined;
 let refreshFilesView: (options?: RefreshFilesOptions) => void | Promise<void> = () => undefined;
 let driveRefreshGeneration = 0;
+let driveListGeneration = 0;
 const pendingLiveSyncChannels = new Set<number>();
 let processingLiveSyncRefresh = false;
 let disconnectLiveSyncEvents: (() => void) | null = null;
@@ -121,8 +121,11 @@ function bindListLifecycle(): void {
     if (listLifecycleBound || typeof document === 'undefined') return;
     listLifecycleBound = true;
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && get(driveListFailed)) void loadChannels();
+        if (document.visibilityState === 'visible') void loadChannels();
     });
+    setInterval(() => {
+        if (document.visibilityState === 'visible') void loadChannels();
+    }, 60_000);
 }
 
 /** Asks for the drive list again right away, used when the switcher opens after a failure. */
@@ -133,6 +136,14 @@ export function retryLoadChannels(): void {
 
 export async function loadChannels(): Promise<void> {
     bindListLifecycle();
+    if (state.channelSwitchInProgress) return;
+    const generation = ++driveListGeneration;
+    const refreshGeneration = driveRefreshGeneration;
+    const activeId = state.activeChannel?.id;
+    const isCurrent = () => generation === driveListGeneration
+        && refreshGeneration === driveRefreshGeneration
+        && activeId === state.activeChannel?.id
+        && !state.channelSwitchInProgress;
     try {
         const [channels, pending] = await Promise.all([
             listChannels(),
@@ -141,12 +152,14 @@ export async function loadChannels(): Promise<void> {
                 return [];
             }),
         ]);
+        if (!isCurrent()) return;
         applyChannels(channels);
         applyPendingJoins(pending);
         driveListFailed.set(false);
         clearListRetry();
         renderSidebar();
     } catch (error) {
+        if (!isCurrent()) return;
         console.error('ListChannels failed:', error);
         // Keep what is on screen: an empty list would read as "no shared drives".
         driveListFailed.set(true);

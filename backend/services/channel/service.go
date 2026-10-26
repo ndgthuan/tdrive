@@ -70,6 +70,38 @@ func (s *Service) ListChannels() ([]projection.Channel, error) {
 	return projection.ListChannels(s.DB)
 }
 
+// DiscoverSharedDrives adds remote memberships without switching the active
+// drive or projecting contents. Normal channel sync owns their file history.
+func (s *Service) DiscoverSharedDrives(ctx context.Context) error {
+	rows, err := s.ListChannels()
+	if err != nil {
+		return err
+	}
+	discoverer, ok := s.TG.(interface {
+		DiscoverSharedDrives(context.Context, map[int64]bool) ([]tgclient.SourcePeer, error)
+	})
+	if !ok {
+		return nil
+	}
+	known := make(map[int64]bool, len(rows))
+	for _, row := range rows {
+		known[row.ChannelID] = true
+	}
+	peers, discoveryErr := discoverer.DiscoverSharedDrives(ctx, known)
+	for _, peer := range peers {
+		if peer.Kind != tgclient.PeerSupergroup || peer.ID <= 0 || peer.AccessHash == 0 || known[peer.ID] {
+			continue
+		}
+		if err := projection.InsertChannel(s.DB, projection.Channel{
+			ChannelID: peer.ID, AccessHash: peer.AccessHash, Title: peer.Title,
+			Kind: projection.KindShared, PersonalBackfillDone: true,
+		}); err != nil {
+			return err
+		}
+	}
+	return discoveryErr
+}
+
 func (s *Service) CreateSharedDrive(ctx context.Context, title string, requireApproval bool) (projection.Channel, error) {
 	if err := s.ready(); err != nil {
 		return projection.Channel{}, err
@@ -81,7 +113,7 @@ func (s *Service) CreateSharedDrive(ctx context.Context, title string, requireAp
 	if err != nil {
 		return projection.Channel{}, err
 	}
-	peer, err := tg.CreateMegagroup(ctx, title, "TDrive shared drive")
+	peer, err := tg.CreateMegagroup(ctx, title, tgclient.SharedDriveDescription)
 	if err != nil {
 		return projection.Channel{}, err
 	}

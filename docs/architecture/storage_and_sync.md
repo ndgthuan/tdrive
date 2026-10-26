@@ -1,5 +1,17 @@
 # Storage and synchronization
 
+Shared drives created on another device are discovered when the drive list is
+loaded. Telegram megagroups with the exact description `TDrive shared drive`
+are registered locally without changing the active drive; normal sync projects
+their contents when opened. Ordinary groups are excluded. Discovery preserves
+the local list on network failure and never removes drives based on a partial
+scan. The authenticated Telegram client throttles scans to once per 30 seconds,
+checks at most 20 unknown groups per pass, and caches negative classifications
+for ten minutes. The frontend refreshes on resume and once per minute while
+visible, and mobile also refreshes when its drive switcher opens. This supports
+existing TDrive groups; changing their Telegram description removes the discovery
+marker, so those groups must be joined explicitly on a new client.
+
 TDrive stores file bodies and filesystem operations in Telegram messages. SQLite
 provides the local namespace and records what this client has observed. Reading
 the namespace, observing complete history and completing a remote write are

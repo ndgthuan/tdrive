@@ -3,6 +3,8 @@ import { get } from 'svelte/store';
 
 const api = vi.hoisted(() => ({
     syncChannel: vi.fn(),
+    listChannels: vi.fn(),
+    listPendingJoins: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('../api', () => ({
@@ -14,9 +16,9 @@ vi.mock('../api', () => ({
     isMobilePlatform: () => true,
     joinSharedDrive: vi.fn(),
     leaveSharedDrive: vi.fn(),
-    listChannels: vi.fn(),
+    listChannels: api.listChannels,
     listJoinRequests: vi.fn(),
-    listPendingJoins: vi.fn(),
+    listPendingJoins: api.listPendingJoins,
     onRuntimeEvent: vi.fn(),
     rejectJoinRequest: vi.fn(),
     removePendingJoin: vi.fn(),
@@ -30,7 +32,7 @@ vi.mock('./renditions/runtime', () => ({ resetRenditions: vi.fn() }));
 
 import { state } from '../state';
 import { driveSyncStatus } from '../ui/mobile/mobile_shell_store';
-import { bindChannelsRenderers, refreshActiveDrive } from './channels';
+import { bindChannelsRenderers, loadChannels, refreshActiveDrive } from './channels';
 
 function deferred<T>() {
     let resolve!: (value: T | PromiseLike<T>) => void;
@@ -57,6 +59,21 @@ afterEach(() => {
 });
 
 describe('refreshActiveDrive', () => {
+    it('does not redirect a drive switched while background discovery was pending', async () => {
+        vi.useFakeTimers();
+        try {
+            const listing = deferred<unknown[]>();
+            api.listChannels.mockReturnValueOnce(listing.promise);
+            const request = loadChannels();
+            state.activeChannel = { id: 2, title: 'Drive B', kind: 'shared' };
+            listing.resolve([{ id: 1, title: 'Drive A', kind: 'personal', isActive: true }]);
+            await request;
+            expect(state.activeChannel.id).toBe(2);
+        } finally {
+            vi.clearAllTimers();
+            vi.useRealTimers();
+        }
+    });
     it('does not publish an old drive result after the active drive changes', async () => {
         const sync = deferred<void>();
         api.syncChannel.mockReturnValueOnce(sync.promise);

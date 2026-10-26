@@ -85,6 +85,41 @@ func TestCreateSharedDriveUsesTelegramClientAndStoresChannel(t *testing.T) {
 	}
 }
 
+func TestDiscoverSharedDrivesAcrossClientsPreservesActiveDrive(t *testing.T) {
+	creator, telegram, _, _ := newService(t)
+	remote, err := creator.CreateSharedDrive(t.Context(), "Shared from phone", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := telegram.CreateMegagroup(t.Context(), "Ordinary group", "A normal chat"); err != nil {
+		t.Fatal(err)
+	}
+	other, _, syncer, active := newService(t)
+	other.TG = telegram
+	for range 2 {
+		if err := other.DiscoverSharedDrives(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rows, err := other.ListChannels()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 {
+		t.Fatalf("got %d drives, want personal and discovered shared drive", len(rows))
+	}
+	stored, err := projection.GetChannel(other.DB, remote.ChannelID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Kind != projection.KindShared || stored.Title != remote.Title || stored.AccessHash != remote.AccessHash || !stored.PersonalBackfillDone {
+		t.Fatalf("discovered drive = %+v", stored)
+	}
+	if *active != personalChannelID || len(syncer.calls) != 0 {
+		t.Fatal("discovery switched the active drive or projected file history")
+	}
+}
+
 func TestJoinSharedDrivePendingPersistsRequest(t *testing.T) {
 	svc, tg, _, _ := newService(t)
 	tg.SeedInvite("need-approval", tgclient.InviteInfo{
