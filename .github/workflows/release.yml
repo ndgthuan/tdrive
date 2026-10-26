@@ -716,6 +716,12 @@ jobs:
           mkdir -p dist
           git archive --format=zip --output "dist/TDrive-${{ github.ref_name }}-source.zip" HEAD
 
+      - name: Generate public update metadata
+        shell: bash
+        run: |
+          python3 -m unittest discover -s scripts -p test_release_metadata.py
+          python3 scripts/release_metadata.py dist "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME"
+
       # The in-app updater authenticates this manifest before trusting any
       # digest. Names only, so each entry matches its uploaded asset name.
       - name: Generate checksums

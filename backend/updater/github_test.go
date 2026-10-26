@@ -2,6 +2,7 @@ package updater
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,8 @@ func githubServer(t *testing.T, status int, headers map[string]string, body stri
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/repos/owner/repo/releases/latest" {
-			t.Errorf("unexpected path %s", r.URL.Path)
+			http.NotFound(w, r)
+			return
 		}
 		if r.Header.Get("Accept") != "application/vnd.github+json" {
 			t.Errorf("missing Accept header")
@@ -29,7 +31,60 @@ func githubServer(t *testing.T, status int, headers map[string]string, body stri
 	t.Cleanup(server.Close)
 	source := NewGitHubSource("owner/repo", "TDrive/test", server.Client())
 	source.BaseURL = server.URL
+	source.WebBaseURL = server.URL
 	return source
+}
+
+func TestGitHubRateLimitUsesPublishedMetadata(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		status    int
+		page      string
+		assetURL  string
+		size      int64
+		wantError bool
+	}{
+		{"403 fallback", 403, "https://github.com/owner/repo/releases/tag/v3.1.1", "https://github.com/owner/repo/releases/download/v3.1.1/TDrive-v3.1.1-windows-amd64.zip", 1234, false},
+		{"429 fallback", 429, "https://github.com/owner/repo/releases/tag/v3.1.1", "https://github.com/owner/repo/releases/download/v3.1.1/TDrive-v3.1.1-windows-amd64.zip", 1234, false},
+		{"foreign repo", 403, "https://github.com/other/repo/releases/tag/v3.1.1", "https://github.com/owner/repo/releases/download/v3.1.1/TDrive-v3.1.1-windows-amd64.zip", 1234, true},
+		{"foreign asset", 403, "https://github.com/owner/repo/releases/tag/v3.1.1", "https://example.com/file.zip", 1234, true},
+		{"missing size", 403, "https://github.com/owner/repo/releases/tag/v3.1.1", "https://github.com/owner/repo/releases/download/v3.1.1/TDrive-v3.1.1-windows-amd64.zip", 0, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/repos/owner/repo/releases/latest":
+					w.Header().Set("X-RateLimit-Remaining", "0")
+					w.WriteHeader(tc.status)
+				case "/owner/repo/releases/latest/download/release.json":
+					if err := json.NewEncoder(w).Encode(map[string]any{
+						"tag_name": "v3.1.1", "html_url": tc.page,
+						"assets": []map[string]any{{"name": "TDrive-v3.1.1-windows-amd64.zip", "size": tc.size, "browser_download_url": tc.assetURL}},
+					}); err != nil {
+						t.Error(err)
+					}
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			t.Cleanup(server.Close)
+			source := NewGitHubSource("owner/repo", "TDrive/test", server.Client())
+			source.BaseURL, source.WebBaseURL = server.URL, server.URL
+			release, err := source.LatestRelease(t.Context())
+			if tc.wantError {
+				if !errors.Is(err, ErrRateLimited) {
+					t.Fatalf("error = %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if release.Tag != "v3.1.1" || len(release.Assets) != 1 || release.Assets[0].Size != 1234 {
+				t.Fatalf("release = %+v", release)
+			}
+		})
+	}
 }
 
 func TestGitHubSourceParsesLatestRelease(t *testing.T) {

@@ -57,10 +57,11 @@ const (
 // GitHubSource reads /repos/{repo}/releases/latest, which by definition skips
 // drafts and pre-releases — publishing the draft stays the release gate.
 type GitHubSource struct {
-	Repo      string // "owner/name"
-	UserAgent string
-	Client    *http.Client
-	BaseURL   string // overridable for tests
+	Repo       string // "owner/name"
+	UserAgent  string
+	Client     *http.Client
+	BaseURL    string // overridable for tests
+	WebBaseURL string // overridable for tests; production uses github.com
 }
 
 // NewGitHubSource builds a source for repo. client may be nil.
@@ -115,6 +116,10 @@ func (g *GitHubSource) LatestRelease(ctx context.Context) (Release, error) {
 		return Release{}, ErrNoRelease
 	case http.StatusForbidden, http.StatusTooManyRequests:
 		if resp.Header.Get("X-RateLimit-Remaining") == "0" || resp.StatusCode == http.StatusTooManyRequests {
+			// Published release assets are served separately from the API quota.
+			if release, err := g.latestMetadata(ctx); err == nil {
+				return release, nil
+			}
 			return Release{}, ErrRateLimited
 		}
 		return Release{}, fmt.Errorf("github responded with status %d", resp.StatusCode)
@@ -126,6 +131,51 @@ func (g *GitHubSource) LatestRelease(ctx context.Context) (Release, error) {
 	if err := json.NewDecoder(io.LimitReader(resp.Body, githubMaxBodyBytes)).Decode(&payload); err != nil {
 		return Release{}, fmt.Errorf("decode github release: %w", err)
 	}
+	return parseGitHubRelease(payload)
+}
+
+// latestMetadata uses the published stable release redirect, so a draft remains
+// invisible. Payload installation still requires the signed checksum manifest.
+func (g *GitHubSource) latestMetadata(ctx context.Context) (Release, error) {
+	base := g.WebBaseURL
+	if base == "" {
+		base = "https://github.com"
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/"+g.Repo+"/releases/latest/download/release.json", nil)
+	if err != nil {
+		return Release{}, err
+	}
+	req.Header.Set("User-Agent", g.UserAgent)
+	resp, err := g.Client.Do(req)
+	if err != nil {
+		return Release{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return Release{}, fmt.Errorf("release metadata status %d", resp.StatusCode)
+	}
+	var payload githubRelease
+	if err := json.NewDecoder(io.LimitReader(resp.Body, githubMaxBodyBytes)).Decode(&payload); err != nil {
+		return Release{}, err
+	}
+	release, err := parseGitHubRelease(payload)
+	if err != nil {
+		return Release{}, err
+	}
+	root := "https://github.com/" + g.Repo + "/releases/"
+	if release.PageURL != root+"tag/"+release.Tag {
+		return Release{}, errors.New("release metadata repository mismatch")
+	}
+	for _, asset := range release.Assets {
+		if strings.ContainsAny(asset.Name, "/\\?#") || asset.URL != root+"download/"+release.Tag+"/"+asset.Name ||
+			(asset.Size <= 0 && asset.Name != "checksums.txt" && asset.Name != "checksums.txt.sig") {
+			return Release{}, errors.New("invalid release metadata asset")
+		}
+	}
+	return release, nil
+}
+
+func parseGitHubRelease(payload githubRelease) (Release, error) {
 	if payload.Draft || payload.Prerelease {
 		return Release{}, ErrNoRelease
 	}
