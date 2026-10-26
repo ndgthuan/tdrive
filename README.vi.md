@@ -31,6 +31,16 @@
 
 </div>
 
+### Máy tính
+
+![TDrive trên máy tính hiển thị My Drive với các tệp ví dụ](docs/screenshots/01_library.png)
+
+| Trợ lý AI | Tải từ liên kết |
+| :---: | :---: |
+| ![Trợ lý AI với các thao tác ví dụ](docs/screenshots/04_ai_agent.png) | ![Hộp thoại tải từ liên kết với nội dung ví dụ](docs/screenshots/06_download_from_link.png) |
+
+### Điện thoại
+
 <div align="center">
 <table align="center" width="100%">
   <tr>

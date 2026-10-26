@@ -31,6 +31,16 @@
 
 </div>
 
+### Desktop
+
+![TDrive desktop showing My Drive with example files](docs/screenshots/01_library.png)
+
+| AI assistant | Download from link |
+| :---: | :---: |
+| ![AI assistant with example actions](docs/screenshots/04_ai_agent.png) | ![Download from link dialog with example media](docs/screenshots/06_download_from_link.png) |
+
+### Mobile
+
 <div align="center">
 <table align="center" width="100%">
   <tr>
