@@ -5,6 +5,10 @@ set -e
 APPDIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd -P)"
 export APPDIR
 export LD_LIBRARY_PATH="$APPDIR/usr/lib:$APPDIR/usr/lib/x86_64-linux-gnu"
+# Some Linux graphics stacks fail WebKitGTK's accelerated compositing during
+# startup, leaving the native window blank. Default to WebKit's software path;
+# users can explicitly override this in their environment when needed.
+export WEBKIT_DISABLE_COMPOSITING_MODE="${WEBKIT_DISABLE_COMPOSITING_MODE:-1}"
 for hook in "$APPDIR"/apprun-hooks/*.sh; do
   [ ! -r "$hook" ] || . "$hook"
 done
