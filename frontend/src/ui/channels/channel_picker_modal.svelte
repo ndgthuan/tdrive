@@ -342,8 +342,27 @@
         background: var(--color-surface-1);
     }
 
+    /* These are framed input groups: keep all decoration on the wrapper so
+       global/mobile input styles cannot draw a second border inside it. */
     .channel-picker-search input,
-    .channel-picker-search input:focus { font-size: var(--type-base); }
+    .channel-picker-search input:focus,
+    .channel-picker-search input:focus-visible {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        outline: 0;
+        box-shadow: none;
+        background: transparent;
+        color: var(--text-main);
+        font-size: var(--type-base);
+        appearance: none;
+        -webkit-appearance: none;
+    }
 
     .channel-picker-error {
         margin-top: var(--space-3);
@@ -385,7 +404,40 @@
 
     .channel-picker-public-field:focus-within { border-color: var(--accent); box-shadow: var(--focus-ring); }
     .channel-picker-public-field.has-error { border-color: var(--danger); }
-    .channel-picker-public-field input { min-width: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0; box-shadow: none; background: transparent; color: var(--text-main); font: inherit; font-size: var(--type-base); }
+    .channel-picker-public-field input,
+    .channel-picker-public-field input:focus,
+    .channel-picker-public-field input:focus-visible {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        outline: 0;
+        box-shadow: none;
+        background: transparent;
+        color: var(--text-main);
+        font: inherit;
+        font-size: var(--type-base);
+        appearance: none;
+        -webkit-appearance: none;
+    }
+    /* .modal-card input has its own framed-control rule. These two fields are
+       already framed by their parent, so explicitly keep their inputs bare. */
+    #channel-picker-search,
+    #channel-picker-search:focus,
+    #channel-picker-search:focus-visible,
+    #channel-public-link,
+    #channel-public-link:focus,
+    #channel-public-link:focus-visible {
+        border: 0;
+        border-radius: 0;
+        outline: 0;
+        box-shadow: none;
+        background: transparent;
+    }
     .channel-picker-public-field input::placeholder { color: var(--text-muted); }
     .channel-picker-check { min-height: var(--control-md); height: var(--control-md); padding: 0 var(--space-3); white-space: nowrap; font-size: var(--type-sm); }
     .channel-picker-check:disabled { color: var(--text-muted); cursor: default; opacity: 0.8; }
