@@ -55,6 +55,11 @@ The root [`main.go`](../../main.go) embeds the frontend, keeps the release-stamp
 lifecycle. Shared domain behavior stays in `backend/`, which the GUI and daemon
 can both use without importing the GUI package.
 
+Linux startup defaults `WEBKIT_DISABLE_COMPOSITING_MODE=1` before `app.Run`
+creates the WebKitGTK window, while preserving an explicit environment override.
+The AppImage desktop entry launches through `AppRun` so packaged runtime paths
+and the same rendering default apply when TDrive is opened from a desktop menu.
+
 Service package paths determine generated binding locations and method IDs.
 After changing a bound type's package, regenerate `frontend/bindings/`, update
 the typed frontend adapters and keep browser mocks pointed at the generated

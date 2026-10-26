@@ -34,6 +34,8 @@ cd "$work"
 "$appimage" --appimage-extract > "$artifacts/extract.log" 2>&1
 appdir="$work/squashfs-root"
 [ -x "$appdir/AppRun" ] || fail 'AppImage has no executable AppRun'
+grep -Fxq 'Exec=AppRun' "$appdir/TDrive.desktop" \
+  || fail 'AppImage desktop entry must launch through AppRun'
 library_path="$appdir/usr/lib:$appdir/usr/lib/x86_64-linux-gnu"
 while IFS= read -r directory; do
   library_path="$library_path:$directory"
