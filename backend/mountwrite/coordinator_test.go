@@ -1055,7 +1055,7 @@ func TestCoordinatorBoundsAdmittedAndConcurrentOperations(t *testing.T) {
 	// This test already creates deliberate concurrency. Keep it out of the
 	// package-wide parallel pool so filesystem-backed SQLite startup latency on
 	// loaded Windows runners cannot consume the synchronization budget.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	t.Cleanup(cancel)
 	db := openJournalDB(t, filepath.Join(t.TempDir(), "journal.db"))
 	if err := EnsureJournalSchema(ctx, db); err != nil {
