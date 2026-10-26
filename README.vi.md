@@ -2,38 +2,33 @@
 
 <h1>TDrive</h1>
 
-<img src="assets/icon_animated.svg" width="200" alt="Logo TDrive">
+<img src="assets/icon_animated.svg" width="240" alt="Logo TDrive">
 
-<p><b>Ổ đám mây riêng tư của bạn, xây dựng trên Telegram.</b></p>
-
-<p>
-  <a href="https://github.com/ndgthuan/tdrive/releases/latest"><img src="https://img.shields.io/github/v/release/ndgthuan/tdrive?style=for-the-badge&label=Release" alt="Bản phát hành mới nhất"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-0e6ba8?style=for-the-badge" alt="Giấy phép MIT"></a>
-  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go 1.26">
-  <img src="https://img.shields.io/badge/Wails-v3-DF0000?style=for-the-badge" alt="Wails v3">
-  <img src="https://img.shields.io/badge/Svelte-5-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="Svelte 5">
-</p>
+<h2>Sắp xếp tệp Telegram như một ổ đĩa.</h2>
+<p>Không gian lưu trữ riêng tư cho máy tính và điện thoại. Tệp vẫn nằm trên Telegram; TDrive bổ sung thư mục, xem trước, chia sẻ và sao lưu.</p>
 
 <p>
-  <img src="https://img.shields.io/badge/Platforms-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-555555?style=for-the-badge" alt="Nền tảng: Windows, macOS, Linux, Android, iOS">
-  <a href="https://github.com/ndgthuan/tdrive/stargazers"><img src="https://img.shields.io/github/stars/ndgthuan/tdrive?style=for-the-badge" alt="Số sao trên GitHub"></a>
-  <a href="https://github.com/ndgthuan/tdrive/network/members"><img src="https://img.shields.io/github/forks/ndgthuan/tdrive?style=for-the-badge" alt="Số fork trên GitHub"></a>
-  <a href="https://github.com/ndgthuan/tdrive/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/ndgthuan/tdrive/ci.yml?style=for-the-badge&label=CI" alt="Trạng thái CI"></a>
+  <a href="https://github.com/ndgthuan/tdrive/releases/latest"><img src="https://img.shields.io/badge/T%E1%BA%A3i%20v%E1%BB%81-B%E1%BA%A3n%20m%E1%BB%9Bi%20nh%E1%BA%A5t-2f81f7?style=for-the-badge&logo=github&logoColor=white" alt="Tải bản mới nhất"></a>
+  <a href="docs/architecture/README.md"><img src="https://img.shields.io/badge/Xem-T%C3%A0i%20li%E1%BB%87u-30363d?style=for-the-badge" alt="Xem tài liệu"></a>
 </p>
+
+<p><b>Windows&nbsp; · &nbsp;macOS&nbsp; · &nbsp;Linux&nbsp; · &nbsp;Android&nbsp; · &nbsp;iPhone</b></p>
+<p><a href="https://github.com/ndgthuan/tdrive/stargazers">⭐ Tặng dự án một sao</a> &nbsp;·&nbsp; <a href="https://github.com/ndgthuan/tdrive/actions/workflows/ci.yml">Trạng thái CI</a> &nbsp;·&nbsp; <a href="LICENSE">Giấy phép MIT</a></p>
 
 <p><a href="README.md">English</a> &nbsp;·&nbsp; <b>[Tiếng Việt]</b></p>
 
-<p>
-  <a href="docs/architecture/README.md"><b>Tài liệu</b></a> &nbsp;·&nbsp;
-  <a href="https://github.com/ndgthuan/tdrive/releases/latest"><b>Tải về</b></a> &nbsp;·&nbsp;
-  <a href="https://github.com/ndgthuan/tdrive/releases"><b>Các bản phát hành</b></a>
-</p>
-
 </div>
 
-![Bộ chuyển ổ trên iPhone, nhóm ổ cá nhân và ổ dùng chung](docs/screenshots/shared_01_home_drive_switcher.png)
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/shared_01_home_drive_switcher.png" width="150" alt="Bộ chuyển ổ ở Home có thư mục Shared"><br><b>Home · Drives</b></td>
+    <td align="center"><img src="docs/screenshots/shared_02_home_shared_drives.png" width="150" alt="Danh sách ổ dùng chung trong Home"><br><b>Home · Shared</b></td>
+    <td align="center"><img src="docs/screenshots/shared_03_account_folder.png" width="150" alt="Trang Account có thư mục Shared"><br><b>Account</b></td>
+    <td align="center"><img src="docs/screenshots/shared_04_account_drives.png" width="150" alt="Ổ dùng chung mở từ Account"><br><b>Account · Drives</b></td>
+  </tr>
+</table>
 
-TDrive biến một kênh Telegram riêng tư thành cây thư mục mà bạn có thể duyệt, tìm kiếm, phát trực tiếp, chia sẻ và gắn làm ổ đĩa. Tệp vẫn nằm trên Telegram. TDrive bổ sung phần sắp xếp, xem trước và dọn dẹp có hỗ trợ AI.
+TDrive biến kho lưu trữ Telegram riêng tư thành ổ đĩa để bạn duyệt, tìm kiếm, xem trước, chia sẻ và gắn vào máy tính.
 
 ## Tính năng chính
 
@@ -72,15 +67,6 @@ Mỗi bản phát hành cũng kèm `checksums.txt` và `checksums.txt.sig` đã 
 **iOS.** Không có bản trên App Store hay TestFlight. Tệp IPA chỉ dùng để cài thủ công (sideload).
 
 Muốn tự biên dịch? Xem [Build từ mã nguồn](#build-từ-mã-nguồn).
-
-## Ảnh chụp màn hình
-
-| | |
-|---|---|
-| ![Bộ chuyển ổ ở Home có thư mục Shared](docs/screenshots/shared_01_home_drive_switcher.png) | ![Danh sách ổ dùng chung trong thư mục Shared ở Home](docs/screenshots/shared_02_home_shared_drives.png) |
-| **Home · Drives.** Ổ cá nhân và ổ dùng chung được nhóm gọn trong bộ chuyển ổ. | **Home · Shared.** Mở thư mục để chọn một ổ dùng chung. |
-| ![Trang Account có thư mục Shared và số lượng ổ](docs/screenshots/shared_03_account_folder.png) | ![Danh sách ổ dùng chung mở từ Account](docs/screenshots/shared_04_account_drives.png) |
-| **Account.** Thư mục Shared hiển thị số ổ bạn đã tham gia. | **Account · Shared drives.** Mở ổ dùng chung ngay từ trang tài khoản. |
 
 ## Hỗ trợ nền tảng và tình trạng
 

@@ -2,38 +2,33 @@
 
 <h1>TDrive</h1>
 
-<img src="assets/icon_animated.svg" width="200" alt="TDrive logo">
+<img src="assets/icon_animated.svg" width="240" alt="TDrive logo">
 
-<p><b>Your private cloud drive, built on Telegram.</b></p>
-
-<p>
-  <a href="https://github.com/ndgthuan/tdrive/releases/latest"><img src="https://img.shields.io/github/v/release/ndgthuan/tdrive?style=for-the-badge&label=Release" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-0e6ba8?style=for-the-badge" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go 1.26">
-  <img src="https://img.shields.io/badge/Wails-v3-DF0000?style=for-the-badge" alt="Wails v3">
-  <img src="https://img.shields.io/badge/Svelte-5-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="Svelte 5">
-</p>
+<h2>Your Telegram files, organized like a drive.</h2>
+<p>Private cloud storage for desktop and mobile. Your files stay in Telegram; TDrive gives them folders, previews, sharing and backup.</p>
 
 <p>
-  <img src="https://img.shields.io/badge/Platforms-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-555555?style=for-the-badge" alt="Platforms: Windows, macOS, Linux, Android, iOS">
-  <a href="https://github.com/ndgthuan/tdrive/stargazers"><img src="https://img.shields.io/github/stars/ndgthuan/tdrive?style=for-the-badge" alt="GitHub stars"></a>
-  <a href="https://github.com/ndgthuan/tdrive/network/members"><img src="https://img.shields.io/github/forks/ndgthuan/tdrive?style=for-the-badge" alt="GitHub forks"></a>
-  <a href="https://github.com/ndgthuan/tdrive/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/ndgthuan/tdrive/ci.yml?style=for-the-badge&label=CI" alt="CI status"></a>
+  <a href="https://github.com/ndgthuan/tdrive/releases/latest"><img src="https://img.shields.io/badge/Download-Latest%20release-2f81f7?style=for-the-badge&logo=github&logoColor=white" alt="Download latest release"></a>
+  <a href="docs/architecture/README.md"><img src="https://img.shields.io/badge/Explore-Documentation-30363d?style=for-the-badge" alt="Explore documentation"></a>
 </p>
+
+<p><b>Windows&nbsp; · &nbsp;macOS&nbsp; · &nbsp;Linux&nbsp; · &nbsp;Android&nbsp; · &nbsp;iPhone</b></p>
+<p><a href="https://github.com/ndgthuan/tdrive/stargazers">⭐ Star the project</a> &nbsp;·&nbsp; <a href="https://github.com/ndgthuan/tdrive/actions/workflows/ci.yml">CI status</a> &nbsp;·&nbsp; <a href="LICENSE">MIT license</a></p>
 
 <p><b>[English]</b> &nbsp;·&nbsp; <a href="README.vi.md">Tiếng Việt</a></p>
 
-<p>
-  <a href="docs/architecture/README.md"><b>Documentation</b></a> &nbsp;·&nbsp;
-  <a href="https://github.com/ndgthuan/tdrive/releases/latest"><b>Download</b></a> &nbsp;·&nbsp;
-  <a href="https://github.com/ndgthuan/tdrive/releases"><b>Releases</b></a>
-</p>
-
 </div>
 
-![iPhone drive switcher with personal and shared drives grouped](docs/screenshots/shared_01_home_drive_switcher.png)
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/shared_01_home_drive_switcher.png" width="150" alt="Home drive switcher with Shared folder"><br><b>Home · Drives</b></td>
+    <td align="center"><img src="docs/screenshots/shared_02_home_shared_drives.png" width="150" alt="Shared drives listed in Home"><br><b>Home · Shared</b></td>
+    <td align="center"><img src="docs/screenshots/shared_03_account_folder.png" width="150" alt="Account screen with Shared folder"><br><b>Account</b></td>
+    <td align="center"><img src="docs/screenshots/shared_04_account_drives.png" width="150" alt="Shared drives opened from Account"><br><b>Account · Drives</b></td>
+  </tr>
+</table>
 
-TDrive turns a private Telegram channel into a folder tree you can browse, search, stream, share and mount. Files stay in Telegram. TDrive adds the organizing, previewing and AI-assisted tidying on top.
+TDrive turns your private Telegram storage into a drive you can browse, search, preview, share and mount.
 
 ## Core capabilities
 
@@ -72,15 +67,6 @@ Every release also ships `checksums.txt` and a signed `checksums.txt.sig`, so yo
 **iOS.** There is no App Store or TestFlight build. The IPA is for sideloading only.
 
 Prefer to compile it yourself? See [Build from source](#build-from-source).
-
-## Screenshots
-
-| | |
-|---|---|
-| ![Home drive switcher with the Shared folder](docs/screenshots/shared_01_home_drive_switcher.png) | ![Shared drives listed inside Home's Shared folder](docs/screenshots/shared_02_home_shared_drives.png) |
-| **Home · Drives.** Personal and shared drives stay organized in the switcher. | **Home · Shared.** Open the folder to choose a shared drive. |
-| ![Account screen with a Shared folder and drive count](docs/screenshots/shared_03_account_folder.png) | ![Shared drives list opened from Account](docs/screenshots/shared_04_account_drives.png) |
-| **Account.** A Shared folder shows how many drives you belong to. | **Account · Shared drives.** Open a drive from the account page. |
 
 ## Platform support and status
 
