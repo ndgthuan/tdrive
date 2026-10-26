@@ -148,6 +148,7 @@ test('iPhone downloader uses shared controls and distinguishes playable audio fr
     await page.getByRole('textbox', { name: 'Video link' }).fill('https://youtu.be/video123');
     await page.getByRole('button', { name: 'Fetch', exact: true }).click();
     await expect(page.getByText('Evening session')).toBeVisible();
+    await page.locator('.format-details summary').click();
     await expect(page.getByText('M4A', { exact: true })).toBeVisible();
     await expect(page.getByText('WEBM', { exact: true })).toHaveCount(0);
     await expect(page.getByText(/separate video and audio streams/)).toBeVisible();

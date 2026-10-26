@@ -165,5 +165,6 @@
     "download_update_hint": "Sites veranderen vaak. Werk bij als een link niet meer werkt.",
     "download_to_drive": "Downloaden naar TDrive",
     "download_video_merge_note": "Deze link heeft aparte video- en audiostreams. Deze mobiele versie kan ze nog niet samenvoegen. Gebruik TDrive op de computer voor video met geluid, of kies hieronder audio.",
-    "download_native_merge_note": "Deze iPhone kan compatibele H.264-video en AAC-audio combineren. Sommige video's of kwaliteitsniveaus zijn mogelijk niet beschikbaar."
+    "download_native_merge_note": "Deze iPhone kan compatibele H.264-video en AAC-audio combineren. Sommige video's of kwaliteitsniveaus zijn mogelijk niet beschikbaar.",
+    "download_format_video_only": "Alleen video · TDrive voegt audio toe"
 }

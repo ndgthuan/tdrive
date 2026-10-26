@@ -160,5 +160,6 @@
     "download_update_hint": "Situs sering berubah. Perbarui saat tautan gagal.",
     "download_to_drive": "Unduh ke TDrive",
     "download_video_merge_note": "Tautan ini memiliki aliran video dan audio terpisah. Versi seluler ini belum dapat menggabungkannya. Gunakan TDrive di komputer untuk video bersuara, atau pilih audio di bawah.",
-    "download_native_merge_note": "iPhone ini dapat menggabungkan video H.264 dan audio AAC yang kompatibel. Beberapa video atau kualitas mungkin tidak tersedia."
+    "download_native_merge_note": "iPhone ini dapat menggabungkan video H.264 dan audio AAC yang kompatibel. Beberapa video atau kualitas mungkin tidak tersedia.",
+    "download_format_video_only": "Hanya video · TDrive akan menambahkan audio"
 }

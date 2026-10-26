@@ -102,8 +102,8 @@
     }));
     const can_start = $derived(yt_dlp_ready && probe !== null && !probe_loading && !probe_error && is_video_link(url) && choice !== '' && !starting && destination.drive_id !== 0);
 
-    function readable_format_note(note: string): string {
-        const value = note.trim();
+    function readable_format_note(note: string | undefined): string {
+        const value = note?.trim() ?? '';
         // Some extractors put a bare format ID in format_note. Height is
         // already shown in the title, so don't expose those internal codes.
         return /^\d{2,4}p?$/i.test(value) ? '' : value;

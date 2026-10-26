@@ -170,5 +170,6 @@
     "download_update_hint": "Os sites mudam com frequência. Atualize quando um link falhar.",
     "download_to_drive": "Baixar para o TDrive",
     "download_video_merge_note": "Este link tem vídeo e áudio separados. Esta versão móvel ainda não pode uni-los. Use o TDrive no computador para vídeo com som ou escolha um áudio abaixo.",
-    "download_native_merge_note": "Este iPhone pode combinar vídeo H.264 e áudio AAC compatíveis. Alguns vídeos ou qualidades podem não estar disponíveis."
+    "download_native_merge_note": "Este iPhone pode combinar vídeo H.264 e áudio AAC compatíveis. Alguns vídeos ou qualidades podem não estar disponíveis.",
+    "download_format_video_only": "Somente vídeo · TDrive adicionará o áudio"
 }
