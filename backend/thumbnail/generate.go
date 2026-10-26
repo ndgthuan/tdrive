@@ -60,6 +60,8 @@ var imageExts = map[string]bool{
 	"gif":  true,
 	"webp": true,
 	"bmp":  true,
+	"heic": true,
+	"heif": true,
 }
 
 // IsImage reports whether a filename looks like a gallery image, by extension.

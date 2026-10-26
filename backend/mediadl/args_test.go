@@ -64,7 +64,7 @@ func TestFormatSelectorWithAndWithoutFFmpeg(t *testing.T) {
 		{"137+ba", true, "137+ba/137", true},
 	}
 	for _, c := range cases {
-		got, needs, err := format_selector(c.choice, c.ffmpeg)
+		got, needs, err := format_selector(c.choice, c.ffmpeg, false)
 		if err != nil {
 			t.Fatalf("format_selector(%q, %v) error: %v", c.choice, c.ffmpeg, err)
 		}
@@ -72,8 +72,17 @@ func TestFormatSelectorWithAndWithoutFFmpeg(t *testing.T) {
 			t.Fatalf("format_selector(%q, %v) = (%q, %v), want (%q, %v)", c.choice, c.ffmpeg, got, needs, c.want, c.needsFF)
 		}
 	}
-	if _, _, err := format_selector("137+ba", false); err == nil {
+	if _, _, err := format_selector("137+ba", false, false); err == nil {
 		t.Fatal("video-only merge without ffmpeg must be refused")
+	}
+	if got, needs, err := format_selector("137+ba", false, true); err != nil || needs || got != "137+ba[ext=m4a][acodec^=mp4a]" {
+		t.Fatalf("native video merge selector = (%q, %v, %v)", got, needs, err)
+	}
+	if got, needs, err := format_selector(PRESET_BEST, false, true); err != nil || needs || !strings.Contains(got, "vcodec^=avc1") || !strings.Contains(got, "acodec^=mp4a") {
+		t.Fatalf("native best selector = (%q, %v, %v)", got, needs, err)
+	}
+	if _, _, err := format_selector(PRESET_AUDIO_MP3, false, true); err == nil {
+		t.Fatal("native muxer must not claim to encode MP3")
 	}
 }
 
@@ -120,6 +129,13 @@ func TestBuildDownloadArgsAudioAndNoFFmpeg(t *testing.T) {
 	}
 	if _, err := build_download_args(download_request{URL: "https://example.com/v", Choice: "137+ba", OutDir: "x"}); err == nil {
 		t.Fatal("merge choice without ffmpeg must fail before running yt-dlp")
+	}
+	nativeArgs, err := build_download_args(download_request{URL: "https://example.com/v", Choice: "137+ba", NativeMerge: true, OutDir: "x"})
+	if err != nil {
+		t.Fatalf("native merge args: %v", err)
+	}
+	if !slices.Contains(nativeArgs, "--merge-output-format") || slices.Contains(nativeArgs, "-x") || slices.Contains(nativeArgs, "--ffmpeg-location") {
+		t.Fatalf("native merge flags = %v", nativeArgs)
 	}
 	if _, err := build_download_args(download_request{URL: "ftp://x", Choice: PRESET_BEST, OutDir: "x"}); err == nil {
 		t.Fatal("non-http link must fail")

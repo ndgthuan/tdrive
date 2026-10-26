@@ -42,6 +42,8 @@ describe("media type helpers", () => {
 
     it("classifies every in-app opener family", () => {
         expect(fileOpenKind("photo.webp")).toBe("image");
+        expect(fileOpenKind("camera.HEIC")).toBe("image");
+        expect(fileOpenKind("camera.heif")).toBe("image");
         expect(fileOpenKind("movie.mkv")).toBe("video");
         expect(fileOpenKind("track.FLAC")).toBe("audio");
         expect(fileOpenKind("paper.pdf")).toBe("pdf");
@@ -51,6 +53,7 @@ describe("media type helpers", () => {
 
     it("exposes narrow predicates for UI routing", () => {
         expect(isImageFile("scan.png")).toBe(true);
+        expect(isImageFile("camera.heic")).toBe(true);
         expect(isAudioFile("song.mp3")).toBe(true);
         expect(isPdfFile("manual.pdf")).toBe(true);
         expect(isTextFile("subtitles.srt")).toBe(true);

@@ -86,8 +86,11 @@
 
     const yt_dlp_ready = $derived(tool_status?.yt_dlp.found ?? false);
     const ffmpeg_ready = $derived(tool_status?.ffmpeg.found ?? false);
-    const available_formats = $derived((probe?.formats ?? []).filter((format) => (ffmpeg_ready || !format.has_video || format.has_audio) && (!ios || (format.has_video ? ['mp4', 'm4v', 'mov'].includes(format.ext) : ['m4a', 'mp3', 'aac', 'wav'].includes(format.ext)))));
-    const unavailable_video = $derived(!ffmpeg_ready && Boolean(probe?.formats?.some((format) => format.has_video && !format.has_audio)));
+    const native_merge_ready = $derived(tool_status?.native_merge ?? false);
+    const can_merge_streams = $derived(ffmpeg_ready || native_merge_ready);
+    const preset_options = $derived(PRESET_OPTIONS.filter((option) => ffmpeg_ready || (native_merge_ready && option.value !== 'audio_mp3')));
+    const available_formats = $derived((probe?.formats ?? []).filter((format) => (can_merge_streams || !format.has_video || format.has_audio) && (!ios || (format.has_video ? ['mp4', 'm4v', 'mov'].includes(format.ext) : ['m4a', 'mp3', 'aac', 'wav'].includes(format.ext)))));
+    const unavailable_video = $derived(!can_merge_streams && Boolean(probe?.formats?.some((format) => format.has_video && !format.has_audio)));
     const has_video = $derived(available_formats.some((format) => format.has_video));
     const can_start = $derived(yt_dlp_ready && probe !== null && !probe_loading && !probe_error && is_video_link(url) && choice !== '' && !starting && destination.drive_id !== 0);
 
@@ -146,7 +149,7 @@
             if (url.trim() !== link) return;
             probe = result;
             // Never silently turn a video request into an audio download.
-            choice = ffmpeg_ready ? 'best' : available_formats.find((format) => format.has_video && format.has_audio)?.choice ?? '';
+            choice = can_merge_streams ? 'best' : available_formats.find((format) => format.has_video && format.has_audio)?.choice ?? '';
         } catch (cause) {
             if (url.trim() === link) probe_error = message_of(cause);
         } finally {
@@ -299,7 +302,7 @@
                 <p class="error" role="status">{$t_store('downloader.no_compatible_formats')}</p>
             {/if}
             <div class="grp" role="radiogroup" aria-label={$t_store('downloader.quality_label')}>
-                {#each (ffmpeg_ready ? PRESET_OPTIONS : []) as option (option.value)}
+                {#each (can_merge_streams ? preset_options : []) as option (option.value)}
                     <label class="opt">
                         <input type="radio" name="download-quality" value={option.value} bind:group={choice} />
                         <span>{$t_store(option.label_key)}</span>
@@ -317,7 +320,11 @@
                 {/each}
             </div>
             {#if probe && tool_status && !tool_status.ffmpeg.found && has_video}
-                <p class="muted">{$t_store('downloader.no_ffmpeg_note')}</p>
+                {#if native_merge_ready}
+                    <p class="muted">{$t_store('mobile.download_native_merge_note')}</p>
+                {:else}
+                    <p class="muted">{$t_store('downloader.no_ffmpeg_note')}</p>
+                {/if}
             {/if}
 
             <p class="sec">{$t_store('downloader.destination_save_to')}</p>

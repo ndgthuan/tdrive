@@ -19,6 +19,9 @@ type MobileStatus struct {
 	Version string
 	// FFmpeg is true when the engine can merge streams and extract audio.
 	FFmpeg bool
+	// NativeMerge is true when the host can mux compatible video and audio
+	// streams without transcoding. This does not imply FFmpeg features.
+	NativeMerge bool
 }
 
 // MobileEngine runs yt-dlp inside the host app. Android provides it through
@@ -59,7 +62,7 @@ func MobileToolStatus(status MobileStatus) Status {
 	if status.FFmpeg {
 		ff = ToolStatus{Name: TOOL_FFMPEG, Found: true, Source: SOURCE_EMBEDDED}
 	}
-	return Status{YtDlp: yt, FFmpeg: ff, CanInstall: true}
+	return Status{YtDlp: yt, FFmpeg: ff, NativeMerge: status.NativeMerge, CanInstall: true}
 }
 
 // ensure_mobile_engine_ready refuses a download when the engine is not installed.

@@ -5,6 +5,7 @@ $packager = Join-Path $PSScriptRoot "package_msix.ps1"
 $root = Join-Path ([System.IO.Path]::GetTempPath()) ("tdrive-msix-test-" + [guid]::NewGuid().ToString("N"))
 $payload = Join-Path $root "payload"
 $media = Join-Path $payload "media"
+$tools = Join-Path $payload "tools"
 $output = Join-Path $root "output"
 $passed = 0
 
@@ -65,11 +66,15 @@ function Find-MakeAppx {
     throw "test-package-msix: Windows SDK makeappx.exe missing"
 }
 
-New-Item -ItemType Directory -Path $media -Force | Out-Null
+New-Item -ItemType Directory -Path $media, $tools -Force | Out-Null
 try {
     $app = Join-Path $payload "TDrive.exe"
     Write-FakeX64PE $app
     Write-FakeX64PE (Join-Path $media "mpv.exe")
+    Write-FakeX64PE (Join-Path $tools "yt-dlp.exe")
+    Write-FakeX64PE (Join-Path $tools "ffmpeg.exe")
+    "source provenance" | Set-Content -LiteralPath (Join-Path $tools "SOURCE.txt")
+    "third party notices" | Set-Content -LiteralPath (Join-Path $tools "THIRD_PARTY_NOTICES.txt")
     "source provenance" | Set-Content -LiteralPath (Join-Path $media "SOURCE.txt")
     "third party notices" | Set-Content -LiteralPath (Join-Path $media "THIRD_PARTY_NOTICES.txt")
     Write-Media $true
@@ -103,7 +108,7 @@ try {
     $unpacked = Join-Path $root "unpacked"
     & (Find-MakeAppx) unpack /p $msix /d $unpacked /o | Out-Null
     Assert ($LASTEXITCODE -eq 0) "makeappx unpack failed"
-    $expected = @("AppxManifest.xml", "TDrive.exe", "Assets\Square44x44Logo.png", "Assets\Square150x150Logo.png", "Assets\StoreLogo.png", "media\mpv.exe", "media\SOURCE.txt", "media\THIRD_PARTY_NOTICES.txt", "media\media-runtime.manifest", "media\media-runtime.sha256")
+    $expected = @("AppxManifest.xml", "TDrive.exe", "Assets\Square44x44Logo.png", "Assets\Square150x150Logo.png", "Assets\StoreLogo.png", "media\mpv.exe", "media\SOURCE.txt", "media\THIRD_PARTY_NOTICES.txt", "media\media-runtime.manifest", "media\media-runtime.sha256", "tools\yt-dlp.exe", "tools\ffmpeg.exe", "tools\SOURCE.txt", "tools\THIRD_PARTY_NOTICES.txt")
     foreach ($name in $expected) { Assert (Test-Path -LiteralPath (Join-Path $unpacked $name) -PathType Leaf) "missing package file $name" }
     $actual = @(Get-ChildItem -LiteralPath $unpacked -Recurse -File |
         Where-Object { $_.Name -notin @('AppxBlockMap.xml', '[Content_Types].xml', 'AppxSignature.p7x') } |

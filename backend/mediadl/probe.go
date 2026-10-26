@@ -25,6 +25,8 @@ type ProbeFormat struct {
 	ApproxSize int64  `json:"approx_size"`
 	HasAudio   bool   `json:"has_audio"`
 	HasVideo   bool   `json:"has_video"`
+	videoCodec string
+	audioCodec string
 }
 
 // ProbeResult is what the dialog shows after Fetch.
@@ -141,5 +143,38 @@ func to_probe_format(raw raw_probe_format) (ProbeFormat, bool) {
 		ApproxSize: size,
 		HasAudio:   has_audio,
 		HasVideo:   has_video,
+		videoCodec: raw.VCodec,
+		audioCodec: raw.ACodec,
 	}, true
+}
+
+// filter_native_merge_formats keeps only codec/container pairs that iOS can
+// copy into an MP4 with AVFoundation. The native muxer does not transcode.
+func filter_native_merge_formats(result ProbeResult) ProbeResult {
+	has_audio := false
+	for _, format := range result.Formats {
+		if !format.HasVideo && format.Ext == "m4a" && strings.HasPrefix(format.audioCodec, "mp4a") {
+			has_audio = true
+			break
+		}
+	}
+	filtered := make([]ProbeFormat, 0, len(result.Formats))
+	for _, format := range result.Formats {
+		switch {
+		case format.HasVideo && format.HasAudio:
+			if format.Ext == "mp4" && strings.HasPrefix(format.videoCodec, "avc1") && strings.HasPrefix(format.audioCodec, "mp4a") {
+				filtered = append(filtered, format)
+			}
+		case format.HasVideo:
+			if has_audio && format.Ext == "mp4" && strings.HasPrefix(format.videoCodec, "avc1") {
+				filtered = append(filtered, format)
+			}
+		case format.HasAudio:
+			if format.Ext == "m4a" && strings.HasPrefix(format.audioCodec, "mp4a") {
+				filtered = append(filtered, format)
+			}
+		}
+	}
+	result.Formats = filtered
+	return result
 }

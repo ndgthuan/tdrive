@@ -141,9 +141,10 @@ type media_host_engine struct {
 var _ mediadl.MobileEngine = media_host_engine{}
 
 type media_host_status_payload struct {
-	Installed bool   `json:"installed"`
-	Version   string `json:"version"`
-	FFmpeg    bool   `json:"ffmpeg"`
+	Installed   bool   `json:"installed"`
+	Version     string `json:"version"`
+	FFmpeg      bool   `json:"ffmpeg"`
+	NativeMerge bool   `json:"native_merge"`
 }
 
 func (e media_host_engine) Status(ctx context.Context) (mediadl.MobileStatus, error) {
@@ -155,7 +156,7 @@ func (e media_host_engine) Status(ctx context.Context) (mediadl.MobileStatus, er
 	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
 		return mediadl.MobileStatus{}, errors.New("the video downloader sent an unreadable status")
 	}
-	return mediadl.MobileStatus{Installed: payload.Installed, Version: payload.Version, FFmpeg: payload.FFmpeg}, nil
+	return mediadl.MobileStatus{Installed: payload.Installed, Version: payload.Version, FFmpeg: payload.FFmpeg, NativeMerge: payload.NativeMerge}, nil
 }
 
 func (e media_host_engine) Install(ctx context.Context, progress func(stage string, percent int)) error {

@@ -164,5 +164,6 @@
     "download_install_action": "Thiết lập trình tải",
     "download_update_hint": "Các trang web thay đổi thường xuyên. Hãy cập nhật khi một liên kết lỗi.",
     "download_to_drive": "Tải vào TDrive",
-    "download_video_merge_note": "Liên kết này có luồng video và âm thanh riêng. Bản di động này chưa ghép được hai luồng. Dùng TDrive trên máy tính để tải video có tiếng, hoặc chọn âm thanh bên dưới."
+    "download_video_merge_note": "Liên kết này có luồng video và âm thanh riêng. Bản di động này chưa ghép được hai luồng. Dùng TDrive trên máy tính để tải video có tiếng, hoặc chọn âm thanh bên dưới.",
+    "download_native_merge_note": "iPhone này có thể ghép video H.264 và âm thanh AAC tương thích. Một số video hoặc chất lượng có thể không khả dụng."
 }

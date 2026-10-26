@@ -41,7 +41,26 @@ int main(int argc, char **argv) {
         NSMutableString *hash = [NSMutableString string];
         for (NSUInteger index = 0; index < sizeof(digest); index++) [hash appendFormat:@"%02x", digest[index]];
         if (![hash isEqualToString:[NSString stringWithUTF8String:argv[2]]]) return 4;
+
+        // Re-mux H.264 and AAC through the same AVFoundation path the app uses
+        // for separate YouTube DASH streams. The fixture contains both tracks;
+        // passing its URL twice supplies one track to each side of the muxer.
+        TDriveMediaDlBridge *bridge = [[TDriveMediaDlBridge alloc] init];
+        TDriveMediaDlActive = bridge;
+        NSString *mergedOutput = [NSTemporaryDirectory() stringByAppendingPathComponent:@"tdrive-downloader-smoke-merged.mp4"];
+        NSString *mergeError = nil;
+        if (![bridge mergeRequestID:@"smoke-merge" videoPath:output audioPath:output outputPath:mergedOutput error:&mergeError]) {
+            fprintf(stderr, "AVFoundation native mux failed: %s\n", mergeError.UTF8String ?: "unknown error");
+            return 5;
+        }
+        AVURLAsset *mergedAsset = [AVURLAsset URLAssetWithURL:[NSURL fileURLWithPath:mergedOutput] options:nil];
+        if ([[mergedAsset tracksWithMediaType:AVMediaTypeVideo] count] == 0 ||
+            [[mergedAsset tracksWithMediaType:AVMediaTypeAudio] count] == 0) {
+            fprintf(stderr, "Native mux output is missing an audio or video track\n");
+            return 6;
+        }
         [[NSFileManager defaultManager] removeItemAtPath:output error:nil];
+        [[NSFileManager defaultManager] removeItemAtPath:mergedOutput error:nil];
         printf("TDRIVE_MEDIADL_SMOKE_OK %s\n", json.UTF8String);
         return 0;
     }

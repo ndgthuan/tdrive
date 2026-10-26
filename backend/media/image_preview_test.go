@@ -67,6 +67,34 @@ func TestOversizedImageUsesExistingPreviewAndRangeLength(t *testing.T) {
 	}
 }
 
+func TestHEICImageUsesJPEGPreviewOnUnsupportedWebViews(t *testing.T) {
+	heic := []byte("test HEIC source bytes")
+	preview := jpegFixture(t, 120, 160)
+	db := newResolverTestDB(t)
+	mustApplyOp(t, db, 10, projection.Op{Type: projection.OpFileUpload, Parent: projection.RootParent, Name: "camera.heic", FileSize: int64(len(heic))})
+	ranges := newMediaRangeFake(map[int64][]byte{10: heic})
+	var requested LogicalFile
+	svc := NewService(Config{
+		DB: db, Peers: staticPeerResolver{peer: ranges.peer}, Ranges: ranges,
+		ImagePreview: func(_ context.Context, file LogicalFile) ([]byte, error) {
+			requested = file
+			return bytes.Clone(preview), nil
+		},
+	})
+	t.Cleanup(func() { _ = svc.Close() })
+
+	opened, err := svc.OpenImage(t.Context(), testChannelID, 10, 1)
+	if err != nil {
+		t.Fatalf("OpenImage HEIC: %v", err)
+	}
+	if !opened.ImagePreview || opened.MimeType != "image/jpeg" || opened.Info.Name != "camera.heic" {
+		t.Fatalf("HEIC preview result = %+v", opened)
+	}
+	if requested.FileID != 10 || requested.Name != "camera.heic" {
+		t.Fatalf("HEIC preview source = %+v", requested)
+	}
+}
+
 func TestImagePreviewRejectsUnsafeDerivative(t *testing.T) {
 	for _, tc := range []struct {
 		name string

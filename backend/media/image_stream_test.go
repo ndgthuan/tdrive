@@ -28,6 +28,8 @@ func TestImageStreamTypesAreStrictlyAllowlisted(t *testing.T) {
 		"photo.gif":     {mime: "image/gif", supported: true},
 		"photo.webp":    {mime: "image/webp", supported: true},
 		"photo.bmp":     {mime: "image/bmp", supported: true},
+		"photo.heic":    {mime: "image/heic", supported: true},
+		"photo.HEIF":    {mime: "image/heif", supported: true},
 		"photo.svg":     {},
 		"photo.tiff":    {},
 		"photo.jpg.exe": {},

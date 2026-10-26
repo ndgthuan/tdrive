@@ -14,6 +14,7 @@
 
 #import <UIKit/UIKit.h>
 #import <WebKit/WebKit.h>
+#import <AVFoundation/AVFoundation.h>
 #import <objc/runtime.h>
 
 #if __has_include(<Python/Python.h>)
@@ -33,8 +34,13 @@ static char TDriveMediaDlBridgeKey;
 
 @interface TDriveMediaDlBridge : NSObject <WKScriptMessageHandler>
 @property (nonatomic, weak) WKWebView *webView;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, AVAssetExportSession *> *activeMerges;
+@property (nonatomic, strong) NSMutableSet<NSString *> *cancelledMerges;
 - (void)settle:(NSString *)promiseID failure:(NSString *)failure result:(NSString *)result;
 - (void)emitLine:(NSString *)requestID line:(NSString *)line;
+- (BOOL)mergeRequestID:(NSString *)requestID videoPath:(NSString *)videoPath audioPath:(NSString *)audioPath outputPath:(NSString *)outputPath error:(NSString **)error;
+- (void)cancelNativeMerge:(NSString *)requestID;
+- (void)clearNativeMergeCancellation:(NSString *)requestID;
 @end
 
 // The bridge that receives output lines from the Python callback. One web view
@@ -107,6 +113,40 @@ static PyObject *TDriveMediaDlEmitLine(PyObject *self, PyObject *args) {
 
 static PyMethodDef TDriveMediaDlLineMethod = { "emit_line", TDriveMediaDlEmitLine, METH_VARARGS, NULL };
 
+// The stream-copy merger blocks on AVAssetExportSession while releasing the
+// Python GIL so other downloader jobs and cancellation can continue to run.
+static PyObject *TDriveMediaDlNativeMerge(PyObject *self, PyObject *args) {
+    (void)self;
+    const char *request_id = NULL;
+    const char *video_path = NULL;
+    const char *audio_path = NULL;
+    const char *output_path = NULL;
+    if (!PyArg_ParseTuple(args, "ssss", &request_id, &video_path, &audio_path, &output_path)) return NULL;
+    TDriveMediaDlBridge *bridge = TDriveMediaDlActive;
+    if (bridge == nil) {
+        PyErr_SetString(PyExc_RuntimeError, "The iOS media merger is unavailable");
+        return NULL;
+    }
+    __block BOOL merged = NO;
+    __block NSString *failure = nil;
+    @autoreleasepool {
+        Py_BEGIN_ALLOW_THREADS
+        merged = [bridge mergeRequestID:[NSString stringWithUTF8String:request_id]
+                              videoPath:[NSString stringWithUTF8String:video_path]
+                              audioPath:[NSString stringWithUTF8String:audio_path]
+                             outputPath:[NSString stringWithUTF8String:output_path]
+                                  error:&failure];
+        Py_END_ALLOW_THREADS
+    }
+    if (!merged) {
+        PyErr_SetString(PyExc_RuntimeError, failure.UTF8String ?: "AVFoundation could not merge the media streams");
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyMethodDef TDriveMediaDlNativeMergeMethod = { "native_merge", TDriveMediaDlNativeMerge, METH_VARARGS, NULL };
+
 // Calls tdrive_mediadl.<function>() and returns its result as JSON, or nil.
 static NSString *TDriveMediaDlStatusJSON(void) {
     PyGILState_STATE gil = PyGILState_Ensure();
@@ -129,6 +169,15 @@ static NSString *TDriveMediaDlStatusJSON(void) {
 
 @implementation TDriveMediaDlBridge
 
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _activeMerges = [NSMutableDictionary dictionary];
+        _cancelledMerges = [NSMutableSet set];
+    }
+    return self;
+}
+
 - (void)settle:(NSString *)promiseID failure:(NSString *)failure result:(NSString *)result {
     NSString *list = TDriveMediaDlListJSON(@[promiseID ?: @"", failure ?: @"", result ?: @""]);
     NSString *script = [NSString stringWithFormat:@"window.__tdriveMediaDlSettle && window.__tdriveMediaDlSettle.apply(null, %@);", list];
@@ -141,6 +190,117 @@ static NSString *TDriveMediaDlStatusJSON(void) {
     dispatch_async(dispatch_get_main_queue(), ^{ [self.webView evaluateJavaScript:script completionHandler:nil]; });
 }
 
+- (BOOL)mergeRequestID:(NSString *)requestID videoPath:(NSString *)videoPath audioPath:(NSString *)audioPath outputPath:(NSString *)outputPath error:(NSString **)error {
+    if (requestID.length == 0 || videoPath.length == 0 || audioPath.length == 0 || outputPath.length == 0) {
+        if (error) *error = @"The video merge request is incomplete";
+        return NO;
+    }
+    NSFileManager *files = [NSFileManager defaultManager];
+    BOOL videoDirectory = NO, audioDirectory = NO;
+    if (![files fileExistsAtPath:videoPath isDirectory:&videoDirectory] || videoDirectory ||
+        ![files fileExistsAtPath:audioPath isDirectory:&audioDirectory] || audioDirectory) {
+        if (error) *error = @"The downloaded video or audio stream is missing";
+        return NO;
+    }
+    NSURL *videoURL = [NSURL fileURLWithPath:videoPath];
+    NSURL *audioURL = [NSURL fileURLWithPath:audioPath];
+    AVURLAsset *videoAsset = [AVURLAsset URLAssetWithURL:videoURL options:nil];
+    AVURLAsset *audioAsset = [AVURLAsset URLAssetWithURL:audioURL options:nil];
+    AVAssetTrack *videoSource = [[videoAsset tracksWithMediaType:AVMediaTypeVideo] firstObject];
+    AVAssetTrack *audioSource = [[audioAsset tracksWithMediaType:AVMediaTypeAudio] firstObject];
+    if (videoSource == nil || audioSource == nil) {
+        if (error) *error = @"The selected files do not contain compatible video and audio tracks";
+        return NO;
+    }
+
+    CMTime videoDuration = videoSource.timeRange.duration;
+    CMTime audioDuration = audioSource.timeRange.duration;
+    if (!CMTIME_IS_NUMERIC(videoDuration) || videoDuration.value <= 0 ||
+        !CMTIME_IS_NUMERIC(audioDuration) || audioDuration.value <= 0) {
+        if (error) *error = @"The selected video and audio have no playable duration";
+        return NO;
+    }
+
+    AVMutableComposition *composition = [AVMutableComposition composition];
+    AVMutableCompositionTrack *videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
+    AVMutableCompositionTrack *audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
+    NSError *insertError = nil;
+    if (videoTrack == nil || audioTrack == nil ||
+        ![videoTrack insertTimeRange:videoSource.timeRange ofTrack:videoSource atTime:videoSource.timeRange.start error:&insertError] ||
+        ![audioTrack insertTimeRange:audioSource.timeRange ofTrack:audioSource atTime:audioSource.timeRange.start error:&insertError]) {
+        if (error) *error = insertError.localizedDescription ?: @"The selected streams cannot be combined";
+        return NO;
+    }
+
+    NSURL *outputURL = [NSURL fileURLWithPath:outputPath];
+    [files removeItemAtURL:outputURL error:nil];
+    AVAssetExportSession *exporter = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetPassthrough];
+    if (exporter == nil || ![exporter.supportedFileTypes containsObject:AVFileTypeMPEG4]) {
+        if (error) *error = @"This video and audio combination cannot be saved as an MP4 on this iPhone";
+        return NO;
+    }
+    exporter.outputURL = outputURL;
+    exporter.outputFileType = AVFileTypeMPEG4;
+    exporter.shouldOptimizeForNetworkUse = YES;
+    dispatch_semaphore_t completed = dispatch_semaphore_create(0);
+    @synchronized (self) {
+        if ([_cancelledMerges containsObject:requestID]) {
+            [_cancelledMerges removeObject:requestID];
+            if (error) *error = @"Download cancelled";
+            return NO;
+        }
+        _activeMerges[requestID] = exporter;
+    }
+    [exporter exportAsynchronouslyWithCompletionHandler:^{ dispatch_semaphore_signal(completed); }];
+
+    long wait = dispatch_semaphore_wait(completed, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(3 * 60 * 60 * NSEC_PER_SEC)));
+    BOOL cancelled = NO;
+    @synchronized (self) {
+        cancelled = [_cancelledMerges containsObject:requestID];
+        [_activeMerges removeObjectForKey:requestID];
+        [_cancelledMerges removeObject:requestID];
+    }
+    if (wait != 0) {
+        [exporter cancelExport];
+        if (error) *error = @"Combining the video and audio timed out";
+        return NO;
+    }
+    if (cancelled || exporter.status == AVAssetExportSessionStatusCancelled) {
+        [files removeItemAtURL:outputURL error:nil];
+        if (error) *error = @"Download cancelled";
+        return NO;
+    }
+    if (exporter.status != AVAssetExportSessionStatusCompleted) {
+        [files removeItemAtURL:outputURL error:nil];
+        if (error) *error = exporter.error.localizedDescription ?: @"AVFoundation could not create the MP4";
+        return NO;
+    }
+    NSDictionary *attributes = [files attributesOfItemAtPath:outputPath error:nil];
+    if ([attributes[NSFileSize] unsignedLongLongValue] == 0) {
+        [files removeItemAtURL:outputURL error:nil];
+        if (error) *error = @"AVFoundation produced an empty MP4";
+        return NO;
+    }
+    return YES;
+}
+
+- (void)cancelNativeMerge:(NSString *)requestID {
+    if (requestID.length == 0) return;
+    AVAssetExportSession *exporter = nil;
+    @synchronized (self) {
+        [_cancelledMerges addObject:requestID];
+        exporter = _activeMerges[requestID];
+    }
+    [exporter cancelExport];
+}
+
+- (void)clearNativeMergeCancellation:(NSString *)requestID {
+    if (requestID.length == 0) return;
+    @synchronized (self) {
+        if (_activeMerges[requestID] == nil) [_cancelledMerges removeObject:requestID];
+    }
+}
+
 - (void)status:(NSString *)promiseID {
 #if TDRIVE_MEDIADL_PYTHON
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
@@ -149,7 +309,7 @@ static NSString *TDriveMediaDlStatusJSON(void) {
         if (json) {
             [self settle:promiseID failure:@"" result:json];
         } else {
-            [self settle:promiseID failure:@"" result:@"{\"installed\":false,\"version\":\"\",\"ffmpeg\":false}"];
+            [self settle:promiseID failure:@"" result:@"{\"installed\":false,\"version\":\"\",\"ffmpeg\":false,\"native_merge\":false}"];
         }
     });
 #else
@@ -199,16 +359,19 @@ static NSString *TDriveMediaDlStatusJSON(void) {
             if (item) { PyList_Append(args, item); Py_DECREF(item); }
         }
         PyObject *callback = PyCFunction_New(&TDriveMediaDlLineMethod, NULL);
-        PyObject *code = (module && args && callback)
-            ? PyObject_CallMethod(module, "run", "sOO", [requestID UTF8String], args, callback)
+        PyObject *mergeCallback = PyCFunction_New(&TDriveMediaDlNativeMergeMethod, NULL);
+        PyObject *code = (module && args && callback && mergeCallback)
+            ? PyObject_CallMethod(module, "run", "sOOO", [requestID UTF8String], args, callback, mergeCallback)
             : NULL;
         long exit_code = (code && PyLong_Check(code)) ? PyLong_AsLong(code) : -1;
         if (!code) PyErr_Clear();
         Py_XDECREF(code);
+        Py_XDECREF(mergeCallback);
         Py_XDECREF(callback);
         Py_XDECREF(args);
         Py_XDECREF(module);
         PyGILState_Release(gil);
+        [self clearNativeMergeCancellation:requestID];
         if (exit_code == 0) {
             [self settle:promiseID failure:@"" result:@""];
         } else {
@@ -221,6 +384,7 @@ static NSString *TDriveMediaDlStatusJSON(void) {
 }
 
 - (void)cancel:(NSString *)requestID {
+    [self cancelNativeMerge:requestID];
 #if TDRIVE_MEDIADL_PYTHON
     if (requestID.length == 0 || !TDriveMediaDlPythonStarted()) return;
     PyGILState_STATE gil = PyGILState_Ensure();
