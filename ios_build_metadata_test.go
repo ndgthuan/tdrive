@@ -9,7 +9,7 @@ import (
 
 func TestIOSPlistVersionsMatchBuildConfig(t *testing.T) {
 	config := readBuildMetadataFile(t, "build/config.yml")
-	match := regexp.MustCompile(`(?m)^  version: "([^"]+)"$`).FindSubmatch(config)
+	match := regexp.MustCompile(`(?m)^  version: "([^"]+)"\r?$`).FindSubmatch(config)
 	if len(match) != 2 {
 		t.Fatal("build/config.yml info.version not found")
 	}

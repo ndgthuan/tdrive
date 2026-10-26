@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -383,6 +384,9 @@ func TestCacheBoundsIndexedEntriesAndReloadsShards(t *testing.T) {
 }
 
 func TestCacheShardsAndFilesKeepPrivatePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows reports synthetic POSIX mode bits; this test checks Unix permission bits, not ACLs")
+	}
 	dir := t.TempDir()
 	cache := NewCache(dir, 1<<20)
 	if err := cache.Put("private", []byte("thumbnail")); err != nil {

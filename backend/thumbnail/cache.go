@@ -245,7 +245,11 @@ func (c *Cache) Put(key string, data []byte) error {
 		return err
 	}
 
+	// Serialize publication and metadata updates. On Windows, another writer's
+	// Chmod/Chtimes handle can prevent replacement of the same destination.
+	c.mu.Lock()
 	if err := os.Rename(tmpPath, path); err != nil {
+		c.mu.Unlock()
 		_ = os.Remove(tmpPath)
 		return err
 	}
@@ -254,7 +258,6 @@ func (c *Cache) Put(key string, data []byte) error {
 	now := time.Now()
 	_ = os.Chtimes(path, now, now)
 
-	c.mu.Lock()
 	c.ensureInitLocked()
 	// Rename consumed the temporary reservation. Count the published file only
 	// once before deciding whether any other entries must be evicted.
