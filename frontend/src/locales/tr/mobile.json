@@ -165,5 +165,6 @@
     "download_update_hint": "Siteler sık değişir. Bir bağlantı çalışmadığında güncelleyin.",
     "download_to_drive": "TDrive'a indir",
     "download_video_merge_note": "Bu bağlantıda video ve ses ayrı akışlardır. Bu mobil sürüm bunları henüz birleştiremiyor. Sesli video için bilgisayarda TDrive kullanın veya aşağıdan ses seçin.",
-    "download_native_merge_note": "Bu iPhone, uyumlu H.264 video ve AAC sesi birleştirebilir. Bazı videolar veya kalite seçenekleri kullanılamayabilir."
+    "download_native_merge_note": "Bu iPhone, uyumlu H.264 video ve AAC sesi birleştirebilir. Bazı videolar veya kalite seçenekleri kullanılamayabilir.",
+    "download_format_video_only": "Yalnızca video · TDrive sesi ekleyecek"
 }
