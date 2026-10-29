@@ -198,19 +198,22 @@
         bind:value={confirmPassword}
         disabled={$view.busy}
     />
-    <input
-        id="encryption-settings-hint"
-        type="text"
-        aria-label={$t_store('modals.enc_hint_aria')}
-        aria-describedby={$view.error ? 'encryption-settings-hint-help encryption-settings-error' : 'encryption-settings-hint-help'}
-        placeholder={$t_store('modals.enc_hint_placeholder')}
-        autocomplete="off"
-        bind:value={hint}
-        disabled={$view.busy}
-    />
-    <p id="encryption-settings-hint-help" class="field-help">
-        {$t_store('modals.enc_hint_help')}
-    </p>
+    <div class="modal-field encryption-hint-field">
+        <label class="field-label" for="encryption-settings-hint">{$t_store('modals.enc_hint_label')}</label>
+        <input
+            id="encryption-settings-hint"
+            type="text"
+            aria-label={$t_store('modals.enc_hint_aria')}
+            aria-describedby={$view.error ? 'encryption-settings-hint-help encryption-settings-error' : 'encryption-settings-hint-help'}
+            placeholder={$t_store('modals.enc_hint_placeholder')}
+            autocomplete="off"
+            bind:value={hint}
+            disabled={$view.busy}
+        />
+        <p id="encryption-settings-hint-help" class="field-help">
+            {$t_store('modals.enc_hint_help')}
+        </p>
+    </div>
     {:else if biometric}
         <section class="biometric-settings" aria-labelledby="encryption-biometric-title">
             <h4 id="encryption-biometric-title">{$t_store('modals.enc_device_heading')}</h4>
@@ -276,6 +279,12 @@
     .encryption-settings-panes button[aria-pressed='true'] { border-color: var(--accent); color: var(--text-main); background: var(--overlay-white-1); }
     .biometric-settings h4 { font-size: var(--type-base); color: var(--color-text); font-weight: var(--weight-semibold); margin-bottom: var(--space-2); }
     .biometric-help { margin-top: 0; }
+    /* The confirm input has no bottom margin of its own (the modal input rule
+       zeroes it), so the hint field supplies the same 15px gap the password
+       rows get from .input-with-action. The help text drops the global
+       -8px top margin, which pulled it up over the hint input. */
+    :global(.encryption-settings-card) .encryption-hint-field { margin-top: 15px; }
+    :global(.encryption-settings-card) .encryption-hint-field .field-help { margin: 0; }
     .biometric-setting-action { width: 100%; }
     :global(.encryption-settings-card:not(.modal-sheet)) { max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain; }
 </style>

@@ -336,12 +336,22 @@
     .auto-backup {
         box-sizing: border-box;
         display: grid;
+        /* minmax(0, 1fr): a single track that cannot grow past the pane. An
+           auto track sized to its widest child pushed the cards out to the
+           right, so the left gutter read wider than the right. */
+        grid-template-columns: minmax(0, 1fr);
         gap: var(--space-3);
         padding: var(--space-3) var(--space-3) var(--space-4);
         color: var(--text-main);
     }
-    .auto-backup.is-page { padding: 0 14px 14px; }
-    .ab-status-card { display: grid; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-control); padding: var(--space-4); }
+    /* On the phone the account scroller already supplies the 16px side
+       gutter and the bottom inset, like every other account drill-in (the
+       appearance panel sets padding: 0). The bottom adds the floating tab bar
+       on top, so the last row scrolls clear of it. */
+    .auto-backup.is-page {
+        padding: 0 0 calc(var(--mobile-overlay-bottom, 0px) + var(--space-3));
+    }
+    .ab-status-card { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-control); padding: var(--space-4); }
     .ab-status-top { display: flex; align-items: center; gap: var(--space-3); }
     .ab-status-symbol { display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0; border-radius: var(--radius-md); color: var(--accent); background: var(--overlay-accent-1); }
     .ab-status-title { margin: 0 0 var(--space-1); font-size: var(--font-size-md); font-weight: var(--weight-strong); }
@@ -365,6 +375,8 @@
         border-radius: var(--radius-lg);
         padding: var(--space-2) var(--space-3);
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        min-width: 0;
         gap: var(--space-2);
     }
     .ab-rows { padding: var(--space-2) var(--space-3); gap: var(--space-2); }
@@ -378,6 +390,8 @@
     .ab-error { margin: 0; color: var(--danger); font-size: var(--font-size-sm); }
     .ab-denied, .ab-limited {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        min-width: 0;
         gap: var(--space-2);
         border-radius: var(--radius-lg);
         padding: var(--space-3);
