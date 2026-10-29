@@ -2,6 +2,19 @@ plugins {
     id 'com.android.application'
 }
 
+// Package only the ABIs that have a libwails.so. The Go library is built for
+// arm64-v8a by default; x86_64 only exists after the amd64 build (Taskfile
+// package:fat / ARCH=amd64). youtubedl-android also ships x86_64 native libs,
+// so without this filter an x86_64 emulator picks that ABI, finds no
+// libwails.so, and crashes with UnsatisfiedLinkError. x86_64 emulators run the
+// arm64-only APK through ARM translation.
+def wails_abis = ['arm64-v8a', 'x86_64'].findAll {
+    file("src/main/jniLibs/${it}/libwails.so").exists()
+}
+if (wails_abis.isEmpty()) {
+    wails_abis = ['arm64-v8a']
+}
+
 android {
     namespace 'com.wails.app'
     compileSdk 35
@@ -18,9 +31,9 @@ android {
         versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "1")
         versionName System.getenv("ANDROID_VERSION_NAME") ?: "1.0"
 
-        // Configure supported ABIs
+        // Only ABIs that carry libwails.so (see wails_abis above)
         ndk {
-            abiFilters 'arm64-v8a', 'x86_64'
+            abiFilters(*wails_abis)
         }
     }
 

@@ -546,10 +546,7 @@ jobs:
 
           unzip -Z1 "$apk" > "$RUNNER_TEMP/tdrive-apk-entries.txt"
           grep -Fxq 'lib/arm64-v8a/libwails.so' "$RUNNER_TEMP/tdrive-apk-entries.txt"
-          if grep -Fxq 'lib/x86_64/libwails.so' "$RUNNER_TEMP/tdrive-apk-entries.txt"; then
-            echo "The arm64 Android APK unexpectedly contains an x86_64 library" >&2
-            exit 1
-          fi
+          bash scripts/check_android_apk_abis.sh "$apk" arm64-v8a
           unzip -p "$apk" lib/arm64-v8a/libwails.so > "$RUNNER_TEMP/tdrive-libwails.so"
           strings -a "$RUNNER_TEMP/tdrive-libwails.so" > "$RUNNER_TEMP/tdrive-libwails.strings"
           for built in frontend/dist/assets/main-*.css frontend/dist/assets/video-*.js; do
@@ -694,10 +691,7 @@ jobs:
 
           unzip -Z1 "$apk" > "$RUNNER_TEMP/tdrive-apk-entries.txt"
           grep -Fxq 'lib/arm64-v8a/libwails.so' "$RUNNER_TEMP/tdrive-apk-entries.txt"
-          if grep -Fxq 'lib/x86_64/libwails.so' "$RUNNER_TEMP/tdrive-apk-entries.txt"; then
-            echo "The arm64 Android APK unexpectedly contains an x86_64 library" >&2
-            exit 1
-          fi
+          bash scripts/check_android_apk_abis.sh "$apk" arm64-v8a
           unzip -p "$apk" lib/arm64-v8a/libwails.so > "$RUNNER_TEMP/tdrive-libwails.so"
           strings -a "$RUNNER_TEMP/tdrive-libwails.so" > "$RUNNER_TEMP/tdrive-libwails.strings"
           for built in frontend/dist/assets/main-*.css frontend/dist/assets/video-*.js; do

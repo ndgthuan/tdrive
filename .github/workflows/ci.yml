@@ -104,9 +104,10 @@ jobs:
 
       - name: Validate Android release helpers
         run: |
-          bash -n scripts/android_version_code.sh scripts/test_android_version_code.sh scripts/android_signer_digests.sh scripts/test_android_signer_digests.sh
+          bash -n scripts/android_version_code.sh scripts/test_android_version_code.sh scripts/android_signer_digests.sh scripts/test_android_signer_digests.sh scripts/check_android_apk_abis.sh scripts/test_check_android_apk_abis.sh
           bash scripts/test_android_version_code.sh
           bash scripts/test_android_signer_digests.sh
+          bash scripts/test_check_android_apk_abis.sh
 
       - name: Typecheck frontend
         working-directory: frontend
@@ -935,6 +936,11 @@ jobs:
 
       - name: Assemble the APK
         run: wails3 task android:assemble:apk
+
+      # An ABI without libwails.so is exactly what crashed x86_64 emulators, so
+      # the APK may only ship arm64-v8a, and that ABI must carry the library.
+      - name: Check the APK packages only arm64 native libraries
+        run: bash scripts/check_android_apk_abis.sh build/bin/TDrive.apk arm64-v8a
 
       - name: Run Android biometric unit tests
         working-directory: build/android
