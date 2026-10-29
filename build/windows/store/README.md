@@ -29,14 +29,14 @@ Install PowerShell 7 (`pwsh`) and the Windows SDK with `MakeAppx.exe` and
 package targets x64; native ARM64 packaging is not included.
 
 1. Build the application with a release version, for example
-   `wails3 task windows:build ARCH=amd64 VERSION=3.0.1`.
+   `wails3 task windows:build ARCH=amd64 VERSION=3.1.4`.
 2. Prepare the qualified media runtime using
    `scripts/prepare_mpv_runtime.sh`, then run
    `./scripts/package_mpv_windows.ps1 build/bin/TDrive.exe` in PowerShell.
 3. Stage the verified downloader runtime beside `media`:
    `./scripts/package_mediadl_windows.ps1 -OutputDir build/bin/tools -Force`.
 4. Package the existing executable and sibling `media` and `tools` directories:
-   `./scripts/package_msix.ps1 -AppExe build/bin/TDrive.exe -Version 3.0.1`.
+   `./scripts/package_msix.ps1 -AppExe build/bin/TDrive.exe -Version 3.1.4`.
 
 Default output is an unsigned package for Store submission. Microsoft signs
 the package after certification. The default packaging path requires a release
