@@ -3,9 +3,7 @@ package tgclient
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
-	"sync"
 	"time"
 
 	"TDrive/backend/auth"
@@ -43,99 +41,30 @@ func (q folderDialogsQuery) Query(ctx context.Context, request dialogs.Request) 
 	return (auth.FolderDialogsQuery{API: q.api, FolderID: q.folderID}).Query(ctx, request)
 }
 
-// dialogWalkBudget is the FLOOD_WAIT time one dialog walk may spend. Every
-// query of the walk shares it, and the joined walk runs folders concurrently,
-// so it is locked.
-type dialogWalkBudget struct {
-	mu    sync.Mutex
-	spent time.Duration
-}
-
-// reserve books pause against the walk budget and reports whether it fit.
-func (b *dialogWalkBudget) reserve(pause time.Duration) bool {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if b.spent+pause > dialogFloodWaitMaxTotal {
-		return false
-	}
-	b.spent += pause
-	return true
-}
-
-// floodWaitResumingQuery re-issues the same dialogs page after a FLOOD_WAIT,
-// so the walk resumes where Telegram stopped it instead of restarting from the
-// first page and flooding again at the same point.
-type floodWaitResumingQuery struct {
-	next   dialogs.Query
-	budget *dialogWalkBudget
-}
-
-func (q floodWaitResumingQuery) Query(ctx context.Context, request dialogs.Request) (tg.MessagesDialogsClass, error) {
-	for {
-		result, err := q.next.Query(ctx, request)
-		if err == nil {
-			return result, nil
-		}
-		wait, ok := FloodWaitDuration(normalizeError(err))
-		if !ok || wait > dialogFloodWaitMaxSingle {
-			return nil, err
-		}
-		pause := wait + dialogFloodWaitPad
-		if !q.budget.reserve(pause) {
-			return nil, err
-		}
-		slog.Warn("tgclient: FLOOD_WAIT while listing dialogs, waiting", "seconds", int(wait/time.Second))
-		if sleepErr := dialog_sleep(ctx, pause); sleepErr != nil {
-			return nil, sleepErr
-		}
-	}
-}
-
-// resumeOnFloodWait wraps queries so that all of them share one FLOOD_WAIT
-// budget, which is the budget of a single dialog walk.
-func resumeOnFloodWait(queries []dialogs.Query) []dialogs.Query {
-	budget := &dialogWalkBudget{}
-	wrapped := make([]dialogs.Query, len(queries))
-	for index, query := range queries {
-		wrapped[index] = floodWaitResumingQuery{next: query, budget: budget}
-	}
-	return wrapped
-}
-
 // collectOwnedBroadcastChannels walks every supplied dialog folder to
-// completion. It returns no partial list when any page fails, because an
-// incomplete picker could incorrectly imply that a user's drive is absent.
+// completion, folder by folder, one page at a time. It returns no partial list
+// when any page fails, because an incomplete picker could incorrectly imply
+// that a user's drive is absent. Callers that need to keep progress across
+// attempts use ListOwnedBroadcastChannelPage instead.
 func collectOwnedBroadcastChannels(ctx context.Context, queries ...dialogs.Query) ([]OwnedBroadcastChannel, error) {
-	queries = resumeOnFloodWait(queries)
 	seen := make(map[int64]struct{})
 	channels := make([]OwnedBroadcastChannel, 0)
-	for _, query := range queries {
-		iterator := dialogs.NewIterator(query, ownedDialogsBatchSize)
-		for iterator.Next(ctx) {
-			elem := iterator.Value()
-			peer, ok := elem.Peer.(*tg.InputPeerChannel)
-			if !ok {
-				continue
-			}
-			channel, ok := elem.Entities.Channel(peer.ChannelID)
-			if !ok || !channel.Creator || !channel.Broadcast || channel.Megagroup || channel.Left {
-				continue
-			}
+	cursor := OwnedChannelCursor{StartedAt: time.Now()}
+	for cursor.Folder < len(queries) {
+		page, err := ownedChannelPage(ctx, queries[cursor.Folder], cursor)
+		if err != nil {
+			return nil, err
+		}
+		for _, channel := range page.Channels {
 			if _, exists := seen[channel.ID]; exists {
 				continue
 			}
 			seen[channel.ID] = struct{}{}
-			dialog, _ := elem.Dialog.(*tg.Dialog)
-			channels = append(channels, OwnedBroadcastChannel{
-				ID:          channel.ID,
-				AccessHash:  channel.AccessHash,
-				Title:       strings.TrimSpace(channel.Title),
-				CreatedAt:   int64(channel.Date),
-				HasActivity: dialog != nil && dialog.TopMessage > 0,
-			})
+			channels = append(channels, channel)
 		}
-		if err := iterator.Err(); err != nil {
-			return nil, fmt.Errorf("tgclient: list owned broadcast channels: %w", err)
+		cursor = page.Next
+		if page.Done {
+			break
 		}
 	}
 	return channels, nil
@@ -162,7 +91,9 @@ func (g *Gotd) ListOwnedBroadcastChannels(ctx context.Context) ([]OwnedBroadcast
 // once, since each is a chain of requests that cannot start before the last
 // page answers; the result still lists the first folder first.
 func collectJoinedBroadcastChannels(ctx context.Context, queries ...dialogs.Query) ([]JoinedBroadcastChannel, error) {
-	queries = resumeOnFloodWait(queries)
+	walk := newDialogWalk("joined", time.Time{})
+	logDialogWalkStart(walk, len(queries), false)
+	queries = resumeOnFloodWait(walk, queries)
 	folders := make([][]JoinedBroadcastChannel, len(queries))
 	group, ctx := errgroup.WithContext(ctx)
 	for index, query := range queries {
@@ -186,6 +117,7 @@ func collectJoinedBroadcastChannels(ctx context.Context, queries ...dialogs.Quer
 		})
 	}
 	if err := group.Wait(); err != nil {
+		logDialogWalkEnd(walk, 0, err)
 		return nil, err
 	}
 	seen := make(map[int64]struct{})
@@ -199,6 +131,7 @@ func collectJoinedBroadcastChannels(ctx context.Context, queries ...dialogs.Quer
 			out = append(out, channel)
 		}
 	}
+	logDialogWalkEnd(walk, len(out), nil)
 	return out, nil
 }
 

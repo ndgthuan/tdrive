@@ -808,6 +808,10 @@ func (e *Engine) ClearUserCache() {
 	if e != nil && e.users != nil {
 		e.users.ClearCache()
 	}
+	// Channel discovery state belongs to the account that logged out.
+	if e != nil && e.personal != nil {
+		e.personal.Forget()
+	}
 }
 
 func (e *Engine) newEncryptionService() *encservice.Service {
@@ -983,6 +987,7 @@ func (e *Engine) newPersonalDriveService() *personaldriveservice.Service {
 			return nil
 		},
 		SetActive: e.SetActiveChannelID,
+		AccountID: e.ActorID,
 	})
 }
 

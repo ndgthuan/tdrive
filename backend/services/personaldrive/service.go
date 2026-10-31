@@ -18,10 +18,13 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"TDrive/backend/auth"
 	"TDrive/backend/projection"
 	"TDrive/backend/tgclient"
+
+	"golang.org/x/sync/singleflight"
 )
 
 const (
@@ -41,7 +44,8 @@ var (
 )
 
 type Telegram interface {
-	ListOwnedBroadcastChannels(ctx context.Context) ([]tgclient.OwnedBroadcastChannel, error)
+	// ListOwnedBroadcastChannelPage makes one page request of the owned-channel walk.
+	ListOwnedBroadcastChannelPage(ctx context.Context, cursor tgclient.OwnedChannelCursor) (tgclient.OwnedChannelPage, error)
 	CreateBroadcastChannel(ctx context.Context, title, about string) (tgclient.OwnedBroadcastChannel, error)
 }
 
@@ -76,6 +80,9 @@ type Config struct {
 	SaveConfig func(int64) error
 	UseSaved   func(context.Context, int64) error
 	SetActive  func(int64)
+	// AccountID returns the logged-in user id that keys discovery state. Nil,
+	// or an error, uses a session-scoped key that Forget resets.
+	AccountID func(context.Context) (int64, error)
 }
 
 type Service struct {
@@ -86,9 +93,18 @@ type Service struct {
 	saveConfig func(int64) error
 	useSaved   func(context.Context, int64) error
 	setActive  func(int64)
+	accountID  func(context.Context) (int64, error)
+	now        func() time.Time
 
 	mu             sync.Mutex
 	pendingCreated *tgclient.OwnedBroadcastChannel
+
+	// discovery and discoveryMu hold the walk progress and complete list.
+	// discoveryMu is never held across a Telegram call.
+	discoveryMu sync.Mutex
+	discovery   discoveryState
+	// ownedWalks coalesces concurrent owned-channel walks into one.
+	ownedWalks singleflight.Group
 }
 
 func NewService(config Config) *Service {
@@ -108,6 +124,8 @@ func NewService(config Config) *Service {
 		saveConfig: saveConfig,
 		useSaved:   config.UseSaved,
 		setActive:  config.SetActive,
+		accountID:  config.AccountID,
+		now:        time.Now,
 	}
 }
 
@@ -130,18 +148,36 @@ func (s *Service) Prepare(ctx context.Context) (State, error) {
 }
 
 // Discover lists the broadcast channels the user created, ordered so the
-// most likely TDrive channel comes first. It is read-only.
+// most likely TDrive channel comes first. It is read-only. A complete list from
+// the last few minutes is reused, and an interrupted walk resumes where it stopped.
 func (s *Service) Discover(ctx context.Context) ([]Candidate, error) {
-	channels, err := s.listOwnedChannels(ctx)
-	if err != nil {
-		return nil, err
-	}
-	slog.Info("personaldrive: channel discovery completed", "candidate_count", len(channels))
-	return candidatesFromOwned(channels), nil
+	return s.discover(ctx, false)
 }
 
-// Select revalidates the ID against a fresh creator-owned channel list before
-// touching local state. IDs supplied by UI or daemon callers are untrusted.
+// DiscoverFresh is Discover without the complete-list cache: it walks Telegram
+// again. An interrupted walk still resumes, since its progress is still valid.
+func (s *Service) DiscoverFresh(ctx context.Context) ([]Candidate, error) {
+	return s.discover(ctx, true)
+}
+
+func (s *Service) discover(ctx context.Context, refresh bool) ([]Candidate, error) {
+	started := s.currentTime()
+	slog.Info("personaldrive: channel discovery started", "refresh", refresh)
+	channels, err := s.listOwnedChannels(ctx, refresh)
+	if err != nil {
+		slog.Warn("personaldrive: channel discovery failed", "error", err, "elapsed", s.currentTime().Sub(started))
+		return nil, err
+	}
+	candidates := candidatesFromOwned(channels)
+	slog.Info("personaldrive: channel discovery completed", "candidate_count", len(candidates),
+		"elapsed", s.currentTime().Sub(started))
+	return candidates, nil
+}
+
+// Select revalidates the ID against the creator-owned channel list before
+// touching local state. That list is the complete cached list when it is fresh,
+// so choosing a candidate shown by Discover costs no Telegram requests; otherwise
+// it is walked again. IDs supplied by UI or daemon callers are untrusted.
 func (s *Service) Select(ctx context.Context, channelID int64) error {
 	if channelID <= 0 {
 		return ErrInvalidSelection
@@ -158,7 +194,7 @@ func (s *Service) Select(ctx context.Context, channelID int64) error {
 		// than overwrite it with a stale choice.
 		return s.activateConfigured(ctx, configured)
 	}
-	channels, err := s.listOwnedChannels(ctx)
+	channels, err := s.listOwnedChannels(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -195,6 +231,8 @@ func (s *Service) Create(ctx context.Context) error {
 		if created.ID <= 0 {
 			return fmt.Errorf("personaldrive: create channel returned an invalid id")
 		}
+		// The channel list changed on Telegram, so no cached or partial list is current.
+		s.invalidateOwnedList()
 		s.pendingCreated = &created
 	}
 	if err := s.recover(ctx, *s.pendingCreated); err != nil {
@@ -211,18 +249,8 @@ func (s *Service) activateConfigured(ctx context.Context, channelID int64) error
 	if err := s.useSaved(ctx, channelID); err != nil {
 		return fmt.Errorf("personaldrive: activate saved channel: %w", err)
 	}
+	s.invalidateOwnedList()
 	return nil
-}
-
-func (s *Service) listOwnedChannels(ctx context.Context) ([]tgclient.OwnedBroadcastChannel, error) {
-	if s.telegram == nil {
-		return nil, errTelegramUnavailable
-	}
-	channels, err := s.telegram.ListOwnedBroadcastChannels(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("personaldrive: list owned channels: %w", err)
-	}
-	return channels, nil
 }
 
 // recover makes channel the personal drive: it registers the channel
@@ -282,6 +310,7 @@ func (s *Service) recover(ctx context.Context, channel tgclient.OwnedBroadcastCh
 		return fmt.Errorf("personaldrive: save channel config: %w", err)
 	}
 	s.setActive(channel.ID)
+	s.invalidateOwnedList()
 	slog.Info("personaldrive: recovery completed", "channel_id", channel.ID)
 	return nil
 }

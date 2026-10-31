@@ -310,6 +310,9 @@ type Client interface {
 	GetChannelPts(ctx context.Context, peer InputPeer) (int64, error)
 
 	ListOwnedBroadcastChannels(ctx context.Context) ([]OwnedBroadcastChannel, error)
+	// ListOwnedBroadcastChannelPage makes one page request of an owned-channel
+	// walk, so the caller can keep the cursor and resume after a failure.
+	ListOwnedBroadcastChannelPage(ctx context.Context, cursor OwnedChannelCursor) (OwnedChannelPage, error)
 	ListJoinedBroadcastChannels(ctx context.Context) ([]JoinedBroadcastChannel, error)
 	CreateBroadcastChannel(ctx context.Context, title, about string) (OwnedBroadcastChannel, error)
 	CreateMegagroup(ctx context.Context, title, about string) (InputPeer, error)

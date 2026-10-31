@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/gotd/td/telegram/query/dialogs"
 	"github.com/gotd/td/tg"
@@ -29,7 +30,9 @@ func (g *Gotd) ListMediaSourcePeers(ctx context.Context) ([]SourcePeer, error) {
 		}
 		seen := make(map[InputPeer]struct{})
 		truncated := false
-		queries := resumeOnFloodWait([]dialogs.Query{
+		walk := newDialogWalk("source", time.Time{})
+		logDialogWalkStart(walk, 2, false)
+		queries := resumeOnFloodWait(walk, []dialogs.Query{
 			folderDialogsQuery{api: api, folderID: 0},
 			folderDialogsQuery{api: api, folderID: 1},
 		})
@@ -55,7 +58,9 @@ func (g *Gotd) ListMediaSourcePeers(ctx context.Context) ([]SourcePeer, error) {
 				peers = append(peers, peer)
 			}
 			if err := iterator.Err(); err != nil {
-				return fmt.Errorf("tgclient: list media dialogs: %w", err)
+				err = fmt.Errorf("tgclient: list media dialogs: %w", err)
+				logDialogWalkEnd(walk, len(peers), err)
+				return err
 			}
 		}
 		peers = ensureSavedMessages(peers, selfID)
@@ -64,6 +69,7 @@ func (g *Gotd) ListMediaSourcePeers(ctx context.Context) ([]SourcePeer, error) {
 				peers[index].Truncated = true
 			}
 		}
+		logDialogWalkEnd(walk, len(peers), nil)
 		return nil
 	})
 	slices.SortFunc(peers, func(a, b SourcePeer) int {

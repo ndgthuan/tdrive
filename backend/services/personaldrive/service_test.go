@@ -24,20 +24,75 @@ type fakeTelegram struct {
 	listErr      error
 	createResult tgclient.OwnedBroadcastChannel
 	createErr    error
-	listCalls    int
-	createCalls  int
+	// pageSize is how many channels one page serves; zero serves them all.
+	pageSize int
+	// pageErrs fails the Nth page request (1-based) with the given error.
+	pageErrs map[int]error
+	// gate, when set, holds each page request until it is closed.
+	gate        chan struct{}
+	pageCursors []tgclient.OwnedChannelCursor
+	listCalls   int
+	createCalls int
 }
 
-func (f *fakeTelegram) ListOwnedBroadcastChannels(context.Context) ([]tgclient.OwnedBroadcastChannel, error) {
+// ListOwnedBroadcastChannelPage serves pages by offset: the fake keeps the
+// number of channels already served in Next.OffsetID, and a failed page
+// returns the cursor it was asked with, as the real walk does.
+func (f *fakeTelegram) ListOwnedBroadcastChannelPage(ctx context.Context, cursor tgclient.OwnedChannelCursor) (tgclient.OwnedChannelPage, error) {
+	f.mu.Lock()
+	f.listCalls++
+	call := f.listCalls
+	f.pageCursors = append(f.pageCursors, cursor)
+	gate := f.gate
+	f.mu.Unlock()
+	if gate != nil {
+		select {
+		case <-gate:
+		case <-ctx.Done():
+			return tgclient.OwnedChannelPage{Next: cursor}, ctx.Err()
+		}
+	}
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.listCalls++
 	if f.listErr != nil {
-		return nil, f.listErr
+		return tgclient.OwnedChannelPage{Next: cursor}, f.listErr
 	}
-	out := make([]tgclient.OwnedBroadcastChannel, len(f.channels))
-	copy(out, f.channels)
-	return out, nil
+	if err := f.pageErrs[call]; err != nil {
+		return tgclient.OwnedChannelPage{Next: cursor}, err
+	}
+	size := f.pageSize
+	if size <= 0 {
+		size = len(f.channels)
+	}
+	start := cursor.OffsetID
+	end := min(start+size, len(f.channels))
+	next := cursor
+	next.Pages++
+	next.OffsetID = end
+	done := end >= len(f.channels)
+	if done {
+		next.Folder = 2
+	}
+	return tgclient.OwnedChannelPage{
+		Channels: append([]tgclient.OwnedBroadcastChannel(nil), f.channels[start:end]...),
+		Next:     next,
+		Done:     done,
+	}, nil
+}
+
+// cursorsSeen returns the cursors the page requests were made with, in order.
+func (f *fakeTelegram) cursorsSeen() []tgclient.OwnedChannelCursor {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]tgclient.OwnedChannelCursor(nil), f.pageCursors...)
+}
+
+// setChannels replaces the channel set the fake serves.
+func (f *fakeTelegram) setChannels(channels ...tgclient.OwnedBroadcastChannel) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.channels = channels
 }
 
 func (f *fakeTelegram) CreateBroadcastChannel(context.Context, string, string) (tgclient.OwnedBroadcastChannel, error) {

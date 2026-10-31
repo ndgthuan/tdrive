@@ -945,6 +945,24 @@ func (f *Fake) ListOwnedBroadcastChannels(context.Context) ([]OwnedBroadcastChan
 	return append([]OwnedBroadcastChannel(nil), f.ownedBroadcast...), nil
 }
 
+// ListOwnedBroadcastChannelPage serves every seeded channel in one page of the
+// main folder, the way a small account's walk would finish.
+func (f *Fake) ListOwnedBroadcastChannelPage(_ context.Context, cursor OwnedChannelCursor) (OwnedChannelPage, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if cursor.Folder > 0 {
+		return OwnedChannelPage{Next: cursor, Done: true}, nil
+	}
+	next := cursor
+	next.Folder = ownedFolderCount
+	next.Pages++
+	return OwnedChannelPage{
+		Channels: append([]OwnedBroadcastChannel(nil), f.ownedBroadcast...),
+		Next:     next,
+		Done:     true,
+	}, nil
+}
+
 func (f *Fake) ListJoinedBroadcastChannels(context.Context) ([]JoinedBroadcastChannel, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
