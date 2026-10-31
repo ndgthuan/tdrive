@@ -58,6 +58,7 @@
     "track_button_title": "{title}: {track}",
     "click_to_cycle": ". Klicken, um zu wechseln",
     "auth_discovery_failed": "Telegram-Kanäle konnten nicht abgerufen werden.",
+    "auth_discovery_flood_wait": "Telegram bittet uns, {seconds} Sekunden zu warten, bevor wir es erneut versuchen. Bitte warte kurz und tippe dann auf Erneut versuchen.",
     "auth_saved_drive_failed": "Das gespeicherte Laufwerk konnte nicht geöffnet werden.",
     "auth_prepare_failed": "TDrive konnte das persönliche Laufwerk nicht vorbereiten.",
     "auth_unexpected_status": "Unerwarteter Einrichtungsstatus „{status}“.",

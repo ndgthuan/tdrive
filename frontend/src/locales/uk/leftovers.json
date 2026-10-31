@@ -62,6 +62,7 @@
     "track_button_title": "{title}: {track}",
     "click_to_cycle": ". Натисніть, щоб перемкнути",
     "auth_discovery_failed": "Не вдалося знайти ваші канали Telegram.",
+    "auth_discovery_flood_wait": "Telegram попросив зачекати {seconds} с перед повторною спробою. Зачекайте і натисніть «Повторити».",
     "auth_saved_drive_failed": "Не вдалося відкрити збережений диск.",
     "auth_prepare_failed": "TDrive не зміг підготувати ваш особистий диск.",
     "auth_unexpected_status": "Неочікуваний стан налаштування «{status}».",

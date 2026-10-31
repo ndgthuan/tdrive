@@ -29,8 +29,12 @@ func (g *Gotd) ListMediaSourcePeers(ctx context.Context) ([]SourcePeer, error) {
 		}
 		seen := make(map[InputPeer]struct{})
 		truncated := false
-		for _, folder := range []int{0, 1} {
-			iterator := dialogs.NewIterator(folderDialogsQuery{api: api, folderID: folder}, ownedDialogsBatchSize)
+		queries := resumeOnFloodWait([]dialogs.Query{
+			folderDialogsQuery{api: api, folderID: 0},
+			folderDialogsQuery{api: api, folderID: 1},
+		})
+		for _, query := range queries {
+			iterator := dialogs.NewIterator(query, ownedDialogsBatchSize)
 			visited := 0
 			for iterator.Next(ctx) {
 				visited++

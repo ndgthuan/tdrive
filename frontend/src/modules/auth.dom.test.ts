@@ -189,7 +189,7 @@ describe('personal drive startup gate', () => {
         expect(collaborators.loadChannels).not.toHaveBeenCalled();
     });
 
-    it('surfaces discovery failure with its cause and never creates', async () => {
+    it('surfaces a flood wait as a friendly wait time and never creates', async () => {
         authApi.preparePersonalDrive.mockResolvedValue({ status: 'selection_required', activeChannelId: '' });
         authApi.discoverPersonalDrives.mockRejectedValue('rpc error code 420: FLOOD_WAIT_30');
 
@@ -198,7 +198,7 @@ describe('personal drive startup gate', () => {
         expect(get(authScreen)).toBe('drive');
         expect(get(personalDriveSetup)).toMatchObject({
             phase: 'discovery-error',
-            error: 'Could not look up your Telegram channels.',
+            error: 'Telegram asked us to wait 30 seconds before trying again. Please wait, then tap Retry.',
             detail: 'rpc error code 420: FLOOD_WAIT_30',
         });
         expect(authApi.createPersonalDrive).not.toHaveBeenCalled();

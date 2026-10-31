@@ -3,7 +3,10 @@ package tgclient
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
+	"sync"
+	"time"
 
 	"TDrive/backend/auth"
 
@@ -14,6 +17,20 @@ import (
 )
 
 const ownedDialogsBatchSize = 100
+
+const (
+	// dialogFloodWaitMaxSingle is the longest single FLOOD_WAIT a dialog walk
+	// sleeps through. Longer waits are returned to the caller unchanged.
+	dialogFloodWaitMaxSingle = 90 * time.Second
+	// dialogFloodWaitMaxTotal bounds the summed pauses of one dialog walk.
+	dialogFloodWaitMaxTotal = 5 * time.Minute
+	// dialogFloodWaitPad is added to each server wait so the retry lands after it.
+	dialogFloodWaitPad = time.Second
+)
+
+// dialog_sleep pauses a dialog walk during FLOOD_WAIT. Tests replace it so
+// they never sleep in real time.
+var dialog_sleep = sleepContext
 
 // folderDialogsQuery shares the folder-flag handling used by fresh drive peer
 // resolution, so archived and primary dialog requests have the same semantics.
@@ -26,10 +43,70 @@ func (q folderDialogsQuery) Query(ctx context.Context, request dialogs.Request) 
 	return (auth.FolderDialogsQuery{API: q.api, FolderID: q.folderID}).Query(ctx, request)
 }
 
+// dialogWalkBudget is the FLOOD_WAIT time one dialog walk may spend. Every
+// query of the walk shares it, and the joined walk runs folders concurrently,
+// so it is locked.
+type dialogWalkBudget struct {
+	mu    sync.Mutex
+	spent time.Duration
+}
+
+// reserve books pause against the walk budget and reports whether it fit.
+func (b *dialogWalkBudget) reserve(pause time.Duration) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.spent+pause > dialogFloodWaitMaxTotal {
+		return false
+	}
+	b.spent += pause
+	return true
+}
+
+// floodWaitResumingQuery re-issues the same dialogs page after a FLOOD_WAIT,
+// so the walk resumes where Telegram stopped it instead of restarting from the
+// first page and flooding again at the same point.
+type floodWaitResumingQuery struct {
+	next   dialogs.Query
+	budget *dialogWalkBudget
+}
+
+func (q floodWaitResumingQuery) Query(ctx context.Context, request dialogs.Request) (tg.MessagesDialogsClass, error) {
+	for {
+		result, err := q.next.Query(ctx, request)
+		if err == nil {
+			return result, nil
+		}
+		wait, ok := FloodWaitDuration(normalizeError(err))
+		if !ok || wait > dialogFloodWaitMaxSingle {
+			return nil, err
+		}
+		pause := wait + dialogFloodWaitPad
+		if !q.budget.reserve(pause) {
+			return nil, err
+		}
+		slog.Warn("tgclient: FLOOD_WAIT while listing dialogs, waiting", "seconds", int(wait/time.Second))
+		if sleepErr := dialog_sleep(ctx, pause); sleepErr != nil {
+			return nil, sleepErr
+		}
+	}
+}
+
+// resumeOnFloodWait wraps queries so that all of them share one FLOOD_WAIT
+// budget, which is the budget of a single dialog walk.
+func resumeOnFloodWait(queries []dialogs.Query) []dialogs.Query {
+	budget := &dialogWalkBudget{}
+	wrapped := make([]dialogs.Query, len(queries))
+	for index, query := range queries {
+		wrapped[index] = floodWaitResumingQuery{next: query, budget: budget}
+	}
+	return wrapped
+}
+
 // collectOwnedBroadcastChannels walks every supplied dialog folder to
 // completion. It returns no partial list when any page fails, because an
 // incomplete picker could incorrectly imply that a user's drive is absent.
 func collectOwnedBroadcastChannels(ctx context.Context, queries ...dialogs.Query) ([]OwnedBroadcastChannel, error) {
+	queries = resumeOnFloodWait(queries)
 	seen := make(map[int64]struct{})
 	channels := make([]OwnedBroadcastChannel, 0)
 	for _, query := range queries {
@@ -85,6 +162,7 @@ func (g *Gotd) ListOwnedBroadcastChannels(ctx context.Context) ([]OwnedBroadcast
 // once, since each is a chain of requests that cannot start before the last
 // page answers; the result still lists the first folder first.
 func collectJoinedBroadcastChannels(ctx context.Context, queries ...dialogs.Query) ([]JoinedBroadcastChannel, error) {
+	queries = resumeOnFloodWait(queries)
 	folders := make([][]JoinedBroadcastChannel, len(queries))
 	group, ctx := errgroup.WithContext(ctx)
 	for index, query := range queries {

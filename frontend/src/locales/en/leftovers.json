@@ -58,6 +58,7 @@
     "track_button_title": "{title}: {track}",
     "click_to_cycle": ". Click to cycle",
     "auth_discovery_failed": "Could not look up your Telegram channels.",
+    "auth_discovery_flood_wait": "Telegram asked us to wait {seconds} seconds before trying again. Please wait, then tap Retry.",
     "auth_saved_drive_failed": "Could not open your saved drive.",
     "auth_prepare_failed": "TDrive could not prepare your personal drive.",
     "auth_unexpected_status": "Unexpected setup status \"{status}\".",

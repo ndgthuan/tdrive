@@ -31,6 +31,7 @@ import { loadSelfUser } from './profile_menu';
 import { notify } from './notifications';
 import { appActions } from './app_actions';
 import { humanizeBackendError, toAppError } from './errors';
+import { flood_wait_seconds } from './flood_wait';
 import {
     authHint,
     authPhone,
@@ -168,7 +169,12 @@ async function discoverPersonalDrives(flowVersion: number): Promise<void> {
     } catch (err) {
         if (!isCurrentPersonalDriveFlow(flowVersion)) return;
         console.error('Personal drive discovery failed:', err);
-        personalDriveSetup.discoveryError(t('leftovers.auth_discovery_failed'), errorText(err));
+        const seconds = flood_wait_seconds(errorText(err));
+        if (seconds !== null) {
+            personalDriveSetup.discoveryError(t('leftovers.auth_discovery_flood_wait', { seconds }), errorText(err));
+        } else {
+            personalDriveSetup.discoveryError(t('leftovers.auth_discovery_failed'), errorText(err));
+        }
         return;
     }
     if (!isCurrentPersonalDriveFlow(flowVersion)) return;

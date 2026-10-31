@@ -5,9 +5,11 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gotd/td/telegram/query/dialogs"
 	"github.com/gotd/td/tg"
+	"github.com/gotd/td/tgerr"
 )
 
 type scriptedDialogsQuery struct {
@@ -206,5 +208,139 @@ func TestBroadcastChannelFromAnswersOnlyForAJoinedBroadcast(t *testing.T) {
 		if _, err := broadcastChannelFrom(chats, peer); !errors.Is(err, ErrChannelUnavailable) {
 			t.Errorf("%s: err = %v, want ErrChannelUnavailable", name, err)
 		}
+	}
+}
+
+// dialog_step is one scripted answer of steppedDialogsQuery: a page, or an error.
+type dialog_step struct {
+	page tg.MessagesDialogsClass
+	err  error
+}
+
+// steppedDialogsQuery answers the Nth request with the Nth step and records
+// every request, so a test can tell a re-issued page from a new one.
+type steppedDialogsQuery struct {
+	steps []dialog_step
+	calls []dialogs.Request
+}
+
+func (q *steppedDialogsQuery) Query(_ context.Context, request dialogs.Request) (tg.MessagesDialogsClass, error) {
+	q.calls = append(q.calls, request)
+	index := len(q.calls) - 1
+	if index >= len(q.steps) {
+		return &tg.MessagesDialogsSlice{}, nil
+	}
+	return q.steps[index].page, q.steps[index].err
+}
+
+// use_recorded_dialog_sleep replaces the dialog walk sleeper with one that
+// records each pause and returns at once. The returned slice grows with the
+// pauses the code under test requests.
+func use_recorded_dialog_sleep(t *testing.T) *[]time.Duration {
+	t.Helper()
+	var pauses []time.Duration
+	previous := dialog_sleep
+	dialog_sleep = func(_ context.Context, pause time.Duration) error {
+		pauses = append(pauses, pause)
+		return nil
+	}
+	t.Cleanup(func() { dialog_sleep = previous })
+	return &pauses
+}
+
+func TestCollectOwnedBroadcastChannelsResumesAfterFloodWaitWithoutRestarting(t *testing.T) {
+	pauses := use_recorded_dialog_sleep(t)
+	query := &steppedDialogsQuery{steps: []dialog_step{
+		{page: dialogsPage(dialogChannel{id: 1001, title: "First", creator: true, broadcast: true, topMessage: 9, createdDate: 10})},
+		{err: tgerr.New(420, "FLOOD_WAIT_23")},
+		{page: dialogsPage(dialogChannel{id: 1002, title: "Second", creator: true, broadcast: true, topMessage: 8, createdDate: 20})},
+		{page: &tg.MessagesDialogsSlice{}},
+	}}
+
+	got, err := collectOwnedBroadcastChannels(t.Context(), query)
+	if err != nil {
+		t.Fatalf("collectOwnedBroadcastChannels: %v", err)
+	}
+	if len(got) != 2 || got[0].ID != 1001 || got[1].ID != 1002 {
+		t.Fatalf("channels = %#v, want both channels after the flood wait", got)
+	}
+	if len(query.calls) != 4 {
+		t.Fatalf("requests = %d, want 4 (page 1, page 2 rejected, page 2 again, end)", len(query.calls))
+	}
+	if query.calls[0].OffsetID != 0 {
+		t.Fatalf("first request offset = %d, want 0", query.calls[0].OffsetID)
+	}
+	if !reflect.DeepEqual(query.calls[1], query.calls[2]) {
+		t.Fatalf("re-issued request differs: %#v vs %#v", query.calls[1], query.calls[2])
+	}
+	if want := []time.Duration{24 * time.Second}; !reflect.DeepEqual(*pauses, want) {
+		t.Fatalf("pauses = %v, want %v", *pauses, want)
+	}
+}
+
+func TestCollectOwnedBroadcastChannelsStopsWhenFloodWaitBudgetIsSpent(t *testing.T) {
+	pauses := use_recorded_dialog_sleep(t)
+	floodSteps := make([]dialog_step, 0, 6)
+	for range 6 {
+		floodSteps = append(floodSteps, dialog_step{err: tgerr.New(420, "FLOOD_WAIT_90")})
+	}
+	query := &steppedDialogsQuery{steps: floodSteps}
+
+	got, err := collectOwnedBroadcastChannels(t.Context(), query)
+	if err == nil || got != nil {
+		t.Fatalf("collectOwnedBroadcastChannels = %#v, %v; want no list and an error", got, err)
+	}
+	if _, ok := FloodWaitDuration(normalizeError(err)); !ok {
+		t.Fatalf("error %v no longer reports a flood wait to callers", err)
+	}
+	// Each 90s wait costs 91s with padding, so three fit in the 5 minute budget.
+	if len(*pauses) != 3 {
+		t.Fatalf("pauses = %v, want exactly 3 before the budget is spent", *pauses)
+	}
+}
+
+func TestCollectOwnedBroadcastChannelsDoesNotSleepThroughOverlongFloodWait(t *testing.T) {
+	pauses := use_recorded_dialog_sleep(t)
+	query := &steppedDialogsQuery{steps: []dialog_step{
+		{err: tgerr.New(420, "FLOOD_WAIT_120")},
+	}}
+
+	_, err := collectOwnedBroadcastChannels(t.Context(), query)
+	if err == nil {
+		t.Fatal("collectOwnedBroadcastChannels succeeded past an overlong flood wait")
+	}
+	if _, ok := FloodWaitDuration(normalizeError(err)); !ok {
+		t.Fatalf("error %v no longer reports a flood wait to callers", err)
+	}
+	if len(*pauses) != 0 || len(query.calls) != 1 {
+		t.Fatalf("pauses = %v, requests = %d; want no pause and one request", *pauses, len(query.calls))
+	}
+}
+
+func TestCollectOwnedBroadcastChannelsReturnsContextErrorWhenCancelledDuringFloodWait(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	previous := dialog_sleep
+	dialog_sleep = func(sleep_ctx context.Context, pause time.Duration) error {
+		// Cancel while the walk is waiting; the real sleeper must observe it.
+		cancel()
+		return sleepContext(sleep_ctx, pause)
+	}
+	t.Cleanup(func() { dialog_sleep = previous })
+	query := &steppedDialogsQuery{steps: []dialog_step{
+		{err: tgerr.New(420, "FLOOD_WAIT_60")},
+		{page: &tg.MessagesDialogsSlice{}},
+	}}
+
+	started := time.Now()
+	_, err := collectOwnedBroadcastChannels(ctx, query)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("error = %v, want context.Canceled", err)
+	}
+	if elapsed := time.Since(started); elapsed > 5*time.Second {
+		t.Fatalf("cancelled walk took %s, want prompt return", elapsed)
+	}
+	if len(query.calls) != 1 {
+		t.Fatalf("requests = %d, want no re-issue after cancellation", len(query.calls))
 	}
 }

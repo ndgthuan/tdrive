@@ -58,6 +58,7 @@
   "track_button_title": "{title}: {track}",
   "click_to_cycle": ". बदलने के लिए क्लिक करें",
   "auth_discovery_failed": "आपके Telegram चैनल नहीं खोजे जा सके।",
+  "auth_discovery_flood_wait": "Telegram ने दोबारा कोशिश करने से पहले {seconds} सेकंड इंतज़ार करने को कहा है। कृपया थोड़ी देर रुकें, फिर पुनः प्रयास दबाएँ।",
   "auth_saved_drive_failed": "आपकी सहेजी गई ड्राइव नहीं खुल सकी।",
   "auth_prepare_failed": "TDrive आपकी निजी ड्राइव तैयार नहीं कर सका।",
   "auth_unexpected_status": "अप्रत्याशित सेटअप स्थिति \"{status}\"।",

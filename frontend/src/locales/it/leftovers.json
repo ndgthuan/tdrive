@@ -60,6 +60,7 @@
   "track_button_title": "{title}: {track}",
   "click_to_cycle": ". Fai clic per cambiare",
   "auth_discovery_failed": "Impossibile cercare i tuoi canali Telegram.",
+  "auth_discovery_flood_wait": "Telegram ci ha chiesto di attendere {seconds} secondi prima di riprovare. Attendi, poi tocca Riprova.",
   "auth_saved_drive_failed": "Impossibile aprire l’unità salvata.",
   "auth_prepare_failed": "TDrive non è riuscito a preparare la tua unità personale.",
   "auth_unexpected_status": "Stato di configurazione imprevisto «{status}».",

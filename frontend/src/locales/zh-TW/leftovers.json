@@ -58,6 +58,7 @@
   "track_button_title": "{title}：{track}",
   "click_to_cycle": "。點選可切換",
   "auth_discovery_failed": "無法查詢你的 Telegram 頻道。",
+  "auth_discovery_flood_wait": "Telegram 要求我們等待 {seconds} 秒後再試。請稍候，然後點選「重試」。",
   "auth_saved_drive_failed": "無法開啟你已保存的雲端硬碟。",
   "auth_prepare_failed": "TDrive 無法準備你的個人雲端硬碟。",
   "auth_unexpected_status": "出現非預期的設定狀態「{status}」。",

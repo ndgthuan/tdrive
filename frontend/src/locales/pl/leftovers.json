@@ -62,6 +62,7 @@
   "track_button_title": "{title}: {track}",
   "click_to_cycle": ". Kliknij, aby przełączać",
   "auth_discovery_failed": "Nie udało się wyszukać kanałów Telegram.",
+  "auth_discovery_flood_wait": "Telegram poprosił o odczekanie {seconds} s przed ponowną próbą. Poczekaj, a następnie naciśnij „Ponów”.",
   "auth_saved_drive_failed": "Nie udało się otworzyć zapisanego dysku.",
   "auth_prepare_failed": "TDrive nie mógł przygotować Twojego dysku osobistego.",
   "auth_unexpected_status": "Nieoczekiwany status konfiguracji: „{status}”.",

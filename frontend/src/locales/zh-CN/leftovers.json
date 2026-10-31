@@ -58,6 +58,7 @@
   "track_button_title": "{title}：{track}",
   "click_to_cycle": "。点击切换",
   "auth_discovery_failed": "无法查找你的 Telegram 频道。",
+  "auth_discovery_flood_wait": "Telegram 要求我们等待 {seconds} 秒后再重试。请稍等，然后点击“重试”。",
   "auth_saved_drive_failed": "无法打开你已保存的云盘。",
   "auth_prepare_failed": "TDrive 无法准备你的个人云盘。",
   "auth_unexpected_status": "出现意外的设置状态“{status}”。",

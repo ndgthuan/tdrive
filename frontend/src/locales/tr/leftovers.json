@@ -58,6 +58,7 @@
   "track_button_title": "{title}: {track}",
   "click_to_cycle": ". Değiştirmek için tıklayın",
   "auth_discovery_failed": "Telegram kanallarınız aranamadı.",
+  "auth_discovery_flood_wait": "Telegram, yeniden denemeden önce {seconds} saniye beklememizi istedi. Lütfen bekleyin, ardından Yeniden dene'ye dokunun.",
   "auth_saved_drive_failed": "Kayıtlı sürücünüz açılamadı.",
   "auth_prepare_failed": "TDrive kişisel sürücünüzü hazırlayamadı.",
   "auth_unexpected_status": "Beklenmeyen kurulum durumu “{status}”.",

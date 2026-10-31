@@ -56,6 +56,7 @@
   "track_button_title": "{title}: {track}",
   "click_to_cycle": ". Klik untuk berganti",
   "auth_discovery_failed": "Tidak dapat mencari channel Telegram Anda.",
+  "auth_discovery_flood_wait": "Telegram meminta kami menunggu {seconds} detik sebelum mencoba lagi. Tunggu sebentar, lalu ketuk Coba lagi.",
   "auth_saved_drive_failed": "Tidak dapat membuka drive tersimpan Anda.",
   "auth_prepare_failed": "TDrive tidak dapat menyiapkan drive pribadi Anda.",
   "auth_unexpected_status": "Status penyiapan tidak terduga \"{status}\".",

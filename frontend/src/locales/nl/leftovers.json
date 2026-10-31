@@ -58,6 +58,7 @@
     "track_button_title": "{title}: {track}",
     "click_to_cycle": ". Klik om te wisselen",
     "auth_discovery_failed": "Je Telegram-kanalen konden niet worden opgezocht.",
+    "auth_discovery_flood_wait": "Telegram vroeg ons {seconds} seconden te wachten voordat we het opnieuw proberen. Wacht even en tik daarna op Opnieuw proberen.",
     "auth_saved_drive_failed": "Je opgeslagen drive kon niet worden geopend.",
     "auth_prepare_failed": "TDrive kon je persoonlijke drive niet voorbereiden.",
     "auth_unexpected_status": "Onverwachte installatiestatus \"{status}\".",

@@ -56,6 +56,7 @@
     "track_button_title": "{title}: {track}",
     "click_to_cycle": ". คลิกเพื่อเปลี่ยน",
     "auth_discovery_failed": "ไม่สามารถค้นหาช่อง Telegram ของคุณได้",
+    "auth_discovery_flood_wait": "Telegram ขอให้รอ {seconds} วินาทีก่อนลองอีกครั้ง โปรดรอสักครู่ แล้วแตะ ลองอีกครั้ง",
     "auth_saved_drive_failed": "ไม่สามารถเปิดไดรฟ์ที่บันทึกไว้ของคุณได้",
     "auth_prepare_failed": "TDrive ไม่สามารถเตรียมไดรฟ์ส่วนตัวของคุณได้",
     "auth_unexpected_status": "สถานะการตั้งค่าที่ไม่คาดคิด “{status}”",

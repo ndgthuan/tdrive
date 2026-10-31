@@ -58,6 +58,7 @@
     "track_button_title": "{title}: {track}",
     "click_to_cycle": ". Nhấn để đổi",
     "auth_discovery_failed": "Không thể tìm các kênh Telegram của bạn.",
+    "auth_discovery_flood_wait": "Telegram yêu cầu chờ {seconds} giây trước khi thử lại. Vui lòng chờ, rồi nhấn Thử lại.",
     "auth_saved_drive_failed": "Không thể mở ổ đã lưu của bạn.",
     "auth_prepare_failed": "TDrive không thể chuẩn bị ổ cá nhân của bạn.",
     "auth_unexpected_status": "Trạng thái thiết lập không mong đợi \"{status}\".",
