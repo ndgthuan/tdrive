@@ -5,6 +5,7 @@
 // person can copy them from Account > About and send them, and it turns an
 // uncaught error into a small toast rather than a screen that stops answering.
 
+import { recentBackendLog } from '../api/session';
 import { getAppVersion } from '../api/updates';
 import { t } from '../i18n/i18n';
 import { notify } from './notifications';
@@ -19,6 +20,9 @@ export interface DiagnosticEntry {
 
 const STORAGE_KEY = 'tdrive.diagnostics.v1';
 const MAX_ENTRIES = 100;
+const BACKEND_LOG_LINES = 300;
+// The report is pasted into a chat or an issue, so the backend section is capped.
+const BACKEND_LOG_MAX_CHARS = 64 * 1024;
 const TOAST_GAP_MS = 15_000;
 
 let entries: DiagnosticEntry[] = read_stored();
@@ -159,7 +163,34 @@ export async function build_diagnostics_report(): Promise<string> {
             entry.message,
             entry.stack,
         ].filter(Boolean).join('\n'));
-    return [...header, ...lines].join('\n');
+    const backend = await build_backend_log_section();
+    return [...header, ...lines, '', ...backend].join('\n');
+}
+
+/**
+ * The backend log section of the report. The newest lines are kept within the
+ * size cap. When the backend cannot be asked, the section says why, and the
+ * rest of the report is still produced.
+ */
+export async function build_backend_log_section(): Promise<string[]> {
+    const title = `----- Backend log (last ${BACKEND_LOG_LINES} lines) -----`;
+    let body: string;
+    try {
+        body = await recentBackendLog(BACKEND_LOG_LINES);
+    } catch (error) {
+        return [title, `(backend log unavailable: ${describe(error).message})`];
+    }
+    if (body.trim() === '') return [title, '(no backend log lines recorded)'];
+    return [title, keep_newest(body, BACKEND_LOG_MAX_CHARS)];
+}
+
+/** Keeps the newest characters, starting at a whole line, and says what was dropped. */
+function keep_newest(text: string, max: number): string {
+    if (text.length <= max) return text;
+    const tail = text.slice(text.length - max);
+    const first_break = tail.indexOf('\n');
+    const whole_lines = first_break >= 0 ? tail.slice(first_break + 1) : tail;
+    return `(older lines omitted)\n${whole_lines}`;
 }
 
 /** Copies the report and says so, in a toast that does not block the screen. */

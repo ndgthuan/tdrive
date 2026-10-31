@@ -62,7 +62,10 @@ func Init() {
 			AddSource:   true,
 			ReplaceAttr: redact,
 		})
-		slog.SetDefault(slog.New(handler))
+		// The buffer sits in front of the file and stderr handler, so Copy
+		// diagnostics can show the same lines the log file has.
+		slog.SetDefault(slog.New(newRecentHandler(handler, recentLines)))
+		recentReady.Store(true)
 		if logPath != "" {
 			slog.Info("applog: logging initialized", "file", logPath)
 		} else {

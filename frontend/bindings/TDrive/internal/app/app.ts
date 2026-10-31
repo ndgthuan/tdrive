@@ -421,6 +421,16 @@ export function RebuildProjection(channelID: number): $CancellablePromise<void> 
     return $Call.ByID(3751182286, channelID);
 }
 
+/**
+ * RecentBackendLog returns the newest backend log lines, redacted, for Copy
+ * diagnostics in Account > About. It reads the in-memory buffer only, so it
+ * works on every platform, including phones where the log file is out of reach.
+ * It fails when the logger was never installed in this process.
+ */
+export function RecentBackendLog(maxLines: number): $CancellablePromise<string> {
+    return $Call.ByID(218318657, maxLines);
+}
+
 export function RemovePhotoBackupSource(id: string): $CancellablePromise<void> {
     return $Call.ByID(818045651, id);
 }

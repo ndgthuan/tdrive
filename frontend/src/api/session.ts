@@ -5,6 +5,7 @@ import {
     Logout as rawLogout,
     Me as rawMe,
     MyUserID as rawMyUserId,
+    RecentBackendLog as rawRecentBackendLog,
     ResolveUsernames as rawResolveUsernames,
     SaveSetup as rawSaveSetup,
     SubmitCode as rawSubmitCode,
@@ -51,6 +52,11 @@ export function normalizeSelfUser(value: unknown): SelfUser {
 }
 export async function checkSystemStatus(): Promise<string> {
     return invokeBackend(rawCheckSystemStatus);
+}
+
+/** The newest backend log lines, already redacted by the backend. */
+export async function recentBackendLog(maxLines: number): Promise<string> {
+    return invokeBackend(rawRecentBackendLog, maxLines);
 }
 
 export async function saveSetup(apiId: number, apiHash: string): Promise<string> {

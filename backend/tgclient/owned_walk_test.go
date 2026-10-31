@@ -139,3 +139,27 @@ func TestLastMessageOfMatchesOnlyTheDialogPeer(t *testing.T) {
 		t.Fatal("lastMessageOf matched a dialog with no message in the answer")
 	}
 }
+
+func TestOwnedChannelPageMissingTopMessageKeepsOffsetsAsGotd(t *testing.T) {
+	answer := dialogsPage(
+		dialogChannel{id: 1001, title: "First", creator: true, broadcast: true, topMessage: 9, createdDate: 10},
+		dialogChannel{id: 1002, title: "Second", creator: true, broadcast: true, topMessage: 8, createdDate: 20},
+	).(*tg.MessagesDialogsSlice)
+	// The answer carries the top message of the first dialog only.
+	answer.Messages = answer.Messages[:1]
+	query := &steppedDialogsQuery{steps: []dialog_step{{page: answer}}}
+	start := OwnedChannelCursor{OffsetID: 42, OffsetDate: 7, OffsetPeer: &tg.InputPeerChannel{ChannelID: 5, AccessHash: 6}}
+
+	page, err := ownedChannelPage(context.Background(), query, start)
+	if err != nil {
+		t.Fatalf("ownedChannelPage: %v (gotd keeps the offsets and returns no error here)", err)
+	}
+	// gotd keeps its previous offsets and only advances the peer to the last dialog.
+	if page.Next.OffsetID != 42 || page.Next.OffsetDate != 7 {
+		t.Fatalf("offsets = id %d date %d, want the previous (42, 7)", page.Next.OffsetID, page.Next.OffsetDate)
+	}
+	peer, ok := page.Next.OffsetPeer.(*tg.InputPeerChannel)
+	if !ok || peer.ChannelID != 1002 {
+		t.Fatalf("offset peer = %#v, want channel 1002", page.Next.OffsetPeer)
+	}
+}

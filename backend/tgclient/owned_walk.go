@@ -318,6 +318,9 @@ func ownedChannelPage(ctx context.Context, query dialogs.Query, cursor OwnedChan
 			return OwnedChannelPage{Next: next}, fmt.Errorf("tgclient: list owned broadcast channels: offset peer: %w", err)
 		}
 		next.OffsetPeer = lastPeer
+		// Same as gotd's dialogs iterator: without the last dialog's top message
+		// the offsets keep their previous values and no error is returned. The
+		// discovery walk stops a page that does not move on (dialogCursorStalled).
 		if message := lastMessageOf(messages, last.GetPeer()); message != nil {
 			next.OffsetID = message.GetID()
 			next.OffsetDate = message.GetDate()

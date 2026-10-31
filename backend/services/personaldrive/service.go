@@ -103,6 +103,8 @@ type Service struct {
 	// discoveryMu is never held across a Telegram call.
 	discoveryMu sync.Mutex
 	discovery   discoveryState
+	// ownedPageLimit overrides maxOwnedWalkPages in tests; zero uses the constant.
+	ownedPageLimit int
 	// ownedWalks coalesces concurrent owned-channel walks into one.
 	ownedWalks singleflight.Group
 }

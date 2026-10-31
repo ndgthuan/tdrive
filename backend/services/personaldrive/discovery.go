@@ -2,14 +2,22 @@ package personaldrive
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/gotd/td/tg"
 
 	"TDrive/backend/tgclient"
 )
 
 const (
+	// maxOwnedWalkPages caps the page requests of one complete owned-channel
+	// walk. The walk is resumed across retries, so the cap counts every request
+	// since it started. Reaching it means paging is not ending, so the walk stops.
+	maxOwnedWalkPages = 2000
+
 	// ownedListCacheTTL bounds how long a complete owned-channel list is reused
 	// without asking Telegram again.
 	ownedListCacheTTL = 5 * time.Minute
@@ -19,6 +27,8 @@ const (
 
 	// ownedWalkKey coalesces concurrent owned-channel walks into one.
 	ownedWalkKey = "owned"
+
+	errDialogPagingStalled = "personaldrive: dialog paging did not advance"
 )
 
 // discoveryState is what channel discovery keeps between calls. It holds one
@@ -108,7 +118,15 @@ func (s *Service) walkOwnedChannels(ctx context.Context, account int64) ([]tgcli
 	slog.Info("personaldrive: owned dialog walk started", "resumed", resumed, "folder_id", cursor.Folder,
 		"pages_done", cursor.Pages, "channels_so_far", len(channels))
 
+	limit := s.ownedWalkPageLimit()
 	for {
+		if cursor.Pages >= limit {
+			s.dropOwnedPartial(account)
+			slog.Error("personaldrive: owned dialog walk reached page cap", "pages", cursor.Pages,
+				"folder_id", cursor.Folder, "limit", limit)
+			return nil, fmt.Errorf("personaldrive: list owned channels: more than %d dialog pages", limit)
+		}
+		requested := cursor
 		page, err := s.telegram.ListOwnedBroadcastChannelPage(ctx, cursor)
 		if err != nil {
 			s.saveOwnedProgress(account, page.Next, channels)
@@ -117,6 +135,13 @@ func (s *Service) walkOwnedChannels(ctx context.Context, account int64) ([]tgcli
 				"attempt_elapsed", s.currentTime().Sub(attemptStart),
 				"walk_elapsed", s.currentTime().Sub(cursor.StartedAt), "error", err)
 			return nil, fmt.Errorf("personaldrive: list owned channels: %w", err)
+		}
+		if !page.Done && dialogCursorStalled(requested, page.Next) {
+			// Saving this cursor would ask for the same page again on every retry.
+			s.dropOwnedPartial(account)
+			slog.Error("personaldrive: dialog paging did not advance", "folder_id", requested.Folder,
+				"pages", page.Next.Pages, "channels_so_far", len(channels))
+			return nil, errors.New(errDialogPagingStalled)
 		}
 		channels = mergeOwned(channels, page.Channels)
 		cursor = page.Next
@@ -224,4 +249,51 @@ func mergeOwned(existing, incoming []tgclient.OwnedBroadcastChannel) []tgclient.
 // copyOwned returns a new slice, so callers cannot change cached state.
 func copyOwned(channels []tgclient.OwnedBroadcastChannel) []tgclient.OwnedBroadcastChannel {
 	return append(make([]tgclient.OwnedBroadcastChannel, 0, len(channels)), channels...)
+}
+
+// dropOwnedPartial forgets an interrupted walk of the account, so the next
+// attempt starts from the first page instead of resuming a walk that stopped.
+func (s *Service) dropOwnedPartial(account int64) {
+	s.discoveryMu.Lock()
+	defer s.discoveryMu.Unlock()
+	if s.discovery.account == account {
+		s.discovery.partial = nil
+	}
+}
+
+// ownedWalkPageLimit is the page cap for one walk. Tests lower it.
+func (s *Service) ownedWalkPageLimit() int {
+	if s.ownedPageLimit > 0 {
+		return s.ownedPageLimit
+	}
+	return maxOwnedWalkPages
+}
+
+// dialogCursorStalled reports whether a page answer left the walk where its
+// request started: the same folder and the same messages.getDialogs offsets.
+// A request that never moves on would otherwise be repeated on every attempt.
+func dialogCursorStalled(requested, next tgclient.OwnedChannelCursor) bool {
+	return requested.Folder == next.Folder &&
+		requested.OffsetDate == next.OffsetDate &&
+		requested.OffsetID == next.OffsetID &&
+		offsetPeerKey(requested.OffsetPeer) == offsetPeerKey(next.OffsetPeer)
+}
+
+// offsetPeerKey names an offset peer by its type and id. A nil peer is the
+// empty peer that starts the first page, as in tgclient.
+func offsetPeerKey(peer tg.InputPeerClass) string {
+	switch p := peer.(type) {
+	case nil, *tg.InputPeerEmpty:
+		return "empty"
+	case *tg.InputPeerSelf:
+		return "self"
+	case *tg.InputPeerChat:
+		return fmt.Sprintf("chat:%d", p.ChatID)
+	case *tg.InputPeerUser:
+		return fmt.Sprintf("user:%d", p.UserID)
+	case *tg.InputPeerChannel:
+		return fmt.Sprintf("channel:%d", p.ChannelID)
+	default:
+		return fmt.Sprintf("%T:%v", p, p)
+	}
 }

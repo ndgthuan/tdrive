@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/gotd/td/tg"
 
 	"TDrive/backend/tgclient"
 )
@@ -306,5 +309,74 @@ func TestCachedListIsACopy(t *testing.T) {
 	}
 	if want := ownedChannelsN(2); !reflect.DeepEqual(second, want) {
 		t.Fatalf("cached list = %#v, want %#v", second, want)
+	}
+}
+
+// stalledPagingTelegram answers every page with the cursor it was asked with
+// and more pages to come: the answer of a walk that never moves on.
+type stalledPagingTelegram struct {
+	*fakeTelegram
+}
+
+func (s stalledPagingTelegram) ListOwnedBroadcastChannelPage(_ context.Context, cursor tgclient.OwnedChannelCursor) (tgclient.OwnedChannelPage, error) {
+	s.fakeTelegram.mu.Lock()
+	s.fakeTelegram.listCalls++
+	s.fakeTelegram.mu.Unlock()
+	next := cursor
+	next.Pages++
+	return tgclient.OwnedChannelPage{Next: next}, nil
+}
+
+func TestDiscoverStopsWhenDialogPagingDoesNotAdvance(t *testing.T) {
+	telegram := stalledPagingTelegram{fakeTelegram: &fakeTelegram{}}
+	service := NewService(Config{Telegram: telegram})
+	service.now = newTestClock().Now
+
+	_, err := service.Discover(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "dialog paging did not advance") {
+		t.Fatalf("error = %v, want the no-progress error", err)
+	}
+	if calls, _ := telegram.counts(); calls < 1 || calls > 3 {
+		t.Fatalf("page requests = %d, want at most 3 before the walk stops", calls)
+	}
+}
+
+func TestDiscoverStopsAtPageCap(t *testing.T) {
+	telegram := &fakeTelegram{channels: ownedChannelsN(10), pageSize: 1}
+	service := newDiscoveryService(telegram, newTestClock(), nil)
+	service.ownedPageLimit = 3
+
+	_, err := service.Discover(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "more than 3 dialog pages") {
+		t.Fatalf("error = %v, want the page cap error", err)
+	}
+	if calls, _ := telegram.counts(); calls != 3 {
+		t.Fatalf("page requests = %d, want exactly the cap of 3", calls)
+	}
+}
+
+func TestDialogCursorStalled(t *testing.T) {
+	channel := func(id int64) tg.InputPeerClass { return &tg.InputPeerChannel{ChannelID: id, AccessHash: 1} }
+	at := func(folder, offsetID, offsetDate int, peer tg.InputPeerClass) tgclient.OwnedChannelCursor {
+		return tgclient.OwnedChannelCursor{Folder: folder, OffsetID: offsetID, OffsetDate: offsetDate, OffsetPeer: peer}
+	}
+	cases := []struct {
+		name      string
+		requested tgclient.OwnedChannelCursor
+		next      tgclient.OwnedChannelCursor
+		want      bool
+	}{
+		{"same offsets and peer", at(0, 9, 20, channel(1002)), at(0, 9, 20, channel(1002)), true},
+		{"first page with empty peer", at(0, 0, 0, nil), at(0, 0, 0, &tg.InputPeerEmpty{}), true},
+		{"offset id moved", at(0, 9, 20, channel(1002)), at(0, 8, 20, channel(1002)), false},
+		{"offset date moved", at(0, 9, 20, channel(1002)), at(0, 9, 21, channel(1002)), false},
+		{"peer id moved", at(0, 9, 20, channel(1002)), at(0, 9, 20, channel(1003)), false},
+		{"peer type moved", at(0, 9, 20, channel(1002)), at(0, 9, 20, &tg.InputPeerUser{UserID: 1002}), false},
+		{"folder moved", at(0, 9, 20, channel(1002)), at(1, 9, 20, channel(1002)), false},
+	}
+	for _, tc := range cases {
+		if got := dialogCursorStalled(tc.requested, tc.next); got != tc.want {
+			t.Errorf("%s: stalled = %v, want %v", tc.name, got, tc.want)
+		}
 	}
 }
