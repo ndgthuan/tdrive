@@ -40,6 +40,11 @@ type folderDialogsQuery struct {
 }
 
 func (q folderDialogsQuery) Query(ctx context.Context, request dialogs.Request) (tg.MessagesDialogsClass, error) {
+	if flood_sim_mode() != "" { // TEST ONLY - DO NOT MERGE
+		if err := flood_sim_gate(); err != nil {
+			return nil, err
+		}
+	}
 	return (auth.FolderDialogsQuery{API: q.api, FolderID: q.folderID}).Query(ctx, request)
 }
 
@@ -94,6 +99,9 @@ func (q floodWaitResumingQuery) Query(ctx context.Context, request dialogs.Reque
 // resumeOnFloodWait wraps queries so that all of them share one FLOOD_WAIT
 // budget, which is the budget of a single dialog walk.
 func resumeOnFloodWait(queries []dialogs.Query) []dialogs.Query {
+	if flood_sim_mode() == "old" { // TEST ONLY - DO NOT MERGE: reproduce pre-fix walk
+		return queries
+	}
 	budget := &dialogWalkBudget{}
 	wrapped := make([]dialogs.Query, len(queries))
 	for index, query := range queries {
