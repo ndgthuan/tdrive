@@ -29,6 +29,7 @@ expect_code v3.0.0 3000000
 expect_code v3.0.1 3000001
 expect_code v3.1.3 3001003
 expect_code v3.1.4 3001004
+expect_code v3.1.5 3001005
 expect_code v0.0.1 1
 
 reject_tag 2.0.0
