@@ -304,29 +304,55 @@ func ownedChannelPage(ctx context.Context, query dialogs.Query, cursor OwnedChan
 		})
 	}
 
+	if !final {
+		// The next page starts after an offset dialog of this one. Telegram pages
+		// by the top message's date and id, and an empty dialog (no top message)
+		// has neither: sent with offset date 0 it is ignored and page one repeats.
+		// So the offset is the last dialog of the page that has a message.
+		if offset, message, ok := pageOffsetOf(dialogList, messages, entities); ok {
+			next.OffsetPeer = offset
+			next.OffsetID = message.GetID()
+			next.OffsetDate = message.GetDate()
+		} else {
+			// No dialog on this page has a message, so there is no offset to page by.
+			// Telegram lists dialogs by date, so the rest of the folder holds no
+			// messages either: the folder is exhausted. Known limit: dialogs after
+			// this page are not listed, so a folder whose trailing dialogs fill a
+			// whole batch without messages loses the rest of them. The warning
+			// below marks that case in the diagnostics.
+			if len(dialogList) >= ownedDialogsBatchSize {
+				slog.Warn("tgclient: dialog page has no dated dialog, ending folder", "folder_id", cursor.Folder, "dialogs", len(dialogList))
+			}
+			final = true
+		}
+	}
 	if final {
 		// The folder is exhausted: the walk moves on to the next folder from its first page.
 		folder := cursor.Folder + 1
 		next = OwnedChannelCursor{Folder: folder, Pages: next.Pages, FloodWaited: next.FloodWaited, StartedAt: cursor.StartedAt}
 		return OwnedChannelPage{Channels: channels, Next: next, Done: folder >= ownedFolderCount}, nil
 	}
-	if len(dialogList) > 0 {
-		// The next page starts after the last dialog of this one, as gotd's iterator does.
-		last := dialogList[len(dialogList)-1]
-		lastPeer, err := entities.ExtractPeer(last.GetPeer())
-		if err != nil {
-			return OwnedChannelPage{Next: next}, fmt.Errorf("tgclient: list owned broadcast channels: offset peer: %w", err)
-		}
-		next.OffsetPeer = lastPeer
-		// Same as gotd's dialogs iterator: without the last dialog's top message
-		// the offsets keep their previous values and no error is returned. The
-		// discovery walk stops a page that does not move on (dialogCursorStalled).
-		if message := lastMessageOf(messages, last.GetPeer()); message != nil {
-			next.OffsetID = message.GetID()
-			next.OffsetDate = message.GetDate()
-		}
-	}
 	return OwnedChannelPage{Channels: channels, Next: next}, nil
+}
+
+// pageOffsetOf returns the peer and top message of the last dialog of a page
+// that has a message in the answer, the dialog a next page starts after. A
+// dialog whose peer cannot be resolved is skipped. ok is false when no dialog
+// of the page qualifies.
+func pageOffsetOf(dialogList []tg.DialogClass, messages []tg.MessageClass, entities peer.Entities) (offset tg.InputPeerClass, message tg.NotEmptyMessage, ok bool) {
+	for index := len(dialogList) - 1; index >= 0; index-- {
+		dlg := dialogList[index]
+		top := lastMessageOf(messages, dlg.GetPeer())
+		if top == nil {
+			continue
+		}
+		input, err := entities.ExtractPeer(dlg.GetPeer())
+		if err != nil {
+			continue
+		}
+		return input, top, true
+	}
+	return nil, nil, false
 }
 
 // lastMessageOf returns the top message of a dialog from a dialogs answer, or

@@ -28,6 +28,11 @@ const tgtest_dc = 2
 // tgtest_page_size is the limit the app asks for on every owned-walk page.
 const tgtest_page_size = ownedDialogsBatchSize
 
+// tgtest_empty_before bounds the empty owned channels of tgtest_make_account:
+// dialogs below this index with i%10==9 have no messages. Their count per
+// folder stays under one batch, so no page is message-less.
+const tgtest_empty_before = 600
+
 // tgtest_peer identifies a dialog peer. The zero value means "no peer".
 type tgtest_peer struct {
 	kind string
@@ -69,7 +74,8 @@ func (d tgtest_dialog) peer_class() tg.PeerClass {
 //
 // Per ten dialogs the kinds are: four owned broadcast channels, a non-owner
 // broadcast channel, an owned megagroup, an owned channel that has left, a
-// user, a basic chat, and an owned broadcast channel with no top message.
+// user, a basic chat, and an owned broadcast channel, which has no top message
+// while i < tgtest_empty_before.
 // Dates repeat in groups of seven and top message ids repeat across peers, so
 // paging depends on the peer as the tie breaker.
 func tgtest_make_account(n int, archive_mod int, dup bool) []tgtest_dialog {
@@ -91,7 +97,10 @@ func tgtest_make_account(n int, archive_mod int, dup bool) []tgtest_dialog {
 			d.peer = tgtest_peer{"channel", 1_000_000 + int64(i)}
 			d.access = int64(i)*31 + 7
 			d.creator, d.broadcast = true, true
-			if i%10 == 9 {
+			// Only the first 600 dialogs have empty channels, so each folder ends
+			// with fewer than one batch of them (see the known limit in
+			// TestTgtestTrailingEmptyBatchEndsFolderWithLimit).
+			if i%10 == 9 && i < tgtest_empty_before {
 				d.top, d.date = 0, 0
 			}
 		case 4:
@@ -320,7 +329,10 @@ func (s *tgtest_server) handle(server *tgtest.Server, req *tgtest.Request) error
 func (s *tgtest_server) page_locked(call *tgtest_call) tg.MessagesDialogsClass {
 	order := s.order[call.folder]
 	start := 0
-	if call.offset_peer != (tgtest_peer{}) {
+	// Telegram ignores an offset peer sent with offset date 0 and answers from
+	// the first page again. That is what a walk does when its offset dialog has
+	// no message to take a date from.
+	if call.offset_peer != (tgtest_peer{}) && call.offset_date != 0 {
 		at, ok := s.pos[call.folder][call.offset_peer]
 		if !ok {
 			call.unknown = true

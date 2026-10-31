@@ -336,9 +336,9 @@ func TestTgtestTopMessageMissingFromReplyStillCompletesTheWalk(t *testing.T) {
 	tgtest_equal_owned(t, "walk without messages", got, tgtest_expected_owned(records))
 
 	calls, _ := srv.snapshot()
-	// gotd's iterator keeps the previous offsets when the last top message is
-	// missing. Paging here follows the cursor peer, so the walk still ends.
-	t.Logf("requests with stale offsets (gotd parity): %d of %d", countMismatch(calls), len(calls))
+	// Each page's offset comes from its last dialog that has a message in the
+	// reply, so the offsets match the peers' top messages that are still listed.
+	t.Logf("requests with offsets that differ from the peer's top message: %d of %d", countMismatch(calls), len(calls))
 }
 
 // countMismatch counts requests whose offset date or id differs from the peer's top message.
