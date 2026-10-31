@@ -88,13 +88,6 @@ func (f *fakeTelegram) cursorsSeen() []tgclient.OwnedChannelCursor {
 	return append([]tgclient.OwnedChannelCursor(nil), f.pageCursors...)
 }
 
-// setChannels replaces the channel set the fake serves.
-func (f *fakeTelegram) setChannels(channels ...tgclient.OwnedBroadcastChannel) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.channels = channels
-}
-
 func (f *fakeTelegram) CreateBroadcastChannel(context.Context, string, string) (tgclient.OwnedBroadcastChannel, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
