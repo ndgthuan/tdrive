@@ -147,6 +147,8 @@
     "failed_detail_paused": "ट्रांसफ़र में इस अपलोड के फिर शुरू करने के नियंत्रण उपयोग करें।",
     "failed_detail_retry_started": "फिर से कोशिश पहले ही शुरू हो चुकी है। ट्रांसफ़र में उसका परिणाम देखें।",
     "failed_detail_canceled": "यह फ़ाइल रद्द कर दी गई थी।",
+    "failed_detail_empty_file": "Telegram खाली फ़ाइलें सहेज नहीं सकता।",
+    "failed_detail_rejected": "Telegram ने यह फ़ाइल अस्वीकार कर दी।",
     "move_title_default": "आइटम ले जाएं",
     "move_subtitle": "गंतव्य फ़ोल्डर चुनें",
     "move_loading": "फ़ोल्डर लोड हो रहे हैं…",

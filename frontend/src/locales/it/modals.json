@@ -156,6 +156,8 @@
     "failed_detail_paused": "Usa i controlli Riprendi di questo caricamento in Trasferimenti.",
     "failed_detail_retry_started": "Un nuovo tentativo è già stato avviato. Controlla il risultato in Trasferimenti.",
     "failed_detail_canceled": "Questo file è stato annullato.",
+    "failed_detail_empty_file": "Telegram non può memorizzare file vuoti.",
+    "failed_detail_rejected": "Telegram ha rifiutato questo file.",
     "move_title_default": "Sposta elemento",
     "move_subtitle": "Seleziona la cartella di destinazione",
     "move_loading": "Caricamento cartelle…",

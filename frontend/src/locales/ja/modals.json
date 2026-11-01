@@ -138,6 +138,8 @@
     "failed_detail_paused": "このアップロードの再開操作は、転送画面で行ってください。",
     "failed_detail_retry_started": "再試行はすでに開始されています。転送画面で結果を確認してください。",
     "failed_detail_canceled": "このファイルはキャンセルされました。",
+    "failed_detail_empty_file": "Telegram は空のファイルを保存できません。",
+    "failed_detail_rejected": "Telegram がこのファイルを拒否しました。",
     "move_title_default": "項目を移動",
     "move_subtitle": "移動先のフォルダを選択",
     "move_loading": "フォルダを読み込み中…",

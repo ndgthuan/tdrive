@@ -20,7 +20,7 @@
     const failures = $derived($view.payload?.failures ?? []);
     const total = $derived($view.payload?.paths.length ?? 0);
     const uploaded = $derived(Math.max(0, total - failures.length));
-    const retryCount = $derived(failures.filter((failure) => failure.retryable).length);
+    const retryCount = $derived(failures.filter(canRetry).length);
     const checkCount = $derived(failures.filter((failure) => statusFor(failure).tone === 'warning').length);
     const pages = $derived(Math.max(1, Math.ceil(failures.length / PAGE_SIZE)));
     let copyState = $state<'idle' | 'copied' | 'unavailable'>('idle');
@@ -55,12 +55,23 @@
     type Tone = 'accent' | 'warning' | 'info' | 'muted' | 'danger';
     interface Status { tone: Tone; label: string; detail: string; icon: typeof CircleXIcon; }
 
+    // A send Telegram refused, or a file it cannot store, never succeeds on a
+    // retry, and an uncertain send must not be sent again.
+    const NEVER_RETRY_CODES = ['outcome_unknown', 'empty_file', 'rejected'];
+    function canRetry(failure: UploadFailure): boolean {
+        return failure.retryable && !NEVER_RETRY_CODES.includes(failure.code);
+    }
+
     // The label says what the reader can do; the detail says why. Uncertain
     // sends replace the transport error, which would otherwise invite a resend.
     function statusFor(failure: UploadFailure, tr: Translator = t): Status {
         // The label already offers the retry, so drop the reason's own "Try again".
-        if (failure.retryable) return { tone: 'accent', label: tr('modals.failed_status_ready'), detail: humanizeBackendError(new Error(failure.message)).replace(/\s*Try again\.$/, ''), icon: RotateCcwIcon };
+        if (canRetry(failure)) return { tone: 'accent', label: tr('modals.failed_status_ready'), detail: humanizeBackendError(new Error(failure.message)).replace(/\s*Try again\.$/, ''), icon: RotateCcwIcon };
         switch (failure.code) {
+            case 'empty_file':
+                return { tone: 'danger', label: tr('modals.failed_status_failed'), detail: tr('modals.failed_detail_empty_file'), icon: CircleXIcon };
+            case 'rejected':
+                return { tone: 'danger', label: tr('modals.failed_status_failed'), detail: tr('modals.failed_detail_rejected'), icon: CircleXIcon };
             case 'projection_pending':
                 return { tone: 'warning', label: tr('modals.failed_status_indexing'), detail: tr('modals.failed_detail_indexing'), icon: ClockIcon };
             case 'outcome_unknown':

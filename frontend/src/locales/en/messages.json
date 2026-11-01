@@ -219,6 +219,8 @@
     "import_retrying": "Retrying failed files",
     "import_everything_on_drive": "Everything is already on the drive",
     "import_not_on_device": "not stored on this device (it lives only in the cloud)",
+    "import_empty_skipped_one": "{count} empty file skipped (Telegram can't store empty files)",
+    "import_empty_skipped_other": "{count} empty files skipped (Telegram can't store empty files)",
     "import_drive_changed": "The active drive changed, so the import was stopped",
     "update_ready_title": "TDrive {version} is ready",
     "update_available_title": "TDrive {version} is available",

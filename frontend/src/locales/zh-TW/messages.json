@@ -219,6 +219,7 @@
   "import_retrying": "正在重試失敗的檔案",
   "import_everything_on_drive": "全部已在雲端硬碟中",
   "import_not_on_device": "未儲存在此裝置上（僅在雲端）",
+  "import_empty_skipped_other": "已略過 {count} 個空檔案（Telegram 無法儲存空檔案）",
   "import_drive_changed": "目前的雲端硬碟已切換，因此匯入已停止",
   "update_ready_title": "TDrive {version} 已準備就緒",
   "update_available_title": "TDrive {version} 可用",

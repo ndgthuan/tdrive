@@ -138,6 +138,8 @@
     "failed_detail_paused": "전송 목록에서 이 업로드의 재개 컨트롤을 사용하세요.",
     "failed_detail_retry_started": "이미 다시 시도를 시작했습니다. 전송 목록에서 결과를 확인하세요.",
     "failed_detail_canceled": "이 파일의 업로드가 취소되었습니다.",
+    "failed_detail_empty_file": "Telegram은 빈 파일을 저장할 수 없습니다.",
+    "failed_detail_rejected": "Telegram이 이 파일을 거부했습니다.",
     "move_title_default": "항목 이동",
     "move_subtitle": "대상 폴더 선택",
     "move_loading": "폴더 로드 중…",

@@ -147,6 +147,8 @@
     "failed_detail_paused": "請在「傳輸」中使用此上傳的繼續控制項。",
     "failed_detail_retry_started": "已開始重試。請在「傳輸」中檢視其結果。",
     "failed_detail_canceled": "此檔案已被取消。",
+    "failed_detail_empty_file": "Telegram 無法儲存空檔案。",
+    "failed_detail_rejected": "Telegram 拒絕了此檔案。",
     "move_title_default": "移動項目",
     "move_subtitle": "選擇目的地資料夾",
     "move_loading": "正在載入資料夾…",

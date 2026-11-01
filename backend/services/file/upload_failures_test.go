@@ -10,6 +10,7 @@ import (
 
 	"TDrive/backend/projection"
 	"TDrive/backend/tgclient"
+	"github.com/gotd/td/tgerr"
 )
 
 type batchFailureClient struct {
@@ -121,6 +122,11 @@ func TestUploadFailureEligibility(t *testing.T) {
 		{"caller cancellation", context.Canceled, "canceled", false},
 		{"durable job", errors.Join(errUploadResumable, tgclient.ErrInjectedTransport), "resumable_upload", false},
 		{"unknown canceled receipt", errors.Join(tgclient.ErrSendOutcomeUnknown, context.Canceled), "outcome_unknown", false},
+		{"empty file", errUploadEmptyFile, "empty_file", false},
+		{"definite part rejection", tgerr.New(400, "FILE_PART_LENGTH_INVALID"), "rejected", false},
+		{"wrapped part rejection", fmt.Errorf("tgclient: upload: %w", tgerr.New(400, "FILE_PART_LENGTH_INVALID")), "rejected", false},
+		{"marked rejection", fmt.Errorf("%w: upload part", tgclient.ErrRejected), "rejected", false},
+		{"rejection behind an earlier unknown receipt", errors.Join(tgclient.ErrSendOutcomeUnknown, tgerr.New(400, "FILE_PART_LENGTH_INVALID")), "outcome_unknown", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			failure := classifyUploadFailure(t.Context(), 1, "file.txt", tc.err)
@@ -159,5 +165,58 @@ func TestUploadWithFailuresPreflightReportsNothingSent(t *testing.T) {
 		if failure.Index != index || failure.Code != "not_sent" || !failure.Retryable {
 			t.Fatalf("preflight failure %+v, want ordered safe not_sent", failure)
 		}
+	}
+}
+
+// sendCountingClient records every Telegram send attempt, so a test can prove
+// that an input never reached the sender.
+type sendCountingClient struct {
+	*tgclient.Fake
+	sends int
+}
+
+func (c *sendCountingClient) SendFileWithRandomID(ctx context.Context, peer tgclient.InputPeer, source io.Reader, name, caption string, size int64, progress func(int64, int64), randomID int64) (tgclient.SendFileResult, error) {
+	c.sends++
+	return c.Fake.SendFileWithRandomID(ctx, peer, source, name, caption, size, progress, randomID)
+}
+
+func (c *sendCountingClient) SendFile(ctx context.Context, peer tgclient.InputPeer, source io.Reader, name, caption string, size int64, progress func(int64, int64)) (tgclient.SendFileResult, error) {
+	c.sends++
+	return c.Fake.SendFile(ctx, peer, source, name, caption, size, progress)
+}
+
+func TestUploadWithFailuresEmptyFileNeverReachesTelegram(t *testing.T) {
+	isolate_data_dir(t)
+	svc, _, fake, _ := newTestService(t)
+	svc.FloodWaitRetry = instantRetryPolicy()
+	counter := &sendCountingClient{Fake: fake}
+	svc.TG = counter
+	empty := writeTempNamedFile(t, "empty.txt", nil)
+	files, failures, err := svc.UploadWithFailures(t.Context(), personalChannelID, []string{empty}, []string{""}, false)
+	if err == nil || len(files) != 0 || len(failures) != 1 {
+		t.Fatalf("files=%v failures=%v error=%v, want one failure and no stored file", files, failures, err)
+	}
+	failure := failures[0]
+	if failure.Code != "empty_file" || failure.Retryable || failure.Message != "Telegram can't store empty files." || failure.Name != "empty.txt" {
+		t.Fatalf("failure = %+v, want non-retryable empty_file with the plain message", failure)
+	}
+	if counter.sends != 0 || len(fake.SentFiles()) != 0 {
+		t.Fatalf("sends=%d accepted=%d, want no Telegram call for a zero-byte file", counter.sends, len(fake.SentFiles()))
+	}
+}
+
+func TestUploadWithFailuresEmptyFileBesideNormalFile(t *testing.T) {
+	isolate_data_dir(t)
+	svc, _, fake, _ := newTestService(t)
+	svc.FloodWaitRetry = instantRetryPolicy()
+	counter := &sendCountingClient{Fake: fake}
+	svc.TG = counter
+	paths := []string{writeTempNamedFile(t, "empty.txt", nil), writeTempNamedFile(t, "full.txt", []byte("body"))}
+	files, failures, err := svc.UploadWithFailures(t.Context(), personalChannelID, paths, []string{"", ""}, false)
+	if err == nil || len(files) != 1 || len(failures) != 1 || failures[0].Index != 0 || failures[0].Code != "empty_file" {
+		t.Fatalf("files=%v failures=%v error=%v, want the normal file stored and the empty one reported", files, failures, err)
+	}
+	if counter.sends != 1 {
+		t.Fatalf("sends=%d, want exactly the non-empty file sent", counter.sends)
 	}
 }

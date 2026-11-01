@@ -147,6 +147,8 @@
     "failed_detail_paused": "Use this upload's Resume controls in Transfers.",
     "failed_detail_retry_started": "A retry was already started. Review its result in Transfers.",
     "failed_detail_canceled": "This file was canceled.",
+    "failed_detail_empty_file": "Telegram can't store empty files.",
+    "failed_detail_rejected": "Telegram rejected this file.",
     "move_title_default": "Move item",
     "move_subtitle": "Select destination folder",
     "move_loading": "Loading folders…",

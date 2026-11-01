@@ -147,6 +147,8 @@
     "failed_detail_paused": "Bu yüklemenin Devam Et denetimlerini Aktarımlar bölümünde kullanın.",
     "failed_detail_retry_started": "Bir yeniden deneme zaten başlatıldı. Sonucunu Aktarımlar bölümünde inceleyin.",
     "failed_detail_canceled": "Bu dosya iptal edildi.",
+    "failed_detail_empty_file": "Telegram boş dosyaları saklayamaz.",
+    "failed_detail_rejected": "Telegram bu dosyayı reddetti.",
     "move_title_default": "Öğeyi taşı",
     "move_subtitle": "Hedef klasörü seçin",
     "move_loading": "Klasörler yükleniyor…",

@@ -23,6 +23,9 @@ type UploadFailure struct {
 var (
 	errUploadResumable = errors.New("upload has a resumable job")
 	errUploadSource    = errors.New("upload source unavailable")
+	// errUploadEmptyFile is raised before any Telegram call: a zero-byte file
+	// has nothing Telegram can store, so no send is ever attempted for it.
+	errUploadEmptyFile = errors.New("Telegram can't store empty files.")
 )
 
 // NotSentFailures reports every input of a batch that failed before any send
@@ -97,12 +100,18 @@ func (o *failureUploadObserver) Failed(id int, name string, err error) {
 func classifyUploadFailure(ctx context.Context, index int, name string, err error) UploadFailure {
 	failure := UploadFailure{Index: index, Name: name, Message: err.Error(), Code: "upload_failed"}
 	switch {
+	case errors.Is(err, errUploadEmptyFile):
+		failure.Code = "empty_file"
 	case errors.Is(err, errUploadProjection):
 		failure.Code = "projection_pending"
 	case errors.Is(err, errUploadResumable):
 		failure.Code = "resumable_upload"
 	case errors.Is(err, tgclient.ErrSendOutcomeUnknown):
 		failure.Code = "outcome_unknown"
+	case tgclient.IsDefiniteRejection(err):
+		// Telegram answered no for this request, so nothing was stored and a
+		// retry would only repeat the same refusal.
+		failure.Code = "rejected"
 	case ctx.Err() != nil:
 		failure.Code = "canceled"
 	case errors.Is(err, errUploadSource) && (errors.Is(err, fs.ErrNotExist) || errors.Is(err, fs.ErrPermission)):

@@ -53,6 +53,11 @@ func (s *Service) uploadSingleWithObserver(ctx context.Context, uploadID int, fi
 		return Metadata{}, projection.Op{}, "", fmt.Errorf("%w: %w", errUploadSource, err)
 	}
 	plaintextSize := info.Size()
+	if plaintextSize == 0 {
+		// Every local-path upload funnels through here. Refusing before the
+		// start event and before any Telegram call keeps the file out of sends.
+		return Metadata{}, projection.Op{}, "", errUploadEmptyFile
+	}
 	// A photo's original and derivatives must use one immutable source. The
 	// user can replace the selected path while Telegram is uploading; native
 	// decoding that path later would otherwise publish unrelated image pixels.

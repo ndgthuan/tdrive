@@ -165,6 +165,8 @@
     "failed_detail_paused": "Użyj opcji Wznów przy tym przesyłaniu w sekcji Transfery.",
     "failed_detail_retry_started": "Ponowienie zostało już rozpoczęte. Sprawdź jego wynik w sekcji Transfery.",
     "failed_detail_canceled": "To przesyłanie zostało anulowane.",
+    "failed_detail_empty_file": "Telegram nie może przechowywać pustych plików.",
+    "failed_detail_rejected": "Telegram odrzucił ten plik.",
     "move_title_default": "Przenieś element",
     "move_subtitle": "Wybierz folder docelowy",
     "move_loading": "Wczytywanie folderów…",

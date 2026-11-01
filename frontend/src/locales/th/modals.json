@@ -138,6 +138,8 @@
     "failed_detail_paused": "ใช้ตัวควบคุมการทำต่อของการอัปโหลดนี้ในการถ่ายโอน",
     "failed_detail_retry_started": "เริ่มลองใหม่ไปแล้ว ตรวจสอบผลลัพธ์ในการถ่ายโอน",
     "failed_detail_canceled": "ไฟล์นี้ถูกยกเลิกแล้ว",
+    "failed_detail_empty_file": "Telegram ไม่สามารถเก็บไฟล์ว่างได้",
+    "failed_detail_rejected": "Telegram ปฏิเสธไฟล์นี้",
     "move_title_default": "ย้ายรายการ",
     "move_subtitle": "เลือกโฟลเดอร์ปลายทาง",
     "move_loading": "กำลังโหลดโฟลเดอร์…",

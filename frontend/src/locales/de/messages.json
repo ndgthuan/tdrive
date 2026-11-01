@@ -219,6 +219,8 @@
     "import_retrying": "Fehlgeschlagene Dateien werden erneut versucht",
     "import_everything_on_drive": "Alles ist bereits auf dem Laufwerk",
     "import_not_on_device": "nicht auf diesem Gerät gespeichert (nur in der Cloud)",
+    "import_empty_skipped_one": "{count} leere Datei übersprungen (Telegram kann keine leeren Dateien speichern)",
+    "import_empty_skipped_other": "{count} leere Dateien übersprungen (Telegram kann keine leeren Dateien speichern)",
     "import_drive_changed": "Das aktive Laufwerk wurde gewechselt, daher wurde der Import gestoppt",
     "update_ready_title": "TDrive {version} ist bereit",
     "update_available_title": "TDrive {version} ist verfügbar",

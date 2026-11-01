@@ -219,6 +219,7 @@
     "import_retrying": "Đang thử lại các tệp bị lỗi",
     "import_everything_on_drive": "Tất cả đã có trên ổ đĩa",
     "import_not_on_device": "không lưu trên thiết bị này (chỉ có trên đám mây)",
+    "import_empty_skipped_other": "Đã bỏ qua {count} tệp rỗng (Telegram không thể lưu tệp rỗng)",
     "import_drive_changed": "Ổ đĩa đang dùng đã đổi, nên việc nhập đã bị dừng",
     "update_ready_title": "TDrive {version} đã sẵn sàng",
     "update_available_title": "Đã có TDrive {version}",

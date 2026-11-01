@@ -156,6 +156,8 @@
     "failed_detail_paused": "Utilisez les commandes Reprendre de cette importation dans Transferts.",
     "failed_detail_retry_started": "Une nouvelle tentative a déjà été lancée. Consultez son résultat dans Transferts.",
     "failed_detail_canceled": "Ce fichier a été annulé.",
+    "failed_detail_empty_file": "Telegram ne peut pas stocker de fichiers vides.",
+    "failed_detail_rejected": "Telegram a refusé ce fichier.",
     "move_title_default": "Déplacer l’élément",
     "move_subtitle": "Choisissez le dossier de destination",
     "move_loading": "Chargement des dossiers…",

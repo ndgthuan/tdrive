@@ -219,6 +219,8 @@
   "import_retrying": "Başarısız dosyalar yeniden deneniyor",
   "import_everything_on_drive": "Her şey zaten sürücüde",
   "import_not_on_device": "bu cihazda saklanmıyor (yalnızca bulutta)",
+  "import_empty_skipped_one": "{count} boş dosya atlandı (Telegram boş dosyaları saklayamaz)",
+  "import_empty_skipped_other": "{count} boş dosya atlandı (Telegram boş dosyaları saklayamaz)",
   "import_drive_changed": "Etkin sürücü değişti, bu yüzden içe aktarma durduruldu",
   "update_ready_title": "TDrive {version} hazır",
   "update_available_title": "TDrive {version} kullanılabilir",

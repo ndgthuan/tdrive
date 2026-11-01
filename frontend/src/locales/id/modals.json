@@ -138,6 +138,8 @@
     "failed_detail_paused": "Gunakan kontrol Lanjutkan untuk unggahan ini di Transfer.",
     "failed_detail_retry_started": "Percobaan ulang sudah dimulai. Tinjau hasilnya di Transfer.",
     "failed_detail_canceled": "File ini dibatalkan.",
+    "failed_detail_empty_file": "Telegram tidak dapat menyimpan file kosong.",
+    "failed_detail_rejected": "Telegram menolak file ini.",
     "move_title_default": "Pindahkan item",
     "move_subtitle": "Pilih folder tujuan",
     "move_loading": "Memuat folder…",

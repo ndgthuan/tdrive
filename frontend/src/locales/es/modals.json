@@ -156,6 +156,8 @@
     "failed_detail_paused": "Usa los controles de Reanudar de esta subida en Transferencias.",
     "failed_detail_retry_started": "Ya se ha iniciado un reintento. Revisa su resultado en Transferencias.",
     "failed_detail_canceled": "Este archivo se ha cancelado.",
+    "failed_detail_empty_file": "Telegram no puede guardar archivos vacíos.",
+    "failed_detail_rejected": "Telegram rechazó este archivo.",
     "move_title_default": "Mover elemento",
     "move_subtitle": "Selecciona la carpeta de destino",
     "move_loading": "Cargando carpetas…",

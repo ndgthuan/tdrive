@@ -77,4 +77,40 @@ describe('failed upload review', () => {
         expect(host.querySelector<HTMLButtonElement>('#retry-failed-uploads')?.disabled).toBe(true);
         expect(host.textContent).toContain('Resume controls in Transfers');
     });
+
+    it('states plainly that Telegram cannot store an empty file, without any uncertainty wording', () => {
+        open([{ index: 0, name: 'empty.txt', message: "Telegram can't store empty files.", code: 'empty_file', retryable: false }]);
+        expect(host.textContent).toContain("Telegram can't store empty files.");
+        expect(host.textContent).not.toContain('Not confirmed');
+        expect(host.textContent).not.toContain('Check the folder');
+        expect(host.querySelector('.failure-count[data-tone="warning"]')).toBeNull();
+        expect(host.querySelector<HTMLButtonElement>('#retry-failed-uploads')?.disabled).toBe(true);
+    });
+
+    it('states plainly that Telegram rejected a file, and never offers it for retry even if flagged retryable', () => {
+        open([{ index: 0, name: 'bad.bin', message: 'FILE_PART_LENGTH_INVALID', code: 'rejected', retryable: true }]);
+        expect(host.textContent).toContain('Telegram rejected this file.');
+        expect(host.textContent).not.toContain('Not confirmed');
+        expect(host.textContent).not.toContain('Ready to retry');
+        expect(host.querySelector('.failure-count[data-tone="warning"]')).toBeNull();
+        expect(host.querySelector<HTMLButtonElement>('#retry-failed-uploads')?.disabled).toBe(true);
+        host.querySelector<HTMLButtonElement>('#retry-failed-uploads')?.click();
+        expect(retry).not.toHaveBeenCalled();
+    });
+
+    it('counts only the retryable failures when refusals are mixed in', () => {
+        open([
+            { index: 0, name: 'empty.txt', message: "Telegram can't store empty files.", code: 'empty_file', retryable: false },
+            { index: 1, name: 'again.txt', message: 'quota exceeded', code: 'upload_failed', retryable: true },
+        ]);
+        expect(host.querySelector<HTMLButtonElement>('#retry-failed-uploads')?.textContent).toContain('(1)');
+        expect(host.querySelector('.failure-count[data-tone="accent"]')?.textContent).toContain('1');
+        expect(host.querySelector('.failure-count[data-tone="warning"]')).toBeNull();
+    });
+
+    it('keeps the uncertain wording for an outcome_unknown failure', () => {
+        open([{ index: 0, name: 'lost.txt', message: 'lost receipt', code: 'outcome_unknown', retryable: false }]);
+        expect(host.textContent).toContain('Not confirmed');
+        expect(host.textContent).toContain('Check the folder before uploading it again');
+    });
 });

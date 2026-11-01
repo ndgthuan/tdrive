@@ -216,6 +216,7 @@
   "import_retrying": "失敗したファイルを再試行しています",
   "import_everything_on_drive": "すべてドライブに既にあります",
   "import_not_on_device": "この端末には保存されていません（クラウドのみ）",
+  "import_empty_skipped_other": "空のファイルを {count} 件スキップしました（Telegram は空のファイルを保存できません）",
   "import_drive_changed": "アクティブなドライブが変わったため、インポートを停止しました",
   "update_ready_title": "TDrive {version} の準備ができました",
   "update_available_title": "TDrive {version} が利用可能です",

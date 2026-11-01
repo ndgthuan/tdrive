@@ -147,6 +147,8 @@
     "failed_detail_paused": "Gebruik de knoppen Hervatten van deze upload bij Overdrachten.",
     "failed_detail_retry_started": "Er is al een nieuwe poging gestart. Bekijk het resultaat bij Overdrachten.",
     "failed_detail_canceled": "Dit bestand is geannuleerd.",
+    "failed_detail_empty_file": "Telegram kan geen lege bestanden opslaan.",
+    "failed_detail_rejected": "Telegram heeft dit bestand geweigerd.",
     "move_title_default": "Item verplaatsen",
     "move_subtitle": "Kies de doelmap",
     "move_loading": "Mappen laden…",

@@ -219,6 +219,8 @@
   "import_retrying": "विफल फ़ाइलें फिर से आज़माई जा रही हैं",
   "import_everything_on_drive": "सब कुछ पहले से ड्राइव पर है",
   "import_not_on_device": "इस डिवाइस पर संग्रहीत नहीं (केवल क्लाउड में)",
+  "import_empty_skipped_one": "{count} खाली फ़ाइल छोड़ी गई (Telegram खाली फ़ाइलें सहेज नहीं सकता)",
+  "import_empty_skipped_other": "{count} खाली फ़ाइलें छोड़ी गईं (Telegram खाली फ़ाइलें सहेज नहीं सकता)",
   "import_drive_changed": "सक्रिय ड्राइव बदल गया, इसलिए इंपोर्ट रोक दिया गया",
   "update_ready_title": "TDrive {version} तैयार है",
   "update_available_title": "TDrive {version} उपलब्ध है",

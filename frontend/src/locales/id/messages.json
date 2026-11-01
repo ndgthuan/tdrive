@@ -215,6 +215,7 @@
   "import_retrying": "Mencoba ulang file yang gagal",
   "import_everything_on_drive": "Semua sudah ada di drive",
   "import_not_on_device": "tidak tersimpan di perangkat ini (hanya ada di cloud)",
+  "import_empty_skipped_other": "{count} file kosong dilewati (Telegram tidak dapat menyimpan file kosong)",
   "import_drive_changed": "Drive aktif berubah, jadi impor dihentikan",
   "update_ready_title": "TDrive {version} siap",
   "update_available_title": "TDrive {version} tersedia",

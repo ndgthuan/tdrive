@@ -147,6 +147,8 @@
     "failed_detail_paused": "Dùng nút Tiếp tục của tải lên này trong Truyền tải.",
     "failed_detail_retry_started": "Đã có một lần thử lại được bắt đầu. Xem kết quả trong Truyền tải.",
     "failed_detail_canceled": "Tệp này đã bị hủy.",
+    "failed_detail_empty_file": "Telegram không thể lưu tệp rỗng.",
+    "failed_detail_rejected": "Telegram đã từ chối tệp này.",
     "move_title_default": "Di chuyển mục",
     "move_subtitle": "Chọn thư mục đích",
     "move_loading": "Đang tải thư mục…",

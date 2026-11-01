@@ -147,6 +147,8 @@
     "failed_detail_paused": "Die Fortsetzen-Steuerung dieses Uploads unter „Übertragungen“ verwenden.",
     "failed_detail_retry_started": "Ein neuer Versuch wurde bereits gestartet. Das Ergebnis unter „Übertragungen“ prüfen.",
     "failed_detail_canceled": "Diese Datei wurde abgebrochen.",
+    "failed_detail_empty_file": "Telegram kann leere Dateien nicht speichern.",
+    "failed_detail_rejected": "Telegram hat diese Datei abgelehnt.",
     "move_title_default": "Element verschieben",
     "move_subtitle": "Zielordner auswählen",
     "move_loading": "Ordner werden geladen…",

@@ -709,3 +709,123 @@ describe('retrying the failed list', () => {
         expect(mocks.notify.mock.calls[0][0].body).toContain('2 temporary camera files skipped');
     });
 });
+
+describe('zero-byte files in an Android folder', () => {
+    const EMPTY_NOTE = "1 empty file skipped (Telegram can't store empty files)";
+
+    it('never sends a zero-byte file, and sends the rest as usual', async () => {
+        manifestJson = JSON.stringify({
+            root: 'Docs',
+            files: [{ id: 'doc:0', rel: 'a.txt', size: 100 }, { id: 'doc:1', rel: 'empty.txt', size: 0 }],
+        });
+
+        await importFolderWithParentID('root');
+
+        expect(materialized).toEqual([['doc:0']]);
+        expect(app.UploadToDriveFS).toHaveBeenCalledTimes(1);
+        const [paths] = app.UploadToDriveFS.mock.calls[0];
+        expect(paths).toEqual(['/cache/doc:0']);
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: `Imported 1 file · ${EMPTY_NOTE}`,
+        });
+    });
+
+    it('keeps the summary calm: not failed, not red, and not in the failed list', async () => {
+        manifestJson = JSON.stringify({
+            root: 'Docs',
+            files: [{ id: 'doc:0', rel: 'a.txt', size: 100 }, { id: 'doc:1', rel: 'empty.txt', size: 0 }],
+        });
+
+        await importFolderWithParentID('root');
+
+        expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'done' });
+        expect(mocks.notify).toHaveBeenCalledTimes(1);
+        expect(mocks.notify.mock.calls[0][0].level).toBe('info');
+        expect(mocks.notify.mock.calls[0][0].action).toBeUndefined();
+        expect(get(failedUploadReports)).toEqual([]);
+    });
+
+    it('sends a zero-byte file to neither the live check nor the ledger', async () => {
+        manifestJson = JSON.stringify({
+            root: 'Docs',
+            files: [{ id: 'doc:0', rel: 'a.txt', size: 100 }, { id: 'doc:1', rel: 'empty.txt', size: 0 }],
+        });
+
+        await importFolderWithParentID('root');
+
+        expect(liveNames(app.ImportFindExisting.mock.calls[0])).toEqual(['a.txt']);
+        const recorded = app.ImportLedgerRecord.mock.calls.flatMap(([, , entries]) => (entries as { name: string }[]).map((entry) => entry.name));
+        expect(recorded).toEqual(['a.txt']);
+    });
+
+    it('says everything is already on the drive, and still notes the empty file', async () => {
+        manifestJson = JSON.stringify({
+            root: 'Docs',
+            files: [{ id: 'doc:0', rel: 'a.txt', size: 5 }, { id: 'doc:1', rel: 'empty.txt', size: 0 }],
+        });
+        app.ImportFindExisting.mockResolvedValue([{ index: 0, folder_id: 'x' }]);
+
+        await importFolderWithParentID('root');
+
+        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: `Everything is already on the drive · ${EMPTY_NOTE}`,
+        });
+        expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'done' });
+    });
+
+    it('creates no folder, asks no question, and starts no window for an import of only empty files', async () => {
+        manifestJson = JSON.stringify({
+            root: 'Docs',
+            files: [{ id: 'doc:0', rel: 'Sub/empty.txt', size: 0 }],
+        });
+
+        await importFolderWithParentID('root');
+
+        expect(mocks.openImportOptionsModal).not.toHaveBeenCalled();
+        expect(app.ImportResolveFolders).not.toHaveBeenCalled();
+        expect(app.ImportFindExisting).not.toHaveBeenCalled();
+        expect(materialized).toEqual([]);
+        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: "Imported 0 files · 1 empty file skipped (Telegram can't store empty files)",
+        });
+        expect(mocks.notify.mock.calls[0][0].level).toBe('info');
+    });
+
+    it('still attempts a file whose size is unknown (-1)', async () => {
+        manifestJson = JSON.stringify({
+            root: 'Docs',
+            files: [{ id: 'doc:0', rel: 'unknown.bin', size: -1 }],
+        });
+
+        await importFolderWithParentID('root');
+
+        expect(materialized).toEqual([['doc:0']]);
+        expect(app.UploadToDriveFS).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('zero-byte files and the backend refusal codes', () => {
+    it('never offers a rejected file for retry, even when the backend says retryable', async () => {
+        manifestJson = manifestOf('Holiday', ['a']);
+        app.UploadToDriveFS.mockResolvedValueOnce({
+            result: { ok: true },
+            files: [],
+            failures: [{ index: 0, name: '/cache/doc:0', message: 'FILE_PART_LENGTH_INVALID', code: 'rejected', retryable: true }],
+        });
+
+        await importFolderWithParentID('root');
+
+        mocks.notify.mock.calls[0][0].action.run();
+        const view = get(failedUploadsModal.state);
+        expect(view.payload?.failures[0]).toMatchObject({ code: 'rejected', retryable: false });
+        expect(view.payload?.retry).toBeUndefined();
+    });
+});

@@ -215,6 +215,7 @@
     "import_retrying": "กำลังลองไฟล์ที่ล้มเหลวอีกครั้ง",
     "import_everything_on_drive": "ทุกอย่างอยู่ในไดรฟ์แล้ว",
     "import_not_on_device": "ไม่ได้เก็บไว้บนอุปกรณ์นี้ (มีเฉพาะในคลาวด์)",
+    "import_empty_skipped_other": "ข้ามไฟล์ว่าง {count} ไฟล์ (Telegram ไม่สามารถเก็บไฟล์ว่างได้)",
     "import_drive_changed": "ไดรฟ์ที่ใช้งานเปลี่ยนไป จึงหยุดการนำเข้า",
     "update_ready_title": "TDrive {version} พร้อมแล้ว",
     "update_available_title": "มี TDrive {version} ให้ใช้งานแล้ว",

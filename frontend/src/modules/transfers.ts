@@ -1065,6 +1065,8 @@ interface AndroidJobCounts {
     uploadedBytes: number;
     already: number;
     ignored: number;
+    /** Zero-byte files Telegram cannot store. They are never attempted and never count as failed. */
+    empty: number;
     changed: number;
     failed: number;
     notAttempted: number;
@@ -1098,8 +1100,16 @@ function forgetAndroidFailureReport(): void {
     androidFailureReport = null;
 }
 
-function emptyAndroidCounts(ignored = 0): AndroidJobCounts {
-    return { uploaded: 0, uploadedBytes: 0, already: 0, ignored, changed: 0, failed: 0, notAttempted: 0 };
+function emptyAndroidCounts(ignored = 0, empty = 0): AndroidJobCounts {
+    return { uploaded: 0, uploadedBytes: 0, already: 0, ignored, empty, changed: 0, failed: 0, notAttempted: 0 };
+}
+
+/**
+ * A zero-byte file is one Telegram cannot store, so it is never sent. Only an
+ * exact 0 counts: -1 means the size is unknown, and such a file is still attempted.
+ */
+function isEmptyAndroidFile(file: AndroidFolderFile): boolean {
+    return file.size === 0;
 }
 
 /** Whether a job may still touch the drive: the user has not canceled and the drive it started on is still the active one. */
@@ -1190,10 +1200,14 @@ async function runAndroidImport(parentID: string, manifest: AndroidFolderManifes
     // Refresh the snapshot so the modal's follow-up steps see truth.
     if (onPersonal) await loadEncryptionStatus();
 
+    // Zero-byte files never reach the upload; the job reports them as empty.
+    const files = manifest.files.filter((file) => !isEmptyAndroidFile(file));
+    const emptyCount = manifest.files.length - files.length;
+    const attemptable: AndroidFolderManifest = { ...manifest, files };
     const plan: ImportPlan = {
-        files: manifest.files.length,
-        folders: folderPathsFor(manifest).length,
-        bytes: knownBytes(manifest.files),
+        files: files.length,
+        folders: folderPathsFor(attemptable).length,
+        bytes: knownBytes(files),
         oversize: 0,
         archives: 0,
         ignored: manifest.skipped,
@@ -1204,7 +1218,7 @@ async function runAndroidImport(parentID: string, manifest: AndroidFolderManifes
         errors: [],
     };
     let encrypt = false;
-    if (manifest.files.length) {
+    if (files.length) {
         const choice = await openImportOptionsModal({
             plan,
             personal: onPersonal,
@@ -1232,15 +1246,15 @@ async function runAndroidImport(parentID: string, manifest: AndroidFolderManifes
 
     importFailureReasons.length = 0;
     const ctx: AndroidImportContext = { root: manifest.root, parentID, folderIds: new Map(), encrypt, driveId };
-    const outcome = await runAndroidJob(ctx, manifest.files, manifest.skipped);
+    const outcome = await runAndroidJob(ctx, files, manifest.skipped, emptyCount);
     finishAndroidJob(outcome, ctx);
 }
 
 // runAndroidJob is the one pipeline for an import and for a retry: live check,
 // veto, folder resolve, then windowed uploads. Anything already on the drive
 // creates no folder and starts no window.
-async function runAndroidJob(ctx: AndroidImportContext, files: AndroidFolderFile[], ignored: number): Promise<AndroidJobOutcome> {
-    const counts = emptyAndroidCounts(ignored);
+async function runAndroidJob(ctx: AndroidImportContext, files: AndroidFolderFile[], ignored: number, empty = 0): Promise<AndroidJobOutcome> {
+    const counts = emptyAndroidCounts(ignored, empty);
     const failures: AndroidFileFailure[] = [];
     let omitted = 0;
     let fatalError = '';
@@ -1408,13 +1422,15 @@ function splitAndroidUpload(
         const failure = reported.get(index);
         if (failure) {
             // outcome_unknown means the backend cannot say whether the bytes landed,
-            // so a fresh send could create a duplicate. It is never retryable.
+            // so a fresh send could create a duplicate. A rejected or empty file
+            // would be refused again. None of these is ever retryable.
             const code = failure.code || 'upload_failed';
+            const neverRetry = code === 'outcome_unknown' || code === 'rejected' || code === 'empty_file';
             failures.push({
                 file,
                 reason: humanizeBackendError(failure.message),
                 code,
-                retryable: failure.retryable === true && code !== 'outcome_unknown',
+                retryable: failure.retryable === true && !neverRetry,
             });
         } else if (accounted) {
             uploaded.push(file);
@@ -1433,9 +1449,11 @@ function finishAndroidJob(outcome: AndroidJobOutcome, ctx: AndroidImportContext)
     const { counts, failures, omitted, fatalError, driveChanged } = outcome;
     const canceled = state.cancelingUpload;
     const everythingOnDrive = counts.uploaded === 0 && counts.failed === 0 && counts.notAttempted === 0 && counts.already > 0;
+    // Empty files are a note on the summary, never a failure, so they do not change its status.
+    const emptyPart = counts.empty > 0 ? ` · ${t('messages.import_empty_skipped', { count: counts.empty })}` : '';
     const resultLabel = everythingOnDrive
-        ? t('messages.import_everything_on_drive')
-        : formatImportResultLabel(counts.uploaded, counts.failed, counts.already);
+        ? `${t('messages.import_everything_on_drive')}${emptyPart}`
+        : `${formatImportResultLabel(counts.uploaded, counts.failed, counts.already)}${emptyPart}`;
     const failedStatus = Boolean(fatalError || driveChanged || counts.failed > 0);
     updateTransferName({
         id: IMPORT_TRANSFER_ID,

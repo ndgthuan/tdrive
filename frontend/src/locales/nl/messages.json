@@ -219,6 +219,8 @@
     "import_retrying": "Mislukte bestanden opnieuw proberen",
     "import_everything_on_drive": "Alles staat al op de schijf",
     "import_not_on_device": "niet op dit apparaat opgeslagen (alleen in de cloud)",
+    "import_empty_skipped_one": "{count} leeg bestand overgeslagen (Telegram kan geen lege bestanden opslaan)",
+    "import_empty_skipped_other": "{count} lege bestanden overgeslagen (Telegram kan geen lege bestanden opslaan)",
     "import_drive_changed": "De actieve schijf is veranderd, daarom is het importeren gestopt",
     "update_ready_title": "TDrive {version} is klaar",
     "update_available_title": "TDrive {version} is beschikbaar",

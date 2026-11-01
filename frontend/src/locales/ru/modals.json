@@ -165,6 +165,8 @@
     "failed_detail_paused": "Используйте элементы управления «Продолжить» для этой загрузки в разделе «Передачи».",
     "failed_detail_retry_started": "Повтор уже запущен. Посмотрите его результат в разделе «Передачи».",
     "failed_detail_canceled": "Загрузка этого файла отменена.",
+    "failed_detail_empty_file": "Telegram не может хранить пустые файлы.",
+    "failed_detail_rejected": "Telegram отклонил этот файл.",
     "move_title_default": "Переместить элемент",
     "move_subtitle": "Выберите папку назначения",
     "move_loading": "Загрузка папок…",
