@@ -15,6 +15,7 @@ import {
     getInviteLink as getInviteLinkApi,
     isMobilePlatform,
     joinSharedDrive as joinSharedDriveApi,
+    importLedgerForget,
     leaveSharedDrive as leaveSharedDriveApi,
     listChannels,
     listJoinRequests as listJoinRequestsApi,
@@ -303,6 +304,9 @@ export function rejectJoinRequest(channelId: number, userId: number): Promise<vo
 export async function leaveSharedDrive(channelId: number): Promise<void> {
     if (!channelId) throw new Error('Channel id required');
     await leaveSharedDriveApi(channelId);
+    // The ledger records what this account imported to that drive. Leaving the
+    // drive ends that relationship, so the record goes with it.
+    await importLedgerForget(channelId).catch((err) => console.error('Import ledger forget failed:', err));
     await loadChannels();
     if (state.activeChannel) await switchActiveChannel(state.activeChannel.id);
 }

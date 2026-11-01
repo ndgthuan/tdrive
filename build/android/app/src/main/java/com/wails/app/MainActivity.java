@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -182,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
         takeWholeWindow();
         setContentView(R.layout.activity_main);
         cleanupPhotoBackupStage();
+        cleanupFolderImportStage();
 
         // Initialize the native Go library
         bridge = new WailsBridge(this);
@@ -1459,18 +1461,38 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Lists every file in a chosen tree as {"root","files":[{"id","rel","size"}]}.
-     * The ids are this pick's own, and stay answerable until the next one.
+     * Lists every file in a chosen tree as
+     * {"root","files":[{"id","rel","size","modified"}],"skipped"}. "size" is -1
+     * when the provider does not say, "modified" is unix milliseconds, 0 when it
+     * does not, and "skipped" counts the temporary camera files left out. The ids
+     * are this pick's own, and stay answerable until the next one. A folder the
+     * provider cannot list fails the whole pick rather than reading as empty.
      */
     private JSONObject readTree(Uri tree) throws JSONException {
         holdTree(tree);
         String rootDocId = DocumentsContract.getTreeDocumentId(tree);
         JSONArray files = new JSONArray();
-        collectTree(tree, rootDocId, "", files);
+        int[] skipped = new int[1];
+        collectTree(tree, rootDocId, "", files, skipped);
         JSONObject manifest = new JSONObject();
         manifest.put("root", treeDisplayName(tree, rootDocId));
         manifest.put("files", files);
+        manifest.put("skipped", skipped[0]);
         return manifest;
+    }
+
+    /**
+     * Camera and gallery copies that are not the user's files: a capture still
+     * being written (".pending-<digits>-<name>") or one thrown away
+     * (".trashed-<digits>-<name>"). They vanish under the importer, so they are
+     * left out of the manifest. Matches the rule in the Go importer, which is
+     * the one that applies to desktop imports.
+     */
+    private static final Pattern TEMPORARY_MEDIA_NAME =
+            Pattern.compile("^\\.(?:pending|trashed)-[0-9]+-.+", Pattern.CASE_INSENSITIVE);
+
+    private static boolean isTemporaryMediaName(String name) {
+        return TEMPORARY_MEDIA_NAME.matcher(name).matches();
     }
 
     /**
@@ -1500,7 +1522,7 @@ public class MainActivity extends AppCompatActivity {
         pickedCache = new File(getCacheDir(), "wails-folder/" + System.nanoTime());
     }
 
-    private void collectTree(Uri tree, String parentDocId, String prefix, JSONArray files)
+    private void collectTree(Uri tree, String parentDocId, String prefix, JSONArray files, int[] skipped)
             throws JSONException {
         Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentDocId);
         try (Cursor cursor = getContentResolver().query(children, new String[]{
@@ -1508,9 +1530,13 @@ public class MainActivity extends AppCompatActivity {
                 DocumentsContract.Document.COLUMN_DISPLAY_NAME,
                 DocumentsContract.Document.COLUMN_MIME_TYPE,
                 DocumentsContract.Document.COLUMN_SIZE,
+                DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+                DocumentsContract.Document.COLUMN_FLAGS,
         }, null, null, null)) {
             if (cursor == null) {
-                return;
+                // A provider that cannot list a folder must not look like an empty one:
+                // the user would get a clean import that silently skipped everything.
+                throw new IllegalStateException("the provider could not list " + prefix + "/");
             }
             while (cursor.moveToNext()) {
                 String docId = cursor.getString(0);
@@ -1518,40 +1544,66 @@ public class MainActivity extends AppCompatActivity {
                 if (docId == null || rawName == null || rawName.isEmpty()) {
                     continue;
                 }
+                boolean directory = DocumentsContract.Document.MIME_TYPE_DIR.equals(cursor.getString(2));
+                if (!directory && isTemporaryMediaName(rawName)) {
+                    skipped[0] += 1;
+                    continue;
+                }
                 String rel = prefix + safeName(rawName);
-                if (DocumentsContract.Document.MIME_TYPE_DIR.equals(cursor.getString(2))) {
-                    collectTree(tree, docId, rel + "/", files);
+                if (directory) {
+                    collectTree(tree, docId, rel + "/", files, skipped);
                     continue;
                 }
                 String id = String.valueOf(files.length());
-                pickedFiles.put(id, new PickedFile(docId, rel));
+                long size = cursor.isNull(3) ? -1 : cursor.getLong(3);
+                long modified = cursor.isNull(4) ? 0 : cursor.getLong(4);
+                int flags = cursor.isNull(5) ? 0 : cursor.getInt(5);
+                boolean notStoredHere = (flags & DocumentsContract.Document.FLAG_VIRTUAL_DOCUMENT) != 0;
+                pickedFiles.put(id, new PickedFile(docId, rel, size, modified, notStoredHere));
                 files.put(new JSONObject()
                         .put("id", id)
                         .put("rel", rel)
-                        .put("size", cursor.isNull(3) ? 0 : cursor.getLong(3)));
+                        .put("size", size)
+                        .put("modified", modified));
             }
         }
     }
 
     /**
      * Copies the named documents into the cache and answers with where they
-     * landed, as {"paths":{"<id>":"/abs/path"}}. An id that will not open is left
-     * out rather than failing the batch, so one unreadable file does not stop the
-     * rest of the folder.
+     * landed: {"paths":{"<id>":"/abs/path"},"changed":["<id>"],"notOnDevice":["<id>"]}.
+     * An id that will not open is left out of paths rather than failing the
+     * batch. "changed" lists copies whose size or modification time no longer
+     * matches the walk, so they were copied from a file that moved underneath the
+     * import. "notOnDevice" lists cloud-only documents with no local bytes.
      */
     public void materializeFiles(String callbackId, String idsJson) {
         new Thread(() -> {
             JSONObject paths = new JSONObject();
+            JSONArray changed = new JSONArray();
+            JSONArray notOnDevice = new JSONArray();
             try {
                 JSONArray ids = new JSONArray(idsJson);
                 for (int i = 0; i < ids.length(); i++) {
                     String id = ids.getString(i);
+                    PickedFile picked = pickedFiles.get(id);
+                    if (picked != null && picked.notStoredHere) {
+                        notOnDevice.put(id);
+                        continue;
+                    }
                     File copy = materialize(id);
                     if (copy != null) {
                         paths.put(id, copy.getAbsolutePath());
+                        if (picked != null && changedWhileCopying(picked, copy)) {
+                            changed.put(id);
+                        }
                     }
                 }
-                jsBridge.sendCallback(callbackId, new JSONObject().put("paths", paths).toString(), null);
+                jsBridge.sendCallback(callbackId, new JSONObject()
+                        .put("paths", paths)
+                        .put("changed", changed)
+                        .put("notOnDevice", notOnDevice)
+                        .toString(), null);
             } catch (JSONException e) {
                 Log.e(TAG, "Malformed file list", e);
                 jsBridge.sendCallback(callbackId, null, "malformed file list");
@@ -1689,15 +1741,74 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Whether a staged copy no longer matches the document it came from. The
+     * copy is still uploaded, but the importer must not treat it as the file the
+     * walk described, so it is not recorded. A document that cannot be read back
+     * counts as changed for the same reason.
+     */
+    private boolean changedWhileCopying(PickedFile file, File copy) {
+        if (file.size >= 0 && copy.length() != file.size) {
+            return true;
+        }
+        Uri doc = DocumentsContract.buildDocumentUriUsingTree(pickedTree, file.docId);
+        try (Cursor cursor = getContentResolver().query(doc, new String[]{
+                DocumentsContract.Document.COLUMN_SIZE,
+                DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+        }, null, null, null)) {
+            if (cursor == null || !cursor.moveToFirst()) {
+                return true;
+            }
+            long nowSize = cursor.isNull(0) ? -1 : cursor.getLong(0);
+            long nowModified = cursor.isNull(1) ? 0 : cursor.getLong(1);
+            if (file.size >= 0 && nowSize >= 0 && nowSize != file.size) {
+                return true;
+            }
+            return file.modified != 0 && nowModified != file.modified;
+        } catch (Exception e) {
+            Log.w(TAG, "Could not re-read " + file.rel + " after copying", e);
+            return true;
+        }
+    }
+
     /** One file in the picked tree: where to read it, and what to call the copy. */
     private static final class PickedFile {
         final String docId;
         final String rel;
+        /** Bytes the walk reported, or -1 when the provider did not say. */
+        final long size;
+        /** Modification time the walk reported, or 0 when unknown. */
+        final long modified;
+        /** A cloud-only document with no local bytes to copy. */
+        final boolean notStoredHere;
 
-        PickedFile(String docId, String rel) {
+        PickedFile(String docId, String rel, long size, long modified, boolean notStoredHere) {
             this.docId = docId;
             this.rel = rel;
+            this.size = size;
+            this.modified = modified;
+            this.notStoredHere = notStoredHere;
         }
+    }
+
+    /**
+     * Folder imports stage copies under the cache until their upload ends. A
+     * process killed mid-import never reaches that cleanup, so the next start
+     * clears what it left. Nothing else writes to this directory.
+     */
+    private void cleanupFolderImportStage() {
+        File stage = new File(getCacheDir(), "wails-folder");
+        new Thread(() -> deleteTree(stage)).start();
+    }
+
+    private static void deleteTree(File file) {
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                deleteTree(child);
+            }
+        }
+        file.delete();
     }
 
     private String treeDisplayName(Uri tree, String docId) {

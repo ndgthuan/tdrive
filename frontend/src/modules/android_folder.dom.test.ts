@@ -3,6 +3,7 @@ import {
     canPickFolder,
     folderPathFor,
     folderPathsFor,
+    isTemporaryMediaName,
     materializeAndroidFiles,
     pickAndroidFolder,
     releaseAndroidFiles,
@@ -70,7 +71,46 @@ describe("asking Android for a folder", () => {
         }));
         await expect(picked).resolves.toEqual({
             root: "Holiday",
-            files: [{ id: "doc:1", rel: "sub/a.jpg", size: 12345 }],
+            files: [{ id: "doc:1", rel: "sub/a.jpg", size: 12345, modified: 0 }],
+            skipped: 0,
+        });
+    });
+
+    it("keeps each file's modified time and the bridge's count of skipped camera files", async () => {
+        installBridge();
+        const picked = pickAndroidFolder();
+
+        answer(lastCall().id, JSON.stringify({
+            root: "Camera",
+            files: [{ id: "doc:1", rel: "VID_1.mp4", size: 9, modified: 1700000000000 }],
+            skipped: 2,
+        }));
+        await expect(picked).resolves.toEqual({
+            root: "Camera",
+            files: [{ id: "doc:1", rel: "VID_1.mp4", size: 9, modified: 1700000000000 }],
+            skipped: 2,
+        });
+    });
+
+    it("drops temporary camera copies even when the bridge sends them, and counts them", async () => {
+        // The bridge filters these too. This is the second line of defense, so a
+        // manifest from anywhere else still cannot bring them in.
+        installBridge();
+        const picked = pickAndroidFolder();
+
+        answer(lastCall().id, JSON.stringify({
+            root: "Camera",
+            files: [
+                { id: "doc:1", rel: ".pending-1793613831-VID_20261026_170351.mp4", size: 5, modified: 1 },
+                { id: "doc:2", rel: "Sub/.TRASHED-7-old.jpg", size: 5, modified: 1 },
+                { id: "doc:3", rel: "VID_20261026_170351.mp4", size: 5, modified: 1 },
+            ],
+            skipped: 1,
+        }));
+        await expect(picked).resolves.toEqual({
+            root: "Camera",
+            files: [{ id: "doc:3", rel: "VID_20261026_170351.mp4", size: 5, modified: 1 }],
+            skipped: 3,
         });
     });
 
@@ -94,7 +134,8 @@ describe("asking Android for a folder", () => {
         }));
         await expect(picked).resolves.toEqual({
             root: "Holiday",
-            files: [{ id: "doc:3", rel: "b.jpg", size: 0 }],
+            files: [{ id: "doc:3", rel: "b.jpg", size: -1, modified: 0 }],
+            skipped: 0,
         });
     });
 
@@ -119,7 +160,7 @@ describe("asking Android for a folder", () => {
         expect(runtime).toHaveBeenCalledWith("some-other-call", "result", null);
 
         answer(lastCall().id, JSON.stringify({ root: "Holiday", files: [] }));
-        await expect(picked).resolves.toEqual({ root: "Holiday", files: [] });
+        await expect(picked).resolves.toEqual({ root: "Holiday", files: [], skipped: 0 });
         // Ours was handled by us, not passed down.
         expect(runtime).toHaveBeenCalledTimes(1);
     });
@@ -136,7 +177,7 @@ describe("asking Android for a folder", () => {
         const second = pickAndroidFolder();
         expect(host._wailsAndroidCallback).toBe(chained);
         answer(lastCall().id, JSON.stringify({ root: "B", files: [] }));
-        await expect(second).resolves.toEqual({ root: "B", files: [] });
+        await expect(second).resolves.toEqual({ root: "B", files: [], skipped: 0 });
     });
 
     it("forgets a picker once it has answered", async () => {
@@ -161,10 +202,12 @@ describe("materializing and releasing files", () => {
         expect(lastCall().method).toBe("materializeFiles");
         expect(JSON.parse(lastCall().args[0])).toEqual(["doc:1", "doc:2"]);
         answer(lastCall().id, JSON.stringify({ paths: { "doc:1": "/cache/a.jpg", "doc:2": "/cache/b.jpg" } }));
-        await expect(materialized).resolves.toEqual(new Map([
-            ["doc:1", "/cache/a.jpg"],
-            ["doc:2", "/cache/b.jpg"],
-        ]));
+        await expect(materialized).resolves.toMatchObject({
+            paths: new Map([
+                ["doc:1", "/cache/a.jpg"],
+                ["doc:2", "/cache/b.jpg"],
+            ]),
+        });
     });
 
     it("leaves out an id the bridge could not read instead of failing the batch", async () => {
@@ -172,9 +215,21 @@ describe("materializing and releasing files", () => {
         const materialized = materializeAndroidFiles(["doc:1", "doc:2"]);
 
         answer(lastCall().id, JSON.stringify({ paths: { "doc:1": "/cache/a.jpg" } }));
-        const paths = await materialized;
+        const { paths, changed, notOnDevice } = await materialized;
         expect(paths.has("doc:2")).toBe(false);
         expect(paths.get("doc:1")).toBe("/cache/a.jpg");
+        expect(changed.size).toBe(0);
+        expect(notOnDevice.size).toBe(0);
+    });
+
+    it("reports files that changed while copying and files that only exist in the cloud", async () => {
+        installBridge();
+        const materialized = materializeAndroidFiles(["doc:1", "doc:2"]);
+
+        answer(lastCall().id, JSON.stringify({ paths: { "doc:1": "/cache/a.jpg" }, changed: ["doc:1"], notOnDevice: ["doc:2"] }));
+        const { changed, notOnDevice } = await materialized;
+        expect([...changed]).toEqual(["doc:1"]);
+        expect([...notOnDevice]).toEqual(["doc:2"]);
     });
 
     it("releases by id", async () => {
@@ -193,11 +248,12 @@ describe("the folder tree a manifest implies", () => {
         const paths = folderPathsFor({
             root: "Holiday",
             files: [
-                { id: "1", rel: "b/deep/nested/x.jpg", size: 1 },
-                { id: "2", rel: "a/y.jpg", size: 1 },
-                { id: "3", rel: "a/z.jpg", size: 1 },
-                { id: "4", rel: "top.jpg", size: 1 },
+                { id: "1", rel: "b/deep/nested/x.jpg", size: 1, modified: 0 },
+                { id: "2", rel: "a/y.jpg", size: 1, modified: 0 },
+                { id: "3", rel: "a/z.jpg", size: 1, modified: 0 },
+                { id: "4", rel: "top.jpg", size: 1, modified: 0 },
             ],
+            skipped: 0,
         });
 
         expect(paths).toEqual([
@@ -216,7 +272,7 @@ describe("the folder tree a manifest implies", () => {
     });
 
     it("keeps the picked folder itself even when it holds nothing", () => {
-        expect(folderPathsFor({ root: "Empty", files: [] })).toEqual(["Empty"]);
+        expect(folderPathsFor({ root: "Empty", files: [], skipped: 0 })).toEqual(["Empty"]);
     });
 
     it("places a file against the directory it came from", () => {
@@ -224,4 +280,20 @@ describe("the folder tree a manifest implies", () => {
         expect(folderPathFor("Holiday", "a.jpg")).toBe("Holiday");
         expect(folderPathFor("", "a.jpg")).toBe("");
     });
+});
+
+describe("the temporary-file rule and the ledger path", () => {
+    it("matches camera capture and trash copies, case-insensitively", () => {
+        expect(isTemporaryMediaName(".pending-1793613831-VID_20261026_170351.mp4")).toBe(true);
+        expect(isTemporaryMediaName(".Trashed-42-IMG_1.jpg")).toBe(true);
+    });
+
+    it("leaves ordinary and near-miss names alone", () => {
+        expect(isTemporaryMediaName("VID_20261026_170351.mp4")).toBe(false);
+        expect(isTemporaryMediaName(".pending-VID.mp4")).toBe(false);
+        expect(isTemporaryMediaName(".pending-12x-clip.mp4")).toBe(false);
+        expect(isTemporaryMediaName("pending-12-clip.mp4")).toBe(false);
+        expect(isTemporaryMediaName(".pending-12-")).toBe(false);
+    });
+
 });

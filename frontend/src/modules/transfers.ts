@@ -8,12 +8,12 @@ import { pickUploadMedia } from './media_picker';
 // Completed transfers stay in the bell's "Recent" panel until cleared.
 
 import { invalidateFolderIndex, state, setTransferDirectionActive, type DownloadQueueItem, type SourceDownloadRef, type UploadTransfer } from '../state';
-import { createFolder, downloadChannelSourceMedia, downloadFile, downloadFolder, importPaths, isAndroidPlatform, isMobilePlatform, onRuntimeEvent, planImport, selectFiles, selectFolder, uploadToDriveFs, retryUploadToDriveFs, type RuntimeEventMap, type RuntimeUnsubscribe } from '../api';
+import { downloadChannelSourceMedia, downloadFile, downloadFolder, importFindExisting, importLedgerRecord, importLedgerVeto, importPaths, importResolveFolders, type ImportLedgerEntry, type ImportLiveEntry, type ImportLiveMatch, isAndroidPlatform, isMobilePlatform, onRuntimeEvent, planImport, selectFiles, selectFolder, uploadToDriveFs, retryUploadToDriveFs, type RuntimeEventMap, type RuntimeUnsubscribe } from '../api';
 import { canSaveToDownloads, saveToDownloads } from './android_downloads';
 import { rememberDownloadSharePath } from '../ui/mobile/mobile_shell_store';
 import { get } from 'svelte/store';
-import { failedUploadsModal, failedUploadReports, rememberFailedUploadReport, type FailedUploadsPayload } from '../ui/modals/failed_uploads_store';
-import type { UploadFailure } from '../types';
+import { dismissFailedUploadReport, failedUploadsModal, failedUploadReports, rememberFailedUploadReport, type FailedUploadsPayload } from '../ui/modals/failed_uploads_store';
+import type { UploadFailure, UploadResult } from '../types';
 import type { ImportPlan, OperationError } from '../types';
 import type { TransferEvent } from '../ui/notifications/notif_store';
 import { dismissNotification, notify } from './notifications';
@@ -592,9 +592,11 @@ function recordFailureReason(into: string[], name: unknown, message: unknown) {
     if (!into.includes(entry)) into.push(entry);
 }
 
-function formatImportResultLabel(uploaded: number, failedUploads = 0) {
+function formatImportResultLabel(uploaded: number, failedUploads = 0, alreadyOnDrive = 0) {
     const imported = uploaded === 1 ? 'Imported 1 file' : `Imported ${uploaded} files`;
-    return failedUploads > 0 ? `${imported} · ${failedUploads} failed` : imported;
+    const failedPart = failedUploads > 0 ? ` · ${failedUploads} failed` : '';
+    const existingPart = alreadyOnDrive > 0 ? ` · ${t('messages.import_already_on_drive', { count: alreadyOnDrive })}` : '';
+    return `${imported}${failedPart}${existingPart}`;
 }
 
 // refreshImportRow renders one constant-size aggregate supplied by the backend.
@@ -1035,11 +1037,505 @@ export async function importFolderWithParentID(parentID: string) {
 // batch goes up concurrently, so the copy the next window pays for is a small
 // share of the time rather than a stall between every single file.
 const ANDROID_UPLOAD_WINDOW = 4;
+// Every failed file of an Android import is kept, not a sample, so a retry can
+// name each one. Bounded: past this the copied list says how many were left out.
+const MAX_ANDROID_FAILURES_KEPT = 5000;
+
+/** Where an Android import is going: the drive it started on, the folder it lands in and the folder ids resolved for it. */
+interface AndroidImportContext {
+    root: string;
+    parentID: string;
+    folderIds: Map<string, string>;
+    encrypt: boolean;
+    driveId: number;
+}
+
+/** One file that did not make it. retryable and code are the backend's answer, kept as they came. */
+interface AndroidFileFailure {
+    file: AndroidFolderFile;
+    reason: string;
+    code: string;
+    retryable: boolean;
+}
+
+/** Every file of a job lands in exactly one of these, so the counts add up to the work. */
+interface AndroidJobCounts {
+    uploaded: number;
+    /** Bytes of uploaded files only. Skipped, failed and not-attempted files never count as transferred. */
+    uploadedBytes: number;
+    already: number;
+    ignored: number;
+    changed: number;
+    failed: number;
+    notAttempted: number;
+}
+
+interface AndroidJobOutcome {
+    counts: AndroidJobCounts;
+    failures: AndroidFileFailure[];
+    /** Failures beyond MAX_ANDROID_FAILURES_KEPT, which are counted but not kept. */
+    omitted: number;
+    fatalError: string;
+    driveChanged: boolean;
+}
+
+interface AndroidWindowOutcome {
+    uploaded: AndroidFolderFile[];
+    /** Uploaded files whose staged copy did not match the walk: sent, but never recorded. */
+    changed: Set<string>;
+    failures: AndroidFileFailure[];
+    notAttempted: number;
+}
+
+// The import's failed file list, kept until the next import starts. A retry
+// reads the bridge's ids, which only the latest folder pick answers for, so
+// the list is dropped before another pick can begin.
+let androidFailureReport: FailedUploadsPayload | null = null;
+
+function forgetAndroidFailureReport(): void {
+    if (!androidFailureReport) return;
+    dismissFailedUploadReport(androidFailureReport);
+    androidFailureReport = null;
+}
+
+function emptyAndroidCounts(ignored = 0): AndroidJobCounts {
+    return { uploaded: 0, uploadedBytes: 0, already: 0, ignored, changed: 0, failed: 0, notAttempted: 0 };
+}
+
+/** Whether a job may still touch the drive: the user has not canceled and the drive it started on is still the active one. */
+function androidJobActive(driveId: number): boolean {
+    return !state.cancelingUpload && state.activeChannel?.id === driveId;
+}
+
+function knownBytes(files: AndroidFolderFile[]): number {
+    return files.reduce((sum, file) => sum + Math.max(0, file.size), 0);
+}
+
+function liveEntryFor(ctx: AndroidImportContext, file: AndroidFolderFile): ImportLiveEntry {
+    return {
+        folder_path: folderPathFor(ctx.root, file.rel),
+        name: file.rel.split('/').pop() ?? file.rel,
+        size: file.size,
+        encrypted: ctx.encrypt,
+    };
+}
+
+function ledgerEntryFor(ctx: AndroidImportContext, file: AndroidFolderFile): ImportLedgerEntry {
+    return {
+        folder_path: folderPathFor(ctx.root, file.rel),
+        name: file.rel.split('/').pop() ?? file.rel,
+        size: file.size,
+        modified: file.modified,
+        encrypted: ctx.encrypt,
+    };
+}
+
+// androidAlreadyOnDrive decides which files are already on the drive. The drive
+// decides: a file counts only when the live check finds it with the same size
+// and encryption policy. The ledger may only veto that answer when the source
+// file has a known modification time that differs from the recorded one. A
+// failed live check skips nothing, so every file uploads rather than guessing.
+async function androidAlreadyOnDrive(ctx: AndroidImportContext, files: AndroidFolderFile[]): Promise<Set<string>> {
+    const already = new Set<string>();
+    if (!files.length) return already;
+    let matches: ImportLiveMatch[];
+    try {
+        matches = await importFindExisting(ctx.driveId, ctx.parentID, files.map((file) => liveEntryFor(ctx, file)));
+    } catch (err) {
+        console.error('Live existence check failed; every file will upload:', err);
+        return already;
+    }
+    const matched = matches.map((match) => files[match.index]).filter((file): file is AndroidFolderFile => Boolean(file));
+    if (!matched.length) return already;
+    let vetoed: boolean[];
+    try {
+        vetoed = await importLedgerVeto(ctx.driveId, ctx.parentID, matched.map((file) => ledgerEntryFor(ctx, file)));
+    } catch (err) {
+        console.error('Import ledger check failed; matches will upload:', err);
+        vetoed = matched.map(() => true);
+    }
+    matched.forEach((file, index) => {
+        if (!vetoed[index]) already.add(file.id);
+    });
+    return already;
+}
+
+// recordAndroidUploads remembers the files whose staged bytes uploaded, and
+// only those. A failed ledger write is logged, not raised: the files are on
+// the drive either way.
+async function recordAndroidUploads(ctx: AndroidImportContext, files: AndroidFolderFile[]): Promise<void> {
+    if (!files.length) return;
+    try {
+        await importLedgerRecord(ctx.driveId, ctx.parentID, files.map((file) => ledgerEntryFor(ctx, file)));
+    } catch (err) {
+        console.error('Import ledger record failed:', err);
+    }
+}
+
+// flushAndroidLedger saves the ledger once more at the end of a job. It writes
+// nothing new, but retries a save that failed during the job.
+async function flushAndroidLedger(ctx: AndroidImportContext): Promise<void> {
+    try {
+        await importLedgerRecord(ctx.driveId, ctx.parentID, []);
+    } catch (err) {
+        console.error('Import ledger save failed:', err);
+    }
+}
+
+// runAndroidImport asks the user what to do, then runs the job. The options
+// dialog comes first because encryption changes which drive files count as
+// already there.
+async function runAndroidImport(parentID: string, manifest: AndroidFolderManifest, driveId: number) {
+    const onPersonal = state.activeChannel?.kind === 'personal';
+    // Refresh the snapshot so the modal's follow-up steps see truth.
+    if (onPersonal) await loadEncryptionStatus();
+
+    const plan: ImportPlan = {
+        files: manifest.files.length,
+        folders: folderPathsFor(manifest).length,
+        bytes: knownBytes(manifest.files),
+        oversize: 0,
+        archives: 0,
+        ignored: manifest.skipped,
+        maxBytes: 0,
+        maxItems: 0,
+        limitExceeded: false,
+        errorCount: 0,
+        errors: [],
+    };
+    let encrypt = false;
+    if (manifest.files.length) {
+        const choice = await openImportOptionsModal({
+            plan,
+            personal: onPersonal,
+            hasArchives: false,
+            // Nothing here moves with the options: there are no archives to
+            // extract, and encrypting changes neither the file count nor which
+            // folder a file lands in.
+            replan: async () => plan,
+        });
+        if (!choice) {
+            markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status: 'canceled' });
+            return;
+        }
+        if (choice.encrypt && !state.encryption.passwordRemembered) {
+            const ok = state.encryption.passwordSet
+                ? await openEncryptionPasswordModal()
+                : await openEncryptionSetupModal();
+            if (!ok) {
+                markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status: 'canceled' });
+                return;
+            }
+        }
+        encrypt = choice.encrypt;
+    }
+
+    importFailureReasons.length = 0;
+    const ctx: AndroidImportContext = { root: manifest.root, parentID, folderIds: new Map(), encrypt, driveId };
+    const outcome = await runAndroidJob(ctx, manifest.files, manifest.skipped);
+    finishAndroidJob(outcome, ctx);
+}
+
+// runAndroidJob is the one pipeline for an import and for a retry: live check,
+// veto, folder resolve, then windowed uploads. Anything already on the drive
+// creates no folder and starts no window.
+async function runAndroidJob(ctx: AndroidImportContext, files: AndroidFolderFile[], ignored: number): Promise<AndroidJobOutcome> {
+    const counts = emptyAndroidCounts(ignored);
+    const failures: AndroidFileFailure[] = [];
+    let omitted = 0;
+    let fatalError = '';
+    let driveChanged = false;
+    let work: AndroidFolderFile[] = [];
+    let windowsRan = false;
+    const recordFailure = (failure: AndroidFileFailure) => {
+        counts.failed += 1;
+        if (failures.length < MAX_ANDROID_FAILURES_KEPT) failures.push(failure);
+        else omitted += 1;
+    };
+
+    try {
+        const already = await androidAlreadyOnDrive(ctx, files);
+        counts.already = already.size;
+        work = files.filter((file) => !already.has(file.id));
+        if (!work.length) return { counts, failures, omitted, fatalError, driveChanged };
+
+        if (!androidJobActive(ctx.driveId)) {
+            driveChanged = state.activeChannel?.id !== ctx.driveId;
+            counts.notAttempted = work.length;
+            return { counts, failures, omitted, fatalError, driveChanged };
+        }
+        updateTransferName({ id: IMPORT_TRANSFER_ID, direction: 'up', name: 'Creating folders…' });
+        // Reuse and create happen in the backend so a second import finds the
+        // folders the first one made, instead of creating "Camera (1)".
+        const resolved = await importResolveFolders(ctx.driveId, ctx.parentID, folderPathsFor({ root: ctx.root, files: work, skipped: 0 }));
+        ctx.folderIds = resolved;
+        invalidateTransferCaches();
+        appActions().refreshFiles();
+        updateTransferName({ id: IMPORT_TRANSFER_ID, direction: 'up', name: ctx.root || 'Folder' });
+
+        const totalBytes = knownBytes(work);
+        let itemsSettled = 0;
+        let uploadedBytes = 0;
+        state.importBatch = reduceImportProgress(createImportProgress(), { total: work.length });
+        setTransferDirectionActive('upload', true);
+        const report = () => {
+            if (!state.importBatch) return;
+            state.importBatch = reduceImportProgress(state.importBatch, {
+                total: work.length,
+                done: counts.uploaded,
+                failed: counts.failed,
+                progress: work.length ? (itemsSettled / work.length) * 100 : 100,
+            });
+            updateTransferProgress({
+                id: IMPORT_TRANSFER_ID,
+                direction: 'up',
+                progress: work.length ? (itemsSettled / work.length) * 100 : 100,
+                bytes: uploadedBytes,
+                total: totalBytes,
+                itemsDone: itemsSettled,
+                itemsTotal: work.length,
+            });
+        };
+
+        for (let start = 0; start < work.length; start += ANDROID_UPLOAD_WINDOW) {
+            if (!androidJobActive(ctx.driveId)) {
+                driveChanged = state.activeChannel?.id !== ctx.driveId;
+                counts.notAttempted += work.length - start;
+                break;
+            }
+            const batch = work.slice(start, start + ANDROID_UPLOAD_WINDOW);
+            windowsRan = true;
+            const windowOutcome = await uploadAndroidWindow(batch, ctx);
+            // A switch that landed mid-window leaves files not attempted; say why.
+            if (windowOutcome.notAttempted > 0 && !state.cancelingUpload && state.activeChannel?.id !== ctx.driveId) {
+                driveChanged = true;
+            }
+            const recorded = windowOutcome.uploaded.filter((file) => !windowOutcome.changed.has(file.id));
+            counts.uploaded += windowOutcome.uploaded.length;
+            counts.changed += windowOutcome.changed.size;
+            for (const file of windowOutcome.uploaded) uploadedBytes += Math.max(0, file.size);
+            counts.uploadedBytes = uploadedBytes;
+            counts.notAttempted += windowOutcome.notAttempted;
+            for (const failure of windowOutcome.failures) recordFailure(failure);
+            itemsSettled += windowOutcome.uploaded.length + windowOutcome.failures.length + windowOutcome.notAttempted;
+            await recordAndroidUploads(ctx, recorded);
+            report();
+        }
+    } catch (err) {
+        console.error('Android folder import failed:', err);
+        fatalError = humanizeBackendError(err);
+        // Everything the job had not reached yet is not attempted.
+        counts.notAttempted = work.length - counts.uploaded - counts.failed - counts.notAttempted;
+    } finally {
+        setTransferDirectionActive('upload', false);
+        if (windowsRan) await flushAndroidLedger(ctx);
+    }
+    return { counts, failures, omitted, fatalError, driveChanged };
+}
+
+// uploadAndroidWindow copies one window out of the document tree, uploads it,
+// and releases the copies again. Each file lands in uploaded, failed or
+// notAttempted exactly once.
+async function uploadAndroidWindow(files: AndroidFolderFile[], ctx: AndroidImportContext): Promise<AndroidWindowOutcome> {
+    const ids = files.map((file) => file.id);
+    const outcome: AndroidWindowOutcome = { uploaded: [], changed: new Set(), failures: [], notAttempted: 0 };
+    try {
+        const materialized = await materializeAndroidFiles(ids);
+        const sent: AndroidFolderFile[] = [];
+        const paths: string[] = [];
+        const parentIDs: string[] = [];
+        for (const file of files) {
+            const path = materialized.paths.get(file.id);
+            if (!path) {
+                // One file the bridge could not read does not stop the window.
+                if (materialized.notOnDevice.has(file.id)) {
+                    outcome.failures.push({ file, reason: t('messages.import_not_on_device'), code: 'not_on_device', retryable: false });
+                } else {
+                    outcome.failures.push({ file, reason: t('messages.import_file_unreadable'), code: 'unreadable', retryable: true });
+                }
+                continue;
+            }
+            sent.push(file);
+            paths.push(path);
+            parentIDs.push(ctx.folderIds.get(folderPathFor(ctx.root, file.rel)) ?? ctx.parentID);
+            if (materialized.changed.has(file.id)) outcome.changed.add(file.id);
+        }
+        if (!paths.length) return outcome;
+
+        // Cancel or a drive switch can land while the bytes were being copied.
+        // Nothing is sent after that point.
+        if (!androidJobActive(ctx.driveId)) {
+            outcome.notAttempted += sent.length;
+            return outcome;
+        }
+        const upload = await uploadToDriveFs(paths, parentIDs, ctx.encrypt);
+        const canceled = !upload.result.ok && upload.result.error.code === 'canceled';
+        if (canceled) state.cancelingUpload = true;
+        const split = splitAndroidUpload(sent, upload, canceled);
+        outcome.uploaded = split.uploaded;
+        outcome.failures.push(...split.failures);
+        outcome.notAttempted += split.notAttempted.length;
+        return outcome;
+    } finally {
+        // Cache stays bounded only if every window is released, including the
+        // one that threw or was cancelled part way through. A release that
+        // fails must not mask the upload error or stop the next window.
+        try {
+            await releaseAndroidFiles(ids);
+        } catch (err) {
+            console.error('ReleaseFiles failed:', err);
+        }
+    }
+}
+
+// splitAndroidUpload assigns every sent file to exactly one outcome. The backend
+// names each failed file by index with its own retryable flag and code, and a
+// file it does not name was accepted. If its answer cannot account for every
+// file, the unnamed files are never sent again: they count as failed with
+// retryable false, or as not attempted when the upload was canceled.
+function splitAndroidUpload(
+    sent: AndroidFolderFile[],
+    upload: UploadResult,
+    canceled: boolean,
+): { uploaded: AndroidFolderFile[]; failures: AndroidFileFailure[]; notAttempted: AndroidFolderFile[] } {
+    const reported = new Map<number, UploadFailure>();
+    for (const failure of upload.failures ?? []) reported.set(failure.index, failure);
+    const accounted = reported.size + upload.files.length === sent.length;
+    const uploaded: AndroidFolderFile[] = [];
+    const failures: AndroidFileFailure[] = [];
+    const notAttempted: AndroidFolderFile[] = [];
+    sent.forEach((file, index) => {
+        const failure = reported.get(index);
+        if (failure) {
+            // outcome_unknown means the backend cannot say whether the bytes landed,
+            // so a fresh send could create a duplicate. It is never retryable.
+            const code = failure.code || 'upload_failed';
+            failures.push({
+                file,
+                reason: humanizeBackendError(failure.message),
+                code,
+                retryable: failure.retryable === true && code !== 'outcome_unknown',
+            });
+        } else if (accounted) {
+            uploaded.push(file);
+        } else if (canceled) {
+            notAttempted.push(file);
+        } else {
+            failures.push({ file, reason: t('messages.upload_failed'), code: 'unaccounted', retryable: false });
+        }
+    });
+    return { uploaded, failures, notAttempted };
+}
+
+// finishAndroidJob settles the row, the failed list and the single history
+// entry for the job. Nothing is reported twice.
+function finishAndroidJob(outcome: AndroidJobOutcome, ctx: AndroidImportContext) {
+    const { counts, failures, omitted, fatalError, driveChanged } = outcome;
+    const canceled = state.cancelingUpload;
+    const everythingOnDrive = counts.uploaded === 0 && counts.failed === 0 && counts.notAttempted === 0 && counts.already > 0;
+    const resultLabel = everythingOnDrive
+        ? t('messages.import_everything_on_drive')
+        : formatImportResultLabel(counts.uploaded, counts.failed, counts.already);
+    const failedStatus = Boolean(fatalError || driveChanged || counts.failed > 0);
+    updateTransferName({
+        id: IMPORT_TRANSFER_ID,
+        direction: 'up',
+        name: canceled ? 'Import canceled' : (fatalError ? t('messages.import_failed') : (driveChanged ? t('messages.import_drive_changed') : resultLabel)),
+    });
+    markTransferDone({
+        id: IMPORT_TRANSFER_ID,
+        direction: 'up',
+        status: canceled ? 'canceled' : (failedStatus ? 'failed' : 'done'),
+    });
+    state.importBatch = null;
+    invalidateTransferCaches();
+    appActions().refreshFiles();
+
+    const payload = failures.length ? androidFailurePayload(ctx, failures, omitted) : null;
+    if (payload) {
+        androidFailureReport = payload;
+        rememberFailedUploadReport(payload);
+    }
+    if (canceled) return;
+
+    // One history entry for the whole job. It carries the counts the row cannot.
+    const lines: string[] = [];
+    if (fatalError) lines.push(fatalError);
+    if (driveChanged) lines.push(t('messages.import_drive_changed'));
+    for (const failure of failures) {
+        if (lines.length >= MAX_IMPORT_FAILURE_REASONS + 2) break;
+        const entry = `${failure.file.rel}: ${failure.reason}`;
+        if (!lines.includes(entry)) lines.push(entry);
+    }
+    if (counts.already > 0) lines.push(t('messages.import_already_on_drive', { count: counts.already }));
+    if (counts.ignored > 0) lines.push(t('messages.import_temp_skipped', { count: counts.ignored }));
+    if (counts.changed > 0) lines.push(t('messages.import_changed_while_copying', { count: counts.changed }));
+    if (counts.notAttempted > 0) lines.push(t('messages.import_not_attempted', { count: counts.notAttempted }));
+    const failed = failedStatus;
+    notify({
+        level: failed ? 'error' : 'info',
+        title: fatalError ? t('messages.import_failed') : (driveChanged ? t('messages.import_drive_changed') : resultLabel),
+        ...(lines.length ? { body: lines.join('  ·  ') } : {}),
+        ...(payload ? {
+            action: { label: t('messages.review_failed_files'), run: () => reviewFailedUploads(payload) },
+        } : {}),
+    });
+}
+
+/** The failed-files review for a job. Its retry runs only the files the backend said are retryable. */
+function androidFailurePayload(
+    ctx: AndroidImportContext,
+    failures: AndroidFileFailure[],
+    omitted: number,
+): FailedUploadsPayload {
+    const retryable = failures.filter((failure) => failure.retryable).map((failure) => failure.file);
+    return {
+        paths: failures.map((failure) => failure.file.rel),
+        failures: failures.map((failure, index) => ({
+            index,
+            name: failure.file.rel,
+            message: failure.reason,
+            code: failure.code,
+            retryable: failure.retryable,
+        })),
+        parentId: ctx.parentID,
+        encrypt: ctx.encrypt,
+        driveId: ctx.driveId,
+        driveTitle: state.activeChannel?.title || 'the original drive',
+        omitted,
+        retry: retryable.length ? () => retryAndroidFiles(retryable, ctx) : undefined,
+    };
+}
+
+// retryAndroidFiles uploads the retryable failed files again. The job runs its
+// live check again first, so a file that landed in the meantime is not sent twice.
+async function retryAndroidFiles(files: AndroidFolderFile[], ctx: AndroidImportContext): Promise<void> {
+    if (state.activeChannel?.id !== ctx.driveId) {
+        notify({ level: 'error', title: t('messages.import_drive_changed'), history: false });
+        return;
+    }
+    activeTransferDriveId = ctx.driveId;
+    forgetAndroidFailureReport();
+    importFailureReasons.length = 0;
+    state.cancelingUpload = false;
+    pushTransferStart({ id: IMPORT_TRANSFER_ID, direction: 'up', name: t('messages.import_retrying'), total: 0 });
+    try {
+        const outcome = await runAndroidJob(ctx, files, 0);
+        finishAndroidJob(outcome, ctx);
+    } finally {
+        state.cancelingUpload = false;
+    }
+}
 
 // importAndroidFolder picks a folder and uploads it without ever copying the
 // whole tree into the cache.
 async function importAndroidFolder(parentID: string) {
-    activeTransferDriveId = state.activeChannel?.id ?? null;
+    const driveId = state.activeChannel?.id ?? null;
+    // A new pick replaces the bridge's ids, so the last failed list can no longer
+    // be retried. It is dropped before the picker opens, not after it returns.
+    forgetAndroidFailureReport();
+    activeTransferDriveId = driveId;
+    state.cancelingUpload = false;
     // The picker covers the app while it is open, so this row is only seen once
     // it closes, which is exactly when the tree walk is still running and the
     // screen would otherwise look frozen. Document-tree walks are slow enough
@@ -1061,7 +1557,12 @@ async function importAndroidFolder(parentID: string) {
             markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status: 'canceled' });
             return;
         }
-        await runAndroidImport(parentID, manifest);
+        if (driveId === null) {
+            markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status: 'failed' });
+            notify({ level: 'error', title: t('messages.import_drive_changed'), history: false });
+            return;
+        }
+        await runAndroidImport(parentID, manifest, driveId);
     } catch (err) {
         // The row above is already on screen and would spin forever if one of
         // the confirmation steps threw. markTransferDone leaves an entry that
@@ -1073,203 +1574,6 @@ async function importAndroidFolder(parentID: string) {
     } finally {
         state.cancelingUpload = false;
     }
-}
-
-// runAndroidImport recreates the manifest's folder tree, then uploads its files
-// a window at a time so the cache never holds more than one window.
-async function runAndroidImport(parentID: string, manifest: AndroidFolderManifest) {
-    const folderPaths = folderPathsFor(manifest);
-    const totalFiles = manifest.files.length;
-    const totalBytes = manifest.files.reduce((sum, file) => sum + file.size, 0);
-
-    const onPersonal = state.activeChannel?.kind === 'personal';
-    // Refresh the snapshot so the modal's follow-up steps see truth.
-    if (onPersonal) await loadEncryptionStatus();
-
-    const plan: ImportPlan = {
-        files: totalFiles,
-        folders: folderPaths.length,
-        bytes: totalBytes,
-        oversize: 0,
-        archives: 0,
-        ignored: 0,
-        maxBytes: 0,
-        maxItems: 0,
-        limitExceeded: false,
-        errorCount: 0,
-        errors: [],
-    };
-    const choice = await openImportOptionsModal({
-        plan,
-        personal: onPersonal,
-        hasArchives: false,
-        // Nothing here moves with the options: there are no archives to
-        // extract, and encrypting changes neither the file count nor which
-        // folder a file lands in.
-        replan: async () => plan,
-    });
-    if (!choice) {
-        markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status: 'canceled' });
-        return;
-    }
-    if (choice.encrypt && !state.encryption.passwordRemembered) {
-        const ok = state.encryption.passwordSet
-            ? await openEncryptionPasswordModal()
-            : await openEncryptionSetupModal();
-        if (!ok) {
-            markTransferDone({ id: IMPORT_TRANSFER_ID, direction: 'up', status: 'canceled' });
-            return;
-        }
-    }
-
-    importFailureReasons.length = 0;
-    // The aggregate row is the only upload surface an import gets, and setting
-    // this is what makes the per-file upload events fold into it.
-    state.importBatch = reduceImportProgress(createImportProgress(), { total: totalFiles });
-    setTransferDirectionActive('upload', true);
-    updateTransferName({ id: IMPORT_TRANSFER_ID, direction: 'up', name: 'Creating folders…' });
-
-    let done = 0;
-    let failed = 0;
-    let bytesDone = 0;
-    const report = () => {
-        const batch = state.importBatch;
-        if (!batch) return;
-        const next = reduceImportProgress(batch, {
-            total: totalFiles,
-            done,
-            failed,
-            progress: totalBytes > 0 ? (bytesDone / totalBytes) * 100 : 0,
-        });
-        state.importBatch = next;
-        updateTransferProgress({
-            id: IMPORT_TRANSFER_ID,
-            direction: 'up',
-            progress: next.progress,
-            bytes: bytesDone,
-            total: totalBytes,
-            itemsDone: done + failed,
-            itemsTotal: totalFiles,
-        });
-    };
-
-    let fatalError = '';
-    try {
-        const folderIds = await createAndroidFolderTree(parentID, folderPaths);
-        // Show the tree before the bytes arrive, so the user can navigate into
-        // it while a long upload runs.
-        invalidateTransferCaches();
-        appActions().refreshFiles();
-        updateTransferName({ id: IMPORT_TRANSFER_ID, direction: 'up', name: manifest.root || 'Folder' });
-        report();
-
-        for (let start = 0; start < totalFiles && !state.cancelingUpload; start += ANDROID_UPLOAD_WINDOW) {
-            const batch = manifest.files.slice(start, start + ANDROID_UPLOAD_WINDOW);
-            const outcome = await uploadAndroidWindow(batch, manifest.root, folderIds, parentID, choice.encrypt);
-            done += outcome.done;
-            failed += outcome.failed;
-            // Count the window's bytes however it ended: the bar tracks work
-            // gone through, and the failure count carries the outcome.
-            bytesDone += batch.reduce((sum, file) => sum + file.size, 0);
-            report();
-        }
-    } catch (err) {
-        console.error('Android folder import failed:', err);
-        fatalError = humanizeBackendError(err);
-    } finally {
-        setTransferDirectionActive('upload', false);
-        finishAndroidImport(done, failed, fatalError);
-    }
-}
-
-// createAndroidFolderTree maps every directory in the manifest to a drive
-// folder id. folderPathsFor orders parents before children, so each lookup of
-// a parent has already happened.
-async function createAndroidFolderTree(parentID: string, folderPaths: string[]): Promise<Map<string, string>> {
-    const folderIds = new Map<string, string>([['', parentID]]);
-    for (const path of folderPaths) {
-        if (state.cancelingUpload) break;
-        const cut = path.lastIndexOf('/');
-        const parent = folderIds.get(cut < 0 ? '' : path.slice(0, cut)) ?? parentID;
-        const folder = await createFolder(path.slice(cut + 1), parent);
-        folderIds.set(path, folder.id);
-    }
-    return folderIds;
-}
-
-// uploadAndroidWindow copies one window out of the document tree, uploads it,
-// and releases it again.
-async function uploadAndroidWindow(
-    files: AndroidFolderFile[],
-    root: string,
-    folderIds: Map<string, string>,
-    parentID: string,
-    encrypt: boolean,
-): Promise<{ done: number; failed: number }> {
-    const ids = files.map((file) => file.id);
-    try {
-        const materialized = await materializeAndroidFiles(ids);
-        const paths: string[] = [];
-        const parentIDs: string[] = [];
-        let unreadable = 0;
-        for (const file of files) {
-            const path = materialized.get(file.id);
-            if (!path) {
-                // One file the bridge could not read does not stop the window.
-                unreadable += 1;
-                recordFailureReason(importFailureReasons, file.rel, 'could not be read from the folder');
-                continue;
-            }
-            paths.push(path);
-            parentIDs.push(folderIds.get(folderPathFor(root, file.rel)) ?? parentID);
-        }
-        if (!paths.length) return { done: 0, failed: unreadable };
-
-        const upload = await uploadToDriveFs(paths, parentIDs, encrypt);
-        if (!upload.result.ok && upload.result.error.code === 'canceled') state.cancelingUpload = true;
-        return { done: upload.files.length, failed: unreadable + paths.length - upload.files.length };
-    } finally {
-        // Cache stays bounded only if every window is released, including the
-        // one that threw or was cancelled part way through. A release that
-        // fails must not mask the upload error or stop the next window.
-        try {
-            await releaseAndroidFiles(ids);
-        } catch (err) {
-            console.error('ReleaseFiles failed:', err);
-        }
-    }
-}
-
-function finishAndroidImport(done: number, failed: number, fatalError: string) {
-    const canceled = state.cancelingUpload;
-    const resultLabel = formatImportResultLabel(done, failed);
-    updateTransferName({
-        id: IMPORT_TRANSFER_ID,
-        direction: 'up',
-        name: canceled ? 'Import canceled' : (fatalError ? 'Import failed' : resultLabel),
-    });
-    markTransferDone({
-        id: IMPORT_TRANSFER_ID,
-        direction: 'up',
-        status: canceled ? 'canceled' : (fatalError || failed > 0 ? 'failed' : 'done'),
-    });
-    state.importBatch = null;
-    invalidateTransferCaches();
-    appActions().refreshFiles();
-
-    if (!canceled && (fatalError || failed > 0)) {
-        // The row carries only a status, so the reasons the backend gave for
-        // individual files are the only actionable thing the user gets.
-        const reasons = fatalError ? [fatalError, ...importFailureReasons] : [...importFailureReasons];
-        const bits = failed > 0 ? [`${failed} failed`] : [];
-        notify({
-            level: 'error',
-            title: fatalError ? 'Import failed' : resultLabel,
-            body: [...bits, ...reasons.slice(0, MAX_IMPORT_FAILURE_REASONS)].join('  ·  ')
-                || 'The import stopped before it could finish.',
-        });
-    }
-    importFailureReasons.length = 0;
 }
 
 /**
@@ -1409,6 +1713,14 @@ export async function retryFailedUploads(): Promise<void> {
             return;
         }
         if (consumedFailedUploadBatches.has(payload)) return;
+        if (payload.retry) {
+            // An Android import keeps its files in the bridge, not on disk, so it
+            // retries through its own closure, which re-runs only the failed files.
+            consumedFailedUploadBatches.add(payload);
+            failedUploadsModal.close();
+            await payload.retry();
+            return;
+        }
         const paths = payload.failures.filter((failure) => failure.retryable).map((failure) => payload.paths[failure.index]);
         if (!paths.length) return;
         // Consume this action before awaiting. Repeated taps cannot resend it.

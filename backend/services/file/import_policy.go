@@ -26,9 +26,34 @@ func isIgnoredImportName(name string, directory bool) bool {
 			return true
 		}
 	}
+	if !directory && isTemporaryMediaName(lower) {
+		return true
+	}
 	return strings.HasSuffix(lower, ".pyc") ||
 		strings.HasSuffix(lower, ".pyo") ||
 		strings.HasSuffix(lower, ".tsbuildinfo")
+}
+
+// isTemporaryMediaName matches the copies Android's camera and gallery leave
+// behind while a capture is still being written (".pending-<digits>-<name>")
+// or once it has been thrown away (".trashed-<digits>-<name>"). They are not
+// the user's files and disappear under the importer, so they are never kept.
+// lower must already be lower-cased.
+func isTemporaryMediaName(lower string) bool {
+	for _, prefix := range [...]string{".pending-", ".trashed-"} {
+		rest, found := strings.CutPrefix(lower, prefix)
+		if !found {
+			continue
+		}
+		digits, original, separated := strings.Cut(rest, "-")
+		if !separated || original == "" || digits == "" {
+			continue
+		}
+		if strings.Trim(digits, "0123456789") == "" {
+			return true
+		}
+	}
+	return false
 }
 
 // ignoredArchiveRoot returns the first excluded path prefix. Callers use the

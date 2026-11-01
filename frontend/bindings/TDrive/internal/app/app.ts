@@ -13,10 +13,16 @@ import * as backend$0 from "../../backend/models.js";
 import * as galleryimage$0 from "../../backend/galleryimage/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as importledger$0 from "../../backend/importledger/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as projection$0 from "../../backend/projection/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as file$0 from "../../backend/services/file/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as folder$0 from "../../backend/services/folder/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -231,6 +237,40 @@ export function GetStorageUsed(): $CancellablePromise<number> {
 }
 
 /**
+ * ImportFindExisting reports which entries already exist live on the drive
+ * under parentID with the same size and encryption policy. The ledger can only
+ * veto a match, so the frontend combines the two answers.
+ */
+export function ImportFindExisting(driveID: number, parentID: string, entries: folder$0.ImportEntry[] | null): $CancellablePromise<folder$0.ImportMatch[] | null> {
+    return $Call.ByID(236450367, driveID, parentID, entries);
+}
+
+/**
+ * ImportLedgerForget drops everything remembered for driveID.
+ */
+export function ImportLedgerForget(driveID: number): $CancellablePromise<void> {
+    return $Call.ByID(733577129, driveID);
+}
+
+/**
+ * ImportLedgerRecord remembers that these entries uploaded to parentID on
+ * driveID. Pass only files whose staged bytes were confirmed uploaded. An empty
+ * list retries a save that failed earlier.
+ */
+export function ImportLedgerRecord(driveID: number, parentID: string, entries: importledger$0.Entry[] | null): $CancellablePromise<void> {
+    return $Call.ByID(3072686437, driveID, parentID, entries);
+}
+
+/**
+ * ImportLedgerVeto reports, for each entry, whether the ledger forbids skipping
+ * it even though live state matched. Only an edited file (a known modification
+ * time that differs from the recorded one) is vetoed.
+ */
+export function ImportLedgerVeto(driveID: number, parentID: string, entries: importledger$0.Entry[] | null): $CancellablePromise<boolean[] | null> {
+    return $Call.ByID(1284520612, driveID, parentID, entries);
+}
+
+/**
  * ImportPaths recreates the folder structure of the selected paths under
  * parentID and uploads their files. Archives are extracted when extractArchives
  * is set, otherwise uploaded as-is. Progress flows through aggregate import_*
@@ -238,6 +278,15 @@ export function GetStorageUsed(): $CancellablePromise<number> {
  */
 export function ImportPaths(paths: string[] | null, parentID: string, encrypt: boolean, extractArchives: boolean): $CancellablePromise<$models.OperationResult> {
     return $Call.ByID(3650510347, paths, parentID, encrypt, extractArchives);
+}
+
+/**
+ * ImportResolveFolders returns the drive folder id for each folder path under
+ * parentID, reusing live folders with the same canonical name and creating the
+ * rest. A name taken by a file is a conflict.
+ */
+export function ImportResolveFolders(driveID: number, parentID: string, folderPaths: string[] | null): $CancellablePromise<{ [_ in string]?: string } | null> {
+    return $Call.ByID(259055288, driveID, parentID, folderPaths);
 }
 
 export function ListMediaFolderPage(folderID: string, cursor: string, limit: number): $CancellablePromise<$models.GalleryPage> {

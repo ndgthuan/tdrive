@@ -251,3 +251,56 @@ func TestArchiveScanLimitRemainsRecoverableForRawUploadFallback(t *testing.T) {
 		t.Fatal("archive inspection limit must fall back to uploading the original archive")
 	}
 }
+
+func TestImportIgnoresTemporaryMediaCopies(t *testing.T) {
+	isolate_data_dir(t)
+	ignored := []string{
+		".pending-1793613831-VID_20261026_170351.mp4",
+		".Pending-42-IMG_1.jpg",
+		".TRASHED-7-clip.mov",
+		".trashed-0-x",
+	}
+	for _, name := range ignored {
+		if !isIgnoredImportName(name, false) {
+			t.Errorf("isIgnoredImportName(%q) = false, want true", name)
+		}
+	}
+	kept := []string{
+		"VID_20261026_170351.mp4",
+		".pending-VID.mp4",
+		".pending-12x-clip.mp4",
+		".pending-12-",
+		".pending--clip.mp4",
+		"pending-12-clip.mp4",
+		"my.pending-12-clip.mp4",
+	}
+	for _, name := range kept {
+		if isIgnoredImportName(name, false) {
+			t.Errorf("isIgnoredImportName(%q) = true, want false", name)
+		}
+	}
+}
+
+func TestImportKeepsDirectoriesNamedLikeTemporaryCopies(t *testing.T) {
+	isolate_data_dir(t)
+	if isIgnoredImportName(".pending-12-holiday", true) {
+		t.Fatal("directory named like a temporary copy was ignored")
+	}
+	if isIgnoredImportName(".trashed-3-album", true) {
+		t.Fatal("directory named like a trashed copy was ignored")
+	}
+}
+
+func TestPlanImportSkipsTemporaryMediaInsideFolders(t *testing.T) {
+	isolate_data_dir(t)
+	svc, _, _, _ := newTestService(t)
+	root := filepath.Join(t.TempDir(), "Camera")
+	mkfile(t, filepath.Join(root, ".pending-1793613831-VID_20261026_170351.mp4"), "partial")
+	mkfile(t, filepath.Join(root, ".trashed-9-old.jpg"), "trashed")
+	mkfile(t, filepath.Join(root, "VID_20261026_170351.mp4"), "kept")
+
+	plan := svc.PlanImport([]string{root}, false, false)
+	if plan.Files != 1 || plan.Ignored != 2 {
+		t.Fatalf("plan = files %d ignored %d, want files 1 ignored 2", plan.Files, plan.Ignored)
+	}
+}

@@ -23,6 +23,7 @@
     const retryCount = $derived(failures.filter((failure) => failure.retryable).length);
     const checkCount = $derived(failures.filter((failure) => statusFor(failure).tone === 'warning').length);
     const pages = $derived(Math.max(1, Math.ceil(failures.length / PAGE_SIZE)));
+    let copyState = $state<'idle' | 'copied' | 'unavailable'>('idle');
     const driveTitle = $derived($view.payload?.driveTitle ?? $t_store('modals.failed_original_drive'));
     const subtitle = $derived(uploaded > 0
         ? $t_store('modals.failed_subtitle_partial', { failed: failures.length, total, drive: driveTitle })
@@ -30,7 +31,26 @@
     $effect(() => {
         if ($view.payload !== previousPayload) page = 0;
         previousPayload = $view.payload;
+        copyState = 'idle';
     });
+
+    // One "name: reason" line per failed file, so the list can be pasted into a
+    // bug report or kept. Every kept failure is included; the rest are counted.
+    function copyText(): string {
+        const lines = failures.map((failure) => `${failure.name}: ${statusFor(failure, $t_store).detail}`);
+        const omitted = $view.payload?.omitted ?? 0;
+        if (omitted > 0) lines.push($t_store('modals.failed_copy_more', { count: omitted }));
+        return lines.join('\n');
+    }
+
+    async function copyList() {
+        try {
+            await navigator.clipboard.writeText(copyText());
+            copyState = 'copied';
+        } catch {
+            copyState = 'unavailable';
+        }
+    }
 
     type Tone = 'accent' | 'warning' | 'info' | 'muted' | 'danger';
     interface Status { tone: Tone; label: string; detail: string; icon: typeof CircleXIcon; }
@@ -92,6 +112,10 @@
     {#if $view.error}<p class="failed-upload-error" role="alert">{$view.error}</p>{/if}
     </div>
     {#snippet actions()}
+        <button class="secondary-btn" type="button" disabled={failures.length === 0} onclick={copyList}>
+            {copyState === 'copied' ? $t_store('modals.failed_copy_copied') : $t_store('modals.failed_copy_list')}
+        </button>
+        {#if copyState === 'unavailable'}<p class="failed-upload-error" role="alert">{$t_store('modals.failed_copy_unavailable')}</p>{/if}
         <button class="secondary-btn" type="button" onclick={onClose}>{$t_store('common.close')}</button>
         <button id="retry-failed-uploads" class="primary-btn" type="button" disabled={retryCount === 0 || $view.busy} onclick={onRetry}>
             {$t_store('modals.failed_retry')}{retryCount > 0 ? ` (${retryCount})` : ''}

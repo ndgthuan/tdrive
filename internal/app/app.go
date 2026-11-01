@@ -14,6 +14,7 @@ import (
 	"TDrive/backend/core"
 	"TDrive/backend/datadir"
 	"TDrive/backend/galleryimage"
+	"TDrive/backend/importledger"
 	"TDrive/backend/mountcontroller"
 	"TDrive/backend/mountlifecycle"
 	"TDrive/backend/photobackup"
@@ -84,6 +85,12 @@ type App struct {
 	fileDropEnabled bool
 
 	transfers transferState
+
+	// importLedger records which files each drive already has from folder
+	// imports. It opens on first use, once the data directory is known.
+	importLedgerOnce sync.Once
+	importLedger     *importledger.Ledger
+	importLedgerErr  error
 
 	// The domains lifted out of App into their own bound services. They are
 	// built once in initServices; see services.go for the graph and for

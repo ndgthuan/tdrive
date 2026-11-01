@@ -28,6 +28,31 @@ function open(failures: { index: number; name: string; message: string; code: st
 }
 
 describe('failed upload review', () => {
+    it('copies one name and reason per line, and says how many more were left out', async () => {
+        const writeText = vi.fn(async (_text: string) => undefined);
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+        failedUploadsModal.open({
+            paths: [],
+            failures: [
+                { index: 0, name: 'Camera/a.jpg', message: 'could not be read (the file may be a temporary or deleted file)', code: 'unreadable', retryable: true },
+                { index: 1, name: 'b.mp4', message: 'quota exceeded', code: 'upload_failed', retryable: true },
+            ],
+            parentId: 'folder', encrypt: false, driveId: 1, driveTitle: 'Personal', omitted: 4998,
+        });
+        flushSync();
+
+        const copy = [...host.querySelectorAll('button')].find((button) => button.textContent?.trim() === 'Copy list');
+        copy?.click();
+        await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
+
+        const text = writeText.mock.calls[0][0];
+        const lines = text.split('\n');
+        expect(lines[0]).toBe('Camera/a.jpg: could not be read (the file may be a temporary or deleted file)');
+        expect(lines[1]).toMatch(/^b\.mp4: /);
+        expect(lines[2]).toBe('and 4998 more');
+        expect(lines).toHaveLength(3);
+    });
+
     it('shows every error with bounded pages and distinguishes safe retry from uncertain acceptance', () => {
         open(Array.from({ length: 22 }, (_, index) => ({ index, name: `file-${index}.txt`, message: `error ${index}`, code: index === 21 ? 'outcome_unknown' : 'upload_failed', retryable: index !== 21 })));
         expect(host.querySelectorAll('li')).toHaveLength(20);

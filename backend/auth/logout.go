@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"TDrive/backend/datadir"
+	"TDrive/backend/importledger"
 )
 
 type LogoutMode string
@@ -49,6 +50,10 @@ func ClearUserData(mode LogoutMode) error {
 		}
 	}
 	if mode == LogoutFull {
+		// Import ledgers name the files of every drive this account imported to.
+		if err := os.RemoveAll(filepath.Join(dir, importledger.DirName)); err != nil {
+			return fmt.Errorf("auth: clear import ledger: %w", err)
+		}
 		cacheDir, err := datadir.CacheDir()
 		if err != nil {
 			return fmt.Errorf("auth: locate cache dir: %w", err)
