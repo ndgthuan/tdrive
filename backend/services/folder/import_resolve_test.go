@@ -144,9 +144,20 @@ func TestFindExistingMatchesLiveSameSizeOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find: %v", err)
 	}
-	want := []ImportMatch{{Index: 0, FolderID: holiday.ID}, {Index: 1, FolderID: holiday.ID}}
-	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+	// A different size under the same name is reported as a name clash, not a
+	// match: the upload would be renamed beside the existing file.
+	want := []ImportMatch{
+		{Index: 0, FolderID: holiday.ID},
+		{Index: 1, FolderID: holiday.ID},
+		{Index: 2, FolderID: holiday.ID, NameTaken: true},
+	}
+	if len(got) != len(want) {
 		t.Fatalf("matches = %+v, want %+v", got, want)
+	}
+	for i := range want {
+		if importMatchKey(got[i]) != want[i] {
+			t.Fatalf("matches = %+v, want %+v", got, want)
+		}
 	}
 }
 
@@ -188,7 +199,19 @@ func TestFindExistingEncryptedPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find: %v", err)
 	}
-	if len(got) != 1 || got[0].Index != 1 {
-		t.Fatalf("matches = %+v, want only the encrypted same-plaintext entry", got)
+	// Only the encrypted same-plaintext entry is a match. The two mismatches
+	// share a live name with a file they cannot match, so both are name clashes.
+	want := []ImportMatch{
+		{Index: 0, FolderID: projection.RootParent, NameTaken: true},
+		{Index: 1, FolderID: projection.RootParent},
+		{Index: 2, FolderID: projection.RootParent, NameTaken: true},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("matches = %+v, want %+v", got, want)
+	}
+	for i := range want {
+		if importMatchKey(got[i]) != want[i] {
+			t.Fatalf("matches = %+v, want %+v", got, want)
+		}
 	}
 }

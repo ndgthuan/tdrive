@@ -7,6 +7,7 @@ import JoinRequestsModal from './join_requests_modal.svelte';
 import LeaveDriveModal from './leave_drive_modal.svelte';
 import LogoutModal from './logout_modal.svelte';
 import MoveModal from './move_modal.svelte';
+import NameClashModal from './name_clash_modal.svelte';
 import RenameModal from './rename_modal.svelte';
 import UploadOptionsModal from './upload_options_modal.svelte';
 import { closeDeleteModalView, openDeleteModalView } from './delete_modal_store';
@@ -19,6 +20,7 @@ import {
 import { encryptionPasswordModal } from './encryption_password_modal_store';
 import { importOptionsModal, type ImportOptionsPlan } from './import_options_modal_store';
 import { joinRequestsList, joinRequestsModal } from './join_requests_modal_store';
+import { nameClashModal, type NameClashItem } from './name_clash_modal_store';
 import { logoutModal } from './logout_modal_store';
 import { closeLeaveDriveModalView, openLeaveDriveModalView } from './leave_drive_modal_store';
 import { moveBrowse, moveModal, resetMoveBrowse } from './move_modal_store';
@@ -51,6 +53,7 @@ afterEach(() => {
     joinRequestsModal.close();
     joinRequestsList.set({ status: 'loading' });
     logoutModal.close();
+    nameClashModal.close();
     closeLeaveDriveModalView();
     moveModal.close();
     resetMoveBrowse('');
@@ -210,6 +213,49 @@ describe('EncryptionPasswordModal', () => {
 
         expect(body).toContain('class="modal-error"');
         expect(body).toContain('wrong password');
+    });
+});
+
+describe('NameClashModal', () => {
+    const clash = (overrides: Partial<NameClashItem> = {}): NameClashItem => ({
+        index: 0,
+        name: 'Photos/a.jpg',
+        incomingSize: 2048,
+        existingSize: 1024,
+        keptName: 'a_1.jpg',
+        ...overrides,
+    });
+
+    it('lists each clash with both sizes, and offers replace, keep both as the free name, and skip', () => {
+        nameClashModal.open({ items: [clash()] });
+
+        const { body } = render(NameClashModal, { props: { onCancel: noop, onConfirm: noop } });
+
+        expect(body).toContain('Photos/a.jpg');
+        expect(body).toContain('On the drive: 1 KB · On this device: 2 KB');
+        expect(body).toContain('Keep both, as a_1.jpg');
+        expect(body).toContain('Replace (the old file goes to Trash)');
+        // One clash needs no bulk choice.
+        expect(body).not.toContain('name-clash-apply-all');
+    });
+
+    it('offers only skip when no free copy name is left', () => {
+        nameClashModal.open({ items: [clash({ keptName: '' })] });
+
+        const { body } = render(NameClashModal, { props: { onCancel: noop, onConfirm: noop } });
+
+        expect(body).toMatch(/value="replace"[^>]*disabled/);
+        expect(body).toMatch(/value="keep_both"[^>]*disabled/);
+        expect(body).not.toMatch(/value="skip"[^>]*disabled/);
+    });
+
+    it('shows the bulk choice and a plural summary when several files clash', () => {
+        nameClashModal.open({ items: [clash({ index: 0 }), clash({ index: 1, name: 'b.jpg' })] });
+
+        const { body } = render(NameClashModal, { props: { onCancel: noop, onConfirm: noop } });
+
+        expect(body).toContain('name-clash-apply-all');
+        expect(body).toContain('2 files have the same names as different files on the drive');
     });
 });
 

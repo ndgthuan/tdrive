@@ -30,6 +30,8 @@ export interface AndroidFolderFile {
 export interface AndroidFolderManifest {
     root: string;
     files: AndroidFolderFile[];
+    /** Every folder under root as a path relative to it, empty ones included. */
+    dirs: string[];
     /** Temporary camera files the bridge left out of the walk. */
     skipped: number;
 }
@@ -58,8 +60,9 @@ function knownSize(value: unknown): number {
 
 function parseManifest(raw: string): AndroidFolderManifest | null {
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { root?: unknown; files?: unknown; skipped?: unknown };
+    const parsed = JSON.parse(raw) as { root?: unknown; files?: unknown; dirs?: unknown; skipped?: unknown };
     const entries = Array.isArray(parsed.files) ? parsed.files : [];
+    const dirs = Array.isArray(parsed.dirs) ? parsed.dirs.map((dir) => String(dir ?? '')).filter(Boolean) : [];
     const files: AndroidFolderFile[] = [];
     let skipped = Math.max(0, Math.floor(Number(parsed.skipped) || 0));
     for (const entry of entries) {
@@ -78,7 +81,7 @@ function parseManifest(raw: string): AndroidFolderManifest | null {
             modified: Math.max(0, Number(file.modified) || 0),
         });
     }
-    return { root: String(parsed.root ?? ''), files, skipped };
+    return { root: String(parsed.root ?? ''), files, dirs, skipped };
 }
 
 /**
@@ -143,17 +146,20 @@ export function folderPathFor(root: string, rel: string): string {
 
 /**
  * Every directory the manifest implies, shallowest first, because a folder
- * cannot be created before the parent whose id it needs.
+ * cannot be created before the parent whose id it needs. Folders the manifest
+ * lists in dirs count too, so an empty folder is created even with no file in it.
  */
 export function folderPathsFor(manifest: AndroidFolderManifest): string[] {
     const paths = new Set<string>();
     const root = pathSegments(manifest.root).join('/');
     if (root) paths.add(root);
-    for (const file of manifest.files) {
-        const segments = pathSegments(folderPathFor(manifest.root, file.rel));
+    const addWithAncestors = (path: string) => {
+        const segments = pathSegments(path);
         for (let depth = 1; depth <= segments.length; depth += 1) {
             paths.add(segments.slice(0, depth).join('/'));
         }
-    }
+    };
+    for (const file of manifest.files) addWithAncestors(folderPathFor(manifest.root, file.rel));
+    for (const dir of manifest.dirs) addWithAncestors(`${manifest.root}/${dir}`);
     return [...paths].sort((a, b) => a.split('/').length - b.split('/').length);
 }

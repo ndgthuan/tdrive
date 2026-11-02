@@ -12,6 +12,7 @@ export { default as EncryptionSettingsModal } from './modals/encryption_settings
 export { default as EncryptionSetupModal } from './modals/encryption_setup_modal.svelte';
 export { default as FolderModal } from './modals/folder_modal.svelte';
 export { default as ImportOptionsModal } from './modals/import_options_modal.svelte';
+export { default as NameClashModal } from './modals/name_clash_modal.svelte';
 export { default as JoinDriveModal } from './modals/join_drive_modal.svelte';
 export { default as JoinRequestsModal } from './modals/join_requests_modal.svelte';
 export { default as LeaveDriveModal } from './modals/leave_drive_modal.svelte';

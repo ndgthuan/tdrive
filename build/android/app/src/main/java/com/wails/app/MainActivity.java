@@ -1462,21 +1462,25 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Lists every file in a chosen tree as
-     * {"root","files":[{"id","rel","size","modified"}],"skipped"}. "size" is -1
-     * when the provider does not say, "modified" is unix milliseconds, 0 when it
-     * does not, and "skipped" counts the temporary camera files left out. The ids
-     * are this pick's own, and stay answerable until the next one. A folder the
+     * {"root","files":[{"id","rel","size","modified"}],"dirs":["rel"],"skipped"}.
+     * "size" is -1 when the provider does not say, "modified" is unix milliseconds,
+     * 0 when it does not, and "skipped" counts the temporary camera files left
+     * out. "dirs" lists every folder under the root, empty ones included, so the
+     * import can create them even when nothing is uploaded into them. The ids are
+     * this pick's own, and stay answerable until the next one. A folder the
      * provider cannot list fails the whole pick rather than reading as empty.
      */
     private JSONObject readTree(Uri tree) throws JSONException {
         holdTree(tree);
         String rootDocId = DocumentsContract.getTreeDocumentId(tree);
         JSONArray files = new JSONArray();
+        JSONArray dirs = new JSONArray();
         int[] skipped = new int[1];
-        collectTree(tree, rootDocId, "", files, skipped);
+        collectTree(tree, rootDocId, "", files, dirs, skipped);
         JSONObject manifest = new JSONObject();
         manifest.put("root", treeDisplayName(tree, rootDocId));
         manifest.put("files", files);
+        manifest.put("dirs", dirs);
         manifest.put("skipped", skipped[0]);
         return manifest;
     }
@@ -1522,7 +1526,7 @@ public class MainActivity extends AppCompatActivity {
         pickedCache = new File(getCacheDir(), "wails-folder/" + System.nanoTime());
     }
 
-    private void collectTree(Uri tree, String parentDocId, String prefix, JSONArray files, int[] skipped)
+    private void collectTree(Uri tree, String parentDocId, String prefix, JSONArray files, JSONArray dirs, int[] skipped)
             throws JSONException {
         Uri children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, parentDocId);
         try (Cursor cursor = getContentResolver().query(children, new String[]{
@@ -1551,7 +1555,8 @@ public class MainActivity extends AppCompatActivity {
                 }
                 String rel = prefix + safeName(rawName);
                 if (directory) {
-                    collectTree(tree, docId, rel + "/", files, skipped);
+                    dirs.put(rel);
+                    collectTree(tree, docId, rel + "/", files, dirs, skipped);
                     continue;
                 }
                 String id = String.valueOf(files.length());

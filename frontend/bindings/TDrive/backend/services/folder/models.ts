@@ -4,20 +4,31 @@
 /**
  * ImportEntry is one file an import is about to upload, described by where it
  * goes. FolderPath is "/"-separated and relative to the import's parent folder;
- * its first segment is the picked folder.
+ * its first segment is the picked folder. Folder marks a folder the import will
+ * create at FolderPath/Name instead: it never matches, but its name is taken, so
+ * no copy of a file may be suggested under it.
  */
 export interface ImportEntry {
     "folder_path": string;
     "name": string;
     "size": number;
     "encrypted": boolean;
+    "folder": boolean;
 }
 
 /**
  * ImportMatch names an entry that already exists live on the drive, and the
- * folder it was found in.
+ * folder it was found in. NameTaken marks a live file with the entry's name but
+ * different content: an upload would be renamed beside it, so the user decides
+ * whether to replace that file or keep a copy. ExistingMsgID and ExistingSize
+ * describe the live file, and SuggestedName is the free name a kept copy takes
+ * ("" when none is free).
  */
 export interface ImportMatch {
     "index": number;
     "folder_id": string;
+    "name_taken": boolean;
+    "existing_msg_id": number;
+    "existing_size": number;
+    "suggested_name": string;
 }

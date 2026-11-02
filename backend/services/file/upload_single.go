@@ -34,11 +34,20 @@ func (s *Service) uploadSingle(ctx context.Context, uploadID int, filePath strin
 }
 
 func (s *Service) uploadSingleWithObserver(ctx context.Context, uploadID int, filePath string, parentID string, channelID int64, wantEncrypted bool, peer tgclient.InputPeer, observer uploadObserver, resumable bool) (Metadata, projection.Op, string, error) {
+	return s.uploadSingleNamed(ctx, uploadID, filePath, "", parentID, channelID, wantEncrypted, peer, observer, resumable)
+}
+
+// uploadSingleNamed uploads one source under name, or under its base name when
+// name is empty. An import uses it to keep a copy beside a file of the same name.
+func (s *Service) uploadSingleNamed(ctx context.Context, uploadID int, filePath, name string, parentID string, channelID int64, wantEncrypted bool, peer tgclient.InputPeer, observer uploadObserver, resumable bool) (Metadata, projection.Op, string, error) {
 	if channelID == 0 {
 		return Metadata{}, projection.Op{}, "", fmt.Errorf("drive channel id not found")
 	}
 
-	filename := filepath.Base(filePath)
+	filename := name
+	if filename == "" {
+		filename = filepath.Base(filePath)
+	}
 	sourceStarted := time.Now()
 
 	plainFile, err := os.Open(filePath)

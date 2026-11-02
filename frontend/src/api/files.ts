@@ -27,6 +27,7 @@ import {
     SelectFolder as rawSelectFolder,
     SetFileDropEnabled as rawSetFileDropEnabled,
     ShareFile as rawShareFile,
+    UploadImportToDriveFS as rawUploadImportToDriveFs,
     UploadToDriveFS as rawUploadToDriveFs,
     RetryUploadToDriveFS as rawRetryUploadToDriveFs,
 } from "../../bindings/TDrive/internal/app/app";
@@ -257,6 +258,12 @@ function normalizeUploadResult(value: unknown, pathCount: number): UploadResult 
 
 export async function uploadToDriveFs(paths: string[], parentIds: string[], encrypt: boolean): Promise<UploadResult> {
     return normalizeUploadResult(await invokeBackend(rawUploadToDriveFs, paths, parentIds, encrypt), paths.length);
+}
+
+// names is aligned with paths: each upload takes that name on the drive instead of
+// its file name. Pass null to keep every file's own name.
+export async function uploadImportToDriveFs(paths: string[], parentIds: string[], names: string[] | null, encrypt: boolean): Promise<UploadResult> {
+    return normalizeUploadResult(await invokeBackend(rawUploadImportToDriveFs, paths, parentIds, names, encrypt), paths.length);
 }
 
 export async function retryUploadToDriveFs(paths: string[], parentIds: string[], encrypt: boolean, expectedChannelId: number): Promise<UploadResult> {

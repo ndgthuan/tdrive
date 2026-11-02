@@ -278,7 +278,14 @@ func (a *App) CancelDownload() {
 // UploadToDriveFS uploads the selected batch. Encryption is chosen per batch;
 // encrypted uploads require an already unlocked vault.
 func (a *App) UploadToDriveFS(filePaths []string, parentIDs []string, encrypt bool) UploadResult {
-	return a.uploadToDriveFS(filePaths, parentIDs, encrypt, a.ActiveChannelID(), false)
+	return a.uploadToDriveFS(filePaths, parentIDs, nil, encrypt, a.ActiveChannelID(), false)
+}
+
+// UploadImportToDriveFS uploads an import's files, each under its own drive
+// name: names is aligned with filePaths, and an empty entry keeps the base name.
+// A kept copy takes a free "name_N" name so it lands beside the file it clashes with.
+func (a *App) UploadImportToDriveFS(filePaths []string, parentIDs []string, names []string, encrypt bool) UploadResult {
+	return a.uploadToDriveFS(filePaths, parentIDs, names, encrypt, a.ActiveChannelID(), false)
 }
 
 // RetryUploadToDriveFS pins the original destination and never replaces another
@@ -288,10 +295,10 @@ func (a *App) RetryUploadToDriveFS(filePaths []string, parentIDs []string, encry
 		err := errors.New("upload destination changed")
 		return UploadResult{Result: operationFailureMessage(err, "Switch back to the original drive before retrying these files"), Failures: fileservice.NotSentFailures(filePaths, err)}
 	}
-	return a.uploadToDriveFS(filePaths, parentIDs, encrypt, expectedChannelID, true)
+	return a.uploadToDriveFS(filePaths, parentIDs, nil, encrypt, expectedChannelID, true)
 }
 
-func (a *App) uploadToDriveFS(filePaths []string, parentIDs []string, encrypt bool, channelID int64, retry bool) UploadResult {
+func (a *App) uploadToDriveFS(filePaths []string, parentIDs []string, names []string, encrypt bool, channelID int64, retry bool) UploadResult {
 	// Failures before the service call never sent anything: report them
 	// per file so the selection can be retried without a new picker round.
 	svc, err := a.requireFileService()
@@ -316,7 +323,7 @@ func (a *App) uploadToDriveFS(filePaths []string, parentIDs []string, encrypt bo
 	}
 	defer a.releaseUnreferencedUploadSources(svc, staged)
 	a.sweepOrphanParts(ctx)
-	files, failures, err := svc.UploadWithFailures(ctx, channelID, filePaths, parentIDs, encrypt)
+	files, failures, err := svc.UploadNamedWithFailures(ctx, channelID, filePaths, parentIDs, names, encrypt)
 	out := make([]backend.FileMetaData, 0, len(files))
 	for _, f := range files {
 		out = append(out, uploadMetaToBackend(f))

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -62,6 +63,21 @@ type uploadOptions struct {
 	peer      *tgclient.InputPeer
 	idOffset  int
 	resumable bool
+	// names gives each path its drive name, aligned with filePaths. An empty
+	// entry keeps the path's base name; nil keeps every base name.
+	names []string
+}
+
+// validateUploadName accepts an empty name, which means the base name, or one
+// drive name that is a single path segment.
+func validateUploadName(name string) error {
+	if name == "" {
+		return nil
+	}
+	if strings.TrimSpace(name) == "" || name == "." || name == ".." || strings.ContainsAny(name, `/\`) {
+		return fmt.Errorf("invalid upload name %q", name)
+	}
+	return nil
 }
 
 type uploadedResult struct {
@@ -80,6 +96,14 @@ func (s *Service) upload(ctx context.Context, channelID int64, filePaths []strin
 	slog.Debug("file: upload batch starting", "channel_id", channelID, "files", len(filePaths), "encrypt", encrypt)
 	if len(filePaths) != len(parentIDs) {
 		return nil, fmt.Errorf("filepaths and parentIDs length mismatch")
+	}
+	if options.names != nil && len(options.names) != len(filePaths) {
+		return nil, fmt.Errorf("filepaths and names length mismatch")
+	}
+	for _, name := range options.names {
+		if err := validateUploadName(name); err != nil {
+			return nil, err
+		}
 	}
 	if len(filePaths) > maxImportItems {
 		return nil, fmt.Errorf("%w: keep the batch under %d files", errImportItemLimit, maxImportItems)
@@ -138,6 +162,10 @@ func (s *Service) upload(ctx context.Context, channelID int64, filePaths []strin
 	for i := range len(filePaths) {
 		path := filePaths[i]
 		pid := parentIDs[i]
+		name := ""
+		if options.names != nil {
+			name = options.names[i]
+		}
 		uploadID := options.idOffset + i
 		slotStarted := time.Now()
 		release, slotErr := s.acquireUploadSlot(ctx)
@@ -173,7 +201,7 @@ func (s *Service) upload(ctx context.Context, channelID int64, filePaths []strin
 				}
 			}()
 
-			meta, op, header, err := s.uploadSingleWithObserver(uploadCtx, uploadID, path, pid, channelID, encrypt, *peer, observer, options.resumable)
+			meta, op, header, err := s.uploadSingleNamed(uploadCtx, uploadID, path, name, pid, channelID, encrypt, *peer, observer, options.resumable)
 			receivedAt := time.Now()
 			if err != nil {
 				if meta.MsgID != 0 {

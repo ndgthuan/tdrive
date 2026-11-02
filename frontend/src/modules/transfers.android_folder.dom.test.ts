@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
     markTransferDone: vi.fn(),
     notify: vi.fn(),
     openImportOptionsModal: vi.fn(),
+    openNameClashModal: vi.fn(),
     pushTransferStart: vi.fn(),
     updateTransferName: vi.fn(),
     updateTransferProgress: vi.fn(),
@@ -25,10 +26,12 @@ const app = vi.hoisted(() => ({
     ImportLedgerRecord: vi.fn(),
     ImportLedgerVeto: vi.fn(),
     ImportPaths: vi.fn(),
+    ImportReplaceFile: vi.fn(),
     ImportResolveFolders: vi.fn(),
     PlanImport: vi.fn(),
     SelectFiles: vi.fn(),
     SelectFolder: vi.fn(),
+    UploadImportToDriveFS: vi.fn(),
     UploadToDriveFS: vi.fn(),
 }));
 
@@ -46,6 +49,7 @@ vi.mock('./notif_bell', () => ({
 }));
 vi.mock('./encryption', () => ({ loadEncryptionStatus: vi.fn() }));
 vi.mock('./modals/import_options', () => ({ openImportOptionsModal: mocks.openImportOptionsModal }));
+vi.mock('./modals/name_clash', () => ({ openNameClashModal: mocks.openNameClashModal }));
 vi.mock('./modals/upload_options', () => ({ openUploadOptionsModal: vi.fn() }));
 vi.mock('./modals/encryption_setup', () => ({ openEncryptionSetupModal: vi.fn() }));
 vi.mock('./modals/encryption_password', () => ({ openEncryptionPasswordModal: vi.fn() }));
@@ -142,6 +146,8 @@ beforeEach(() => {
     createdFolders = [];
 
     mocks.openImportOptionsModal.mockResolvedValue({ encrypt: false, extract: false });
+    // No answer from the prompt means every clash is skipped, the same as the prompt's own default.
+    mocks.openNameClashModal.mockResolvedValue(new Map());
     // Stands in for the backend: reuse is decided there, so the mock creates
     // whatever it is asked for and records it, in the order it is asked.
     app.ImportResolveFolders.mockImplementation(async (_driveId: number, parentId: string, paths: string[]) => {
@@ -165,10 +171,11 @@ beforeEach(() => {
     app.ImportLedgerVeto.mockImplementation(async (_driveId: number, _parentId: string, entries: unknown[]) => entries.map(() => false));
     app.ImportLedgerRecord.mockResolvedValue(undefined);
     app.ImportLedgerForget.mockResolvedValue(undefined);
-    app.UploadToDriveFS.mockImplementation(async (paths: string[]) => ({
+    app.UploadImportToDriveFS.mockImplementation(async (paths: string[]) => ({
         result: { ok: true },
         files: paths.map((path) => ({ name: path })),
     }));
+    app.ImportReplaceFile.mockResolvedValue(undefined);
     failedUploadReports.set([]);
     failedUploadsModal.close();
 
@@ -200,7 +207,7 @@ describe('uploading an Android folder a window at a time', () => {
         ]);
         // Nothing stays in the cache behind the window that is uploading.
         expect(released).toEqual(materialized);
-        expect(app.UploadToDriveFS).toHaveBeenCalledTimes(3);
+        expect(app.UploadImportToDriveFS).toHaveBeenCalledTimes(3);
     });
 
     it('creates the folder tree parents first and uploads each file into its own', async () => {
@@ -215,14 +222,14 @@ describe('uploading an Android folder a window at a time', () => {
             { id: 'f3', name: 'a', parentId: 'f1' },
             { id: 'f4', name: 'deep', parentId: 'f2' },
         ]);
-        const [paths, parentIDs] = app.UploadToDriveFS.mock.calls[0];
+        const [paths, parentIDs] = app.UploadImportToDriveFS.mock.calls[0];
         expect(paths).toEqual(['/cache/doc:0', '/cache/doc:1', '/cache/doc:2']);
         expect(parentIDs).toEqual(['f4', 'f3', 'f1']);
     });
 
     it('releases the window even when the upload throws, and reports the import failed', async () => {
         manifestJson = manifestOf('Holiday', ['a', 'b']);
-        app.UploadToDriveFS.mockRejectedValue(new Error('backend went away'));
+        app.UploadImportToDriveFS.mockRejectedValue(new Error('backend went away'));
 
         await importFolderWithParentID('root');
 
@@ -232,14 +239,14 @@ describe('uploading an Android folder a window at a time', () => {
 
     it('releases the window it was cancelled in and starts no more', async () => {
         manifestJson = manifestOf('Holiday', ['a', 'b', 'c', 'd', 'e']);
-        app.UploadToDriveFS.mockResolvedValue({
+        app.UploadImportToDriveFS.mockResolvedValue({
             result: { ok: false, error: { code: 'canceled', message: 'canceled' } },
             files: [],
         });
 
         await importFolderWithParentID('root');
 
-        expect(app.UploadToDriveFS).toHaveBeenCalledTimes(1);
+        expect(app.UploadImportToDriveFS).toHaveBeenCalledTimes(1);
         expect(released).toEqual([['doc:0', 'doc:1', 'doc:2', 'doc:3']]);
         expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'canceled' });
         // Backing out is not a failure to report.
@@ -252,7 +259,7 @@ describe('uploading an Android folder a window at a time', () => {
 
         await importFolderWithParentID('root');
 
-        const [paths] = app.UploadToDriveFS.mock.calls[0];
+        const [paths] = app.UploadImportToDriveFS.mock.calls[0];
         expect(paths).toEqual(['/cache/doc:0', '/cache/doc:2']);
         // The id that never became a file is still released: a half-done copy
         // would otherwise sit in the cache forever.
@@ -271,7 +278,7 @@ describe('uploading an Android folder a window at a time', () => {
 
         await importFolderWithParentID('root');
 
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         expect(released).toEqual([['doc:0', 'doc:1']]);
     });
 
@@ -315,7 +322,7 @@ describe('uploading an Android folder a window at a time', () => {
         await importFolderWithParentID('root');
 
         expect(app.ImportResolveFolders).not.toHaveBeenCalled();
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         expect(mocks.openImportOptionsModal).not.toHaveBeenCalled();
         expect(mocks.notify).not.toHaveBeenCalled();
         expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'canceled' });
@@ -338,7 +345,7 @@ describe('uploading an Android folder a window at a time', () => {
         await importFolderWithParentID('root');
 
         expect(materialized).toEqual([]);
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'failed' });
     });
 
@@ -370,9 +377,9 @@ describe('the live drive decides what is already there', () => {
         await importFolderWithParentID('root');
 
         expect(app.ImportFindExisting).toHaveBeenCalledWith(1, 'root', [
-            { folder_path: 'Holiday', name: 'a.jpg', size: 100, encrypted: false },
-            { folder_path: 'Holiday', name: 'b.jpg', size: 300, encrypted: false },
-            { folder_path: 'Holiday', name: 'c.jpg', size: 600, encrypted: false },
+            { folder_path: 'Holiday', name: 'a.jpg', size: 100, encrypted: false, folder: false },
+            { folder_path: 'Holiday', name: 'b.jpg', size: 300, encrypted: false, folder: false },
+            { folder_path: 'Holiday', name: 'c.jpg', size: 600, encrypted: false, folder: false },
         ]);
         // The options dialog counts the whole manifest, the job decides after.
         expect(materialized).toEqual([['doc:1', 'doc:2']]);
@@ -393,9 +400,9 @@ describe('the live drive decides what is already there', () => {
         expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'done' });
     });
 
-    it('uploads a file the ledger says was edited since it was imported', async () => {
+    it('skips a file the ledger says was edited since it was imported, and names it as a clash', async () => {
         manifestJson = threeFiles();
-        app.ImportFindExisting.mockResolvedValue([{ index: 0, folder_id: 'live-1' }]);
+        app.ImportFindExisting.mockResolvedValue([{ index: 0, folder_id: 'live-1', name_taken: false }]);
         app.ImportLedgerVeto.mockResolvedValue([true]);
 
         await importFolderWithParentID('root');
@@ -403,7 +410,32 @@ describe('the live drive decides what is already there', () => {
         expect(app.ImportLedgerVeto).toHaveBeenCalledWith(1, 'root', [
             { folder_path: 'Holiday', name: 'a.jpg', size: 100, modified: 1, encrypted: false },
         ]);
-        expect(materialized).toEqual([['doc:0', 'doc:1', 'doc:2']]);
+        // The drive holds an older a.jpg under that name. Sending it would be renamed beside it.
+        expect(materialized).toEqual([['doc:1', 'doc:2']]);
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: 'Imported 2 files · 1 file not uploaded: a different file with the same name is already on the drive',
+        });
+        expect(mocks.notify.mock.calls[0][0].body).toContain('a.jpg');
+    });
+
+    it('never sends a file whose name the drive holds with different content, and says so', async () => {
+        manifestJson = threeFiles();
+        app.ImportFindExisting.mockResolvedValue([{ index: 1, folder_id: 'live-1', name_taken: true }]);
+
+        await importFolderWithParentID('root');
+
+        // The ledger has no say over a name clash: the drive already disagrees with the source.
+        expect(app.ImportLedgerVeto).not.toHaveBeenCalled();
+        expect(materialized).toEqual([['doc:0', 'doc:2']]);
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: 'Imported 2 files · 1 file not uploaded: a different file with the same name is already on the drive',
+        });
+        expect(mocks.notify.mock.calls[0][0].body).toContain('b.jpg');
+        expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'done' });
     });
 
     it('uploads everything when the live check fails, rather than skipping on a guess', async () => {
@@ -422,7 +454,7 @@ describe('the live drive decides what is already there', () => {
         await importFolderWithParentID('trips');
 
         expect(app.ImportFindExisting).toHaveBeenCalledWith(1, 'trips', expect.any(Array));
-        expect(app.UploadToDriveFS).toHaveBeenCalledTimes(1);
+        expect(app.UploadImportToDriveFS).toHaveBeenCalledTimes(1);
     });
 
     it('shows the summary plurally when several files were already there', async () => {
@@ -449,7 +481,7 @@ describe('the live drive decides what is already there', () => {
 
         expect(app.ImportResolveFolders).not.toHaveBeenCalled();
         expect(app.CreateFolder).not.toHaveBeenCalled();
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         expect(materialized).toEqual([]);
         expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
             id: 'import',
@@ -469,7 +501,7 @@ describe('the live drive decides what is already there', () => {
             ],
         });
         app.ImportFindExisting.mockResolvedValue([{ index: 0, folder_id: 'x' }]);
-        app.UploadToDriveFS.mockResolvedValue({
+        app.UploadImportToDriveFS.mockResolvedValue({
             result: { ok: true },
             files: [{ name: '/cache/doc:2' }],
             failures: [{ index: 0, name: '/cache/doc:1', message: 'quota exceeded', code: 'upload_failed', retryable: true }],
@@ -487,7 +519,7 @@ describe('the live drive decides what is already there', () => {
 describe('the ledger records only what is proven uploaded', () => {
     it('records exactly the files that uploaded, window by window', async () => {
         manifestJson = manifestOf('Holiday', ['a', 'b', 'c', 'd', 'e']);
-        app.UploadToDriveFS
+        app.UploadImportToDriveFS
             .mockResolvedValueOnce({
                 result: { ok: true },
                 files: [{ name: '/cache/doc:0' }, { name: '/cache/doc:2' }, { name: '/cache/doc:3' }],
@@ -507,7 +539,7 @@ describe('the ledger records only what is proven uploaded', () => {
         // One file is named as uploaded and the other is named nowhere. Neither
         // is remembered: a file only goes on the ledger on proof it went up.
         manifestJson = manifestOf('Holiday', ['a', 'b']);
-        app.UploadToDriveFS.mockResolvedValueOnce({ result: { ok: true }, files: [{ name: '/cache/doc:0' }] });
+        app.UploadImportToDriveFS.mockResolvedValueOnce({ result: { ok: true }, files: [{ name: '/cache/doc:0' }] });
 
         await importFolderWithParentID('root');
 
@@ -522,7 +554,7 @@ describe('the ledger records only what is proven uploaded', () => {
 
         await importFolderWithParentID('root');
 
-        const [paths] = app.UploadToDriveFS.mock.calls[0];
+        const [paths] = app.UploadImportToDriveFS.mock.calls[0];
         expect(paths).toEqual(['/cache/doc:0', '/cache/doc:1']);
         const recorded = app.ImportLedgerRecord.mock.calls
             .flatMap(([, , entries]) => (entries as { name: string }[]).map((entry) => entry.name));
@@ -537,7 +569,7 @@ describe('the ledger records only what is proven uploaded', () => {
 
         await importFolderWithParentID('root');
 
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         expect(app.ImportLedgerRecord.mock.calls.flatMap(([, , entries]) => entries as unknown[])).toEqual([]);
         expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'failed' });
     });
@@ -550,7 +582,7 @@ describe('the ledger records only what is proven uploaded', () => {
 
         await importFolderWithParentID('root');
 
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         expect(released).toEqual([['doc:0', 'doc:1']]);
         expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'canceled' });
     });
@@ -559,7 +591,7 @@ describe('the ledger records only what is proven uploaded', () => {
 describe('failure semantics from the backend', () => {
     it('never offers an outcome_unknown failure for retry, even when the backend says retryable', async () => {
         manifestJson = manifestOf('Holiday', ['a']);
-        app.UploadToDriveFS.mockResolvedValueOnce({
+        app.UploadImportToDriveFS.mockResolvedValueOnce({
             result: { ok: true },
             files: [],
             failures: [{ index: 0, name: '/cache/doc:0', message: 'may have landed', code: 'outcome_unknown', retryable: true }],
@@ -575,7 +607,7 @@ describe('failure semantics from the backend', () => {
 
     it('keeps a sibling that uploaded when another file in the same answer failed', async () => {
         manifestJson = manifestOf('Holiday', ['a', 'b', 'c']);
-        app.UploadToDriveFS.mockResolvedValueOnce({
+        app.UploadImportToDriveFS.mockResolvedValueOnce({
             result: { ok: true },
             files: [{ name: '/cache/doc:0' }, { name: '/cache/doc:2' }],
             failures: [{ index: 1, name: '/cache/doc:1', message: 'quota exceeded', code: 'quota', retryable: false }],
@@ -594,7 +626,7 @@ describe('failure semantics from the backend', () => {
 
     it('keeps the backend retryable flag and code on a failed file', async () => {
         manifestJson = manifestOf('Holiday', ['a']);
-        app.UploadToDriveFS.mockResolvedValueOnce({
+        app.UploadImportToDriveFS.mockResolvedValueOnce({
             result: { ok: true },
             files: [],
             failures: [{ index: 0, name: '/cache/doc:0', message: 'quota exceeded', code: 'quota', retryable: false }],
@@ -608,7 +640,7 @@ describe('failure semantics from the backend', () => {
 
     it('keeps every failed file, not three, and offers them for review', async () => {
         manifestJson = manifestOf('Holiday', ['a', 'b', 'c', 'd', 'e', 'f']);
-        app.UploadToDriveFS.mockImplementation(async (paths: string[]) => ({
+        app.UploadImportToDriveFS.mockImplementation(async (paths: string[]) => ({
             result: { ok: true },
             files: [],
             failures: paths.map((path, index) => ({ index, name: path, message: `error ${index}`, code: 'upload_failed', retryable: true })),
@@ -633,7 +665,7 @@ describe('failure semantics from the backend', () => {
 
         await importFolderWithParentID('root');
 
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         mocks.notify.mock.calls[0][0].action.run();
         expect(get(failedUploadsModal.state).payload?.failures[0]).toMatchObject({ code: 'not_on_device', retryable: false });
     });
@@ -642,7 +674,7 @@ describe('failure semantics from the backend', () => {
 describe('retrying the failed list', () => {
     it('retries only the retryable failed files, through a fresh live check', async () => {
         manifestJson = manifestOf('Holiday', ['a', 'b', 'c']);
-        app.UploadToDriveFS.mockResolvedValueOnce({
+        app.UploadImportToDriveFS.mockResolvedValueOnce({
             result: { ok: true },
             files: [{ name: '/cache/doc:0' }, { name: '/cache/doc:2' }],
             failures: [{ index: 1, name: '/cache/doc:1', message: 'quota exceeded', code: 'upload_failed', retryable: true }],
@@ -650,7 +682,7 @@ describe('retrying the failed list', () => {
         await importFolderWithParentID('root');
         const createdBefore = createdFolders.length;
         materialized = [];
-        app.UploadToDriveFS.mockClear();
+        app.UploadImportToDriveFS.mockClear();
         app.ImportLedgerRecord.mockClear();
         app.ImportFindExisting.mockClear();
 
@@ -660,8 +692,8 @@ describe('retrying the failed list', () => {
         expect(app.ImportFindExisting).toHaveBeenCalledTimes(1);
         expect(liveNames(app.ImportFindExisting.mock.calls[0])).toEqual(['b']);
         expect(materialized).toEqual([['doc:1']]);
-        expect(app.UploadToDriveFS).toHaveBeenCalledTimes(1);
-        const [paths, parentIDs] = app.UploadToDriveFS.mock.calls[0];
+        expect(app.UploadImportToDriveFS).toHaveBeenCalledTimes(1);
+        const [paths, parentIDs] = app.UploadImportToDriveFS.mock.calls[0];
         expect(paths).toEqual(['/cache/doc:1']);
         expect(parentIDs).toEqual(['f1']);
         // The folders were made by the import; reuse means the retry adds none.
@@ -673,7 +705,7 @@ describe('retrying the failed list', () => {
 
     it('lets go of the previous failed list when the next import starts', async () => {
         manifestJson = manifestOf('Holiday', ['a']);
-        app.UploadToDriveFS.mockResolvedValueOnce({
+        app.UploadImportToDriveFS.mockResolvedValueOnce({
             result: { ok: true },
             files: [],
             failures: [{ index: 0, name: '/cache/doc:0', message: 'quota exceeded', code: 'upload_failed', retryable: true }],
@@ -694,6 +726,46 @@ describe('retrying the failed list', () => {
 
         expect(app.ImportResolveFolders).toHaveBeenCalledWith(1, 'root', ['Holiday']);
         expect(app.CreateFolder).not.toHaveBeenCalled();
+    });
+
+    it('creates a folder the manifest lists even when no file goes into it', async () => {
+        manifestJson = JSON.stringify({ root: 'Holiday', files: [], dirs: ['empty', 'trip/empty'], skipped: 0 });
+
+        await importFolderWithParentID('root');
+
+        expect(app.ImportResolveFolders).toHaveBeenCalledWith(1, 'root', ['Holiday', 'Holiday/empty', 'Holiday/trip', 'Holiday/trip/empty']);
+        expect(createdFolders.map((folder) => folder.name)).toEqual(['Holiday', 'empty', 'trip', 'empty']);
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
+    });
+
+    it('creates the picked folder even when the pick is empty', async () => {
+        manifestJson = JSON.stringify({ root: 'Holiday', files: [], dirs: [], skipped: 0 });
+
+        await importFolderWithParentID('root');
+
+        expect(app.ImportResolveFolders).toHaveBeenCalledWith(1, 'root', ['Holiday']);
+        expect(createdFolders.map((folder) => folder.name)).toEqual(['Holiday']);
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
+    });
+
+    it('sends the folders the import creates to the live check, so no copy takes their name', async () => {
+        manifestJson = JSON.stringify({ root: 'Holiday', files: [{ id: 'doc:0', rel: 'a.jpg', size: 100 }], dirs: ['a_1.jpg'], skipped: 0 });
+
+        await importFolderWithParentID('root');
+
+        expect(app.ImportFindExisting).toHaveBeenCalledWith(1, 'root', [
+            { folder_path: 'Holiday', name: 'a.jpg', size: 100, encrypted: false, folder: false },
+            { folder_path: 'Holiday', name: 'a_1.jpg', size: -1, encrypted: false, folder: true },
+        ]);
+    });
+
+    it('creates a folder whose only files are empty files', async () => {
+        manifestJson = JSON.stringify({ root: 'Holiday', files: [{ id: 'doc:0', rel: 'trip/zero.jpg', size: 0 }], dirs: ['trip'], skipped: 0 });
+
+        await importFolderWithParentID('root');
+
+        expect(createdFolders.map((folder) => folder.name)).toEqual(['Holiday', 'trip']);
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
     });
 
     it('reports how many temporary camera files were skipped inside the one result entry', async () => {
@@ -722,8 +794,8 @@ describe('zero-byte files in an Android folder', () => {
         await importFolderWithParentID('root');
 
         expect(materialized).toEqual([['doc:0']]);
-        expect(app.UploadToDriveFS).toHaveBeenCalledTimes(1);
-        const [paths] = app.UploadToDriveFS.mock.calls[0];
+        expect(app.UploadImportToDriveFS).toHaveBeenCalledTimes(1);
+        const [paths] = app.UploadImportToDriveFS.mock.calls[0];
         expect(paths).toEqual(['/cache/doc:0']);
         expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
             id: 'import',
@@ -769,7 +841,7 @@ describe('zero-byte files in an Android folder', () => {
 
         await importFolderWithParentID('root');
 
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
             id: 'import',
             direction: 'up',
@@ -778,7 +850,7 @@ describe('zero-byte files in an Android folder', () => {
         expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'done' });
     });
 
-    it('creates no folder, asks no question, and starts no window for an import of only empty files', async () => {
+    it('creates only the picked folder, asks no question, and starts no window for an import of only empty files', async () => {
         manifestJson = JSON.stringify({
             root: 'Docs',
             files: [{ id: 'doc:0', rel: 'Sub/empty.txt', size: 0 }],
@@ -787,10 +859,10 @@ describe('zero-byte files in an Android folder', () => {
         await importFolderWithParentID('root');
 
         expect(mocks.openImportOptionsModal).not.toHaveBeenCalled();
-        expect(app.ImportResolveFolders).not.toHaveBeenCalled();
+        expect(app.ImportResolveFolders).toHaveBeenCalledWith(1, 'root', ['Docs']);
         expect(app.ImportFindExisting).not.toHaveBeenCalled();
         expect(materialized).toEqual([]);
-        expect(app.UploadToDriveFS).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
         expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
             id: 'import',
             direction: 'up',
@@ -808,14 +880,137 @@ describe('zero-byte files in an Android folder', () => {
         await importFolderWithParentID('root');
 
         expect(materialized).toEqual([['doc:0']]);
-        expect(app.UploadToDriveFS).toHaveBeenCalledTimes(1);
+        expect(app.UploadImportToDriveFS).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('name clashes are asked before anything is sent', () => {
+    // A clash the drive reports for a.jpg: the live file, its size and the free copy name.
+    const clashOnA = (keptName = 'a_1.jpg') => {
+        app.ImportFindExisting.mockResolvedValue([{
+            index: 0, folder_id: 'live-1', name_taken: true, existing_msg_id: 40, existing_size: 10, suggested_name: keptName,
+        }]);
+    };
+    // Echoes each upload back the way the drive records it: under the name it was sent with, in the folder it went to.
+    const echoUpload = async (paths: string[], parents: string[], names: string[] | null) => ({
+        result: { ok: true },
+        files: paths.map((_path, index) => ({ msg_id: 70 + index, name: names?.[index] ?? '', parent_id: parents[index] })),
+    });
+
+    it('asks the user about each clash with the sizes and the free copy name, and sends nothing before the answer', async () => {
+        manifestJson = manifestOf('Holiday', ['a.jpg']);
+        clashOnA();
+        mocks.openNameClashModal.mockResolvedValue(new Map([[0, 'skip']]));
+
+        await importFolderWithParentID('root');
+
+        expect(mocks.openNameClashModal).toHaveBeenCalledWith([
+            { index: 0, name: 'a.jpg', incomingSize: 100, existingSize: 10, keptName: 'a_1.jpg' },
+        ]);
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: 'Imported 0 files · 1 file not uploaded: a different file with the same name is already on the drive',
+        });
+    });
+
+    it('keeps a clash as a copy under its free name when the user chooses keep both', async () => {
+        manifestJson = manifestOf('Holiday', ['a.jpg']);
+        clashOnA();
+        mocks.openNameClashModal.mockResolvedValue(new Map([[0, 'keep_both']]));
+        app.UploadImportToDriveFS.mockImplementation(echoUpload);
+
+        await importFolderWithParentID('root');
+
+        expect(app.UploadImportToDriveFS.mock.calls[0][2]).toEqual(['a_1.jpg']);
+        expect(app.ImportReplaceFile).not.toHaveBeenCalled();
+        // The ledger records the name the file holds on the drive, so the copy is what it recognises next time.
+        const recorded = app.ImportLedgerRecord.mock.calls.flatMap(([, , entries]) => (entries as { name: string }[]).map((entry) => entry.name));
+        expect(recorded).toEqual(['a_1.jpg']);
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: 'Imported 1 file · 1 file kept as a copy',
+        });
+        expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'done' });
+    });
+
+    it('uploads the new file under its copy name, then swaps it in for the old one when the user chooses replace', async () => {
+        manifestJson = manifestOf('Holiday', ['a.jpg']);
+        clashOnA();
+        mocks.openNameClashModal.mockResolvedValue(new Map([[0, 'replace']]));
+        app.UploadImportToDriveFS.mockImplementation(echoUpload);
+
+        await importFolderWithParentID('root');
+
+        expect(app.UploadImportToDriveFS.mock.calls[0][2]).toEqual(['a_1.jpg']);
+        // The old file (40) goes to the trash and the new one (70) takes the name a.jpg.
+        expect(app.ImportReplaceFile).toHaveBeenCalledWith(1, 40, 70, 'a.jpg');
+        const recorded = app.ImportLedgerRecord.mock.calls.flatMap(([, , entries]) => (entries as { name: string }[]).map((entry) => entry.name));
+        expect(recorded).toEqual(['a.jpg']);
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: 'Imported 1 file · 1 file replaced the older one on the drive',
+        });
+        expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'done' });
+    });
+
+    it('keeps the new file under its copy name, and says so, when the swap fails after the upload', async () => {
+        manifestJson = manifestOf('Holiday', ['a.jpg']);
+        clashOnA();
+        mocks.openNameClashModal.mockResolvedValue(new Map([[0, 'replace']]));
+        app.UploadImportToDriveFS.mockImplementation(echoUpload);
+        app.ImportReplaceFile.mockRejectedValueOnce(new Error('trash refused'));
+
+        await importFolderWithParentID('root');
+
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: 'Imported 1 file · 1 replacement failed, so the new file kept its copy name',
+        });
+        // The bytes are on the drive under a_1.jpg, so this is a note, not a failed file.
+        expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'done' });
+        expect(mocks.notify.mock.calls[0][0].body).toContain('1 replacement failed');
+    });
+
+    it('sends nothing and marks the import canceled when the user cancels at the prompt', async () => {
+        manifestJson = manifestOf('Holiday', ['a.jpg']);
+        clashOnA();
+        mocks.openNameClashModal.mockResolvedValue(null);
+
+        await importFolderWithParentID('root');
+
+        expect(app.ImportResolveFolders).not.toHaveBeenCalled();
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
+        expect(app.ImportReplaceFile).not.toHaveBeenCalled();
+        expect(mocks.markTransferDone).toHaveBeenCalledWith({ id: 'import', direction: 'up', status: 'canceled' });
+        expect(mocks.notify).not.toHaveBeenCalled();
+    });
+
+    it('skips a clash that has no free copy name, even when the user chose keep both', async () => {
+        manifestJson = manifestOf('Holiday', ['a.jpg']);
+        clashOnA('');
+        mocks.openNameClashModal.mockResolvedValue(new Map([[0, 'replace']]));
+
+        await importFolderWithParentID('root');
+
+        expect(app.UploadImportToDriveFS).not.toHaveBeenCalled();
+        expect(app.ImportReplaceFile).not.toHaveBeenCalled();
+        expect(mocks.updateTransferName).toHaveBeenLastCalledWith({
+            id: 'import',
+            direction: 'up',
+            name: 'Imported 0 files · 1 file not uploaded: a different file with the same name is already on the drive',
+        });
     });
 });
 
 describe('zero-byte files and the backend refusal codes', () => {
     it('never offers a rejected file for retry, even when the backend says retryable', async () => {
         manifestJson = manifestOf('Holiday', ['a']);
-        app.UploadToDriveFS.mockResolvedValueOnce({
+        app.UploadImportToDriveFS.mockResolvedValueOnce({
             result: { ok: true },
             files: [],
             failures: [{ index: 0, name: '/cache/doc:0', message: 'FILE_PART_LENGTH_INVALID', code: 'rejected', retryable: true }],

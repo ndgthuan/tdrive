@@ -38,3 +38,17 @@ func (a *App) ImportFindExisting(driveID int64, parentID string, entries []folde
 	}
 	return svc.FindExistingImportEntries(context.Background(), driveID, parentID, entries)
 }
+
+// ImportReplaceFile puts a file the import just uploaded in place of the older
+// file of the same name: the older one goes to the trash and the new one takes
+// its name. See fileservice.ReplaceImported.
+func (a *App) ImportReplaceFile(driveID int64, oldMsgID int64, newMsgID int64, name string) error {
+	if _, err := a.requireImportDrive(driveID); err != nil {
+		return err
+	}
+	svc, err := a.requireFileService()
+	if err != nil {
+		return err
+	}
+	return svc.ReplaceImported(context.Background(), driveID, oldMsgID, newMsgID, name)
+}

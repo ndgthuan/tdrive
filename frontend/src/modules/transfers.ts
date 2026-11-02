@@ -8,12 +8,12 @@ import { pickUploadMedia } from './media_picker';
 // Completed transfers stay in the bell's "Recent" panel until cleared.
 
 import { invalidateFolderIndex, state, setTransferDirectionActive, type DownloadQueueItem, type SourceDownloadRef, type UploadTransfer } from '../state';
-import { downloadChannelSourceMedia, downloadFile, downloadFolder, importFindExisting, importLedgerRecord, importLedgerVeto, importPaths, importResolveFolders, type ImportLedgerEntry, type ImportLiveEntry, type ImportLiveMatch, isAndroidPlatform, isMobilePlatform, onRuntimeEvent, planImport, selectFiles, selectFolder, uploadToDriveFs, retryUploadToDriveFs, type RuntimeEventMap, type RuntimeUnsubscribe } from '../api';
+import { downloadChannelSourceMedia, downloadFile, downloadFolder, importFindExisting, importLedgerRecord, importLedgerVeto, importPaths, importReplaceFile, importResolveFolders, type ImportLedgerEntry, type ImportLiveEntry, type ImportLiveMatch, isAndroidPlatform, isMobilePlatform, onRuntimeEvent, planImport, selectFiles, selectFolder, uploadImportToDriveFs, uploadToDriveFs, retryUploadToDriveFs, type RuntimeEventMap, type RuntimeUnsubscribe } from '../api';
 import { canSaveToDownloads, saveToDownloads } from './android_downloads';
 import { rememberDownloadSharePath } from '../ui/mobile/mobile_shell_store';
 import { get } from 'svelte/store';
 import { dismissFailedUploadReport, failedUploadsModal, failedUploadReports, rememberFailedUploadReport, type FailedUploadsPayload } from '../ui/modals/failed_uploads_store';
-import type { UploadFailure, UploadResult } from '../types';
+import type { FileItem, UploadFailure, UploadResult } from '../types';
 import type { ImportPlan, OperationError } from '../types';
 import type { TransferEvent } from '../ui/notifications/notif_store';
 import { dismissNotification, notify } from './notifications';
@@ -34,6 +34,7 @@ import { loadEncryptionStatus } from './encryption';
 import { openUploadOptionsModal } from './modals/upload_options';
 import { activateFileSelectionProgress } from './file_selection';
 import { openImportOptionsModal } from './modals/import_options';
+import { openNameClashModal, type NameClashChoice } from './modals/name_clash';
 import { openEncryptionSetupModal } from './modals/encryption_setup';
 import { openEncryptionPasswordModal } from './modals/encryption_password';
 import { postSystemNotification } from './android_foreground';
@@ -1040,14 +1041,37 @@ const ANDROID_UPLOAD_WINDOW = 4;
 // Every failed file of an Android import is kept, not a sample, so a retry can
 // name each one. Bounded: past this the copied list says how many were left out.
 const MAX_ANDROID_FAILURES_KEPT = 5000;
+/** How many name-clash file names the notice lists before it says how many more there are. */
+const MAX_NAME_TAKEN_LISTED = 20;
 
-/** Where an Android import is going: the drive it started on, the folder it lands in and the folder ids resolved for it. */
+/** Where an Android import is going: the drive it started on, the folder it lands in, the folder ids resolved for it and the folders the manifest lists. */
 interface AndroidImportContext {
     root: string;
     parentID: string;
     folderIds: Map<string, string>;
     encrypt: boolean;
     driveId: number;
+    dirs: string[];
+    /** How each answered name clash of the current run lands, by file id. */
+    clashPlan: Map<string, AndroidClashPlan>;
+}
+
+/** A file the drive holds under its name with different content, with what the drive holds and the free copy name. */
+interface AndroidClash {
+    file: AndroidFolderFile;
+    existingMsgID: number;
+    existingSize: number;
+    /** The free copy name for the file, or "" when none is free. */
+    keptName: string;
+}
+
+/** What an answered clash does: the name its upload takes, and the old file it swaps out (0 for keep both). */
+interface AndroidClashPlan {
+    choice: 'replace' | 'keep_both';
+    uploadName: string;
+    replaceMsgID: number;
+    /** The name the file holds on the drive once the job's swaps have run. */
+    settledName: string;
 }
 
 /** One file that did not make it. retryable and code are the backend's answer, kept as they came. */
@@ -1064,6 +1088,14 @@ interface AndroidJobCounts {
     /** Bytes of uploaded files only. Skipped, failed and not-attempted files never count as transferred. */
     uploadedBytes: number;
     already: number;
+    /** The user skipped a name clash: the file is never sent and is reported by name. */
+    nameTaken: number;
+    /** Name clashes replaced: the new file took the name and the old one went to the trash. Also in uploaded. */
+    replaced: number;
+    /** Name clashes kept as a copy under a free name. Also in uploaded. */
+    kept: number;
+    /** Replacements that failed after the upload: the new file stayed under its copy name. Also in uploaded. */
+    replaceFailed: number;
     ignored: number;
     /** Zero-byte files Telegram cannot store. They are never attempted and never count as failed. */
     empty: number;
@@ -1074,11 +1106,15 @@ interface AndroidJobCounts {
 
 interface AndroidJobOutcome {
     counts: AndroidJobCounts;
+    /** Relative paths of the files skipped as name clashes, in manifest order. */
+    nameTakenFiles: string[];
     failures: AndroidFileFailure[];
     /** Failures beyond MAX_ANDROID_FAILURES_KEPT, which are counted but not kept. */
     omitted: number;
     fatalError: string;
     driveChanged: boolean;
+    /** Set when the user canceled at the name-clash prompt, before anything was sent. */
+    canceled?: boolean;
 }
 
 interface AndroidWindowOutcome {
@@ -1087,6 +1123,11 @@ interface AndroidWindowOutcome {
     changed: Set<string>;
     failures: AndroidFileFailure[];
     notAttempted: number;
+    /** Clashes kept as a copy, and clashes replaced. Both are also in uploaded. */
+    kept: AndroidFolderFile[];
+    replaced: AndroidFolderFile[];
+    /** Clashes whose swap failed: the new file is in uploaded under its copy name. */
+    replaceFailed: AndroidFolderFile[];
 }
 
 // The import's failed file list, kept until the next import starts. A retry
@@ -1101,7 +1142,10 @@ function forgetAndroidFailureReport(): void {
 }
 
 function emptyAndroidCounts(ignored = 0, empty = 0): AndroidJobCounts {
-    return { uploaded: 0, uploadedBytes: 0, already: 0, ignored, empty, changed: 0, failed: 0, notAttempted: 0 };
+    return {
+        uploaded: 0, uploadedBytes: 0, already: 0, nameTaken: 0, replaced: 0, kept: 0, replaceFailed: 0,
+        ignored, empty, changed: 0, failed: 0, notAttempted: 0,
+    };
 }
 
 /**
@@ -1121,53 +1165,107 @@ function knownBytes(files: AndroidFolderFile[]): number {
     return files.reduce((sum, file) => sum + Math.max(0, file.size), 0);
 }
 
+/** The file's own name on the device: the last segment of its path under the picked folder. */
+function leafNameOf(file: AndroidFolderFile): string {
+    return file.rel.split('/').pop() ?? file.rel;
+}
+
+/** The name a file's upload takes: its own, or the free copy name when the user kept it beside a clash. */
+function uploadNameFor(ctx: AndroidImportContext, file: AndroidFolderFile): string {
+    return ctx.clashPlan.get(file.id)?.uploadName ?? leafNameOf(file);
+}
+
+/** The name a file is on the drive under once the job's swaps have run, which is what the ledger records. */
+function settledNameFor(ctx: AndroidImportContext, file: AndroidFolderFile): string {
+    return ctx.clashPlan.get(file.id)?.settledName ?? leafNameOf(file);
+}
+
 function liveEntryFor(ctx: AndroidImportContext, file: AndroidFolderFile): ImportLiveEntry {
     return {
         folder_path: folderPathFor(ctx.root, file.rel),
-        name: file.rel.split('/').pop() ?? file.rel,
+        name: leafNameOf(file),
         size: file.size,
         encrypted: ctx.encrypt,
+        folder: false,
     };
 }
 
-function ledgerEntryFor(ctx: AndroidImportContext, file: AndroidFolderFile): ImportLedgerEntry {
+/** A folder the import creates: its name is reserved so no copy of a file is named the same. */
+function folderLiveEntryFor(ctx: AndroidImportContext, dir: string): ImportLiveEntry {
+    return {
+        folder_path: folderPathFor(ctx.root, dir),
+        name: dir.split('/').pop() ?? dir,
+        size: -1,
+        encrypted: ctx.encrypt,
+        folder: true,
+    };
+}
+
+function ledgerEntryFor(ctx: AndroidImportContext, file: AndroidFolderFile, name = leafNameOf(file)): ImportLedgerEntry {
     return {
         folder_path: folderPathFor(ctx.root, file.rel),
-        name: file.rel.split('/').pop() ?? file.rel,
+        name,
         size: file.size,
         modified: file.modified,
         encrypted: ctx.encrypt,
     };
 }
 
-// androidAlreadyOnDrive decides which files are already on the drive. The drive
-// decides: a file counts only when the live check finds it with the same size
-// and encryption policy. The ledger may only veto that answer when the source
-// file has a known modification time that differs from the recorded one. A
-// failed live check skips nothing, so every file uploads rather than guessing.
-async function androidAlreadyOnDrive(ctx: AndroidImportContext, files: AndroidFolderFile[]): Promise<Set<string>> {
-    const already = new Set<string>();
-    if (!files.length) return already;
+/** What the drive holds of a job's files. already is settled; clashes wait for the user. */
+interface AndroidDriveCheck {
+    /** Files the drive holds with the same size and encryption policy: settled. */
+    already: Set<string>;
+    /** Files the drive holds under the same name with different content: the user decides for each. */
+    clashes: AndroidClash[];
+}
+
+// androidAlreadyOnDrive decides what the drive already holds. The drive decides:
+// a file counts as already there only when the live check finds it with the same
+// size and encryption policy. The ledger may only veto that answer when the
+// source file has a known modification time that differs from the recorded one,
+// and a vetoed match means the drive holds an older version under that name, so
+// it is a name clash. A failed ledger check vetoes nothing. A failed live check
+// skips nothing, so every file uploads rather than guessing.
+async function androidAlreadyOnDrive(ctx: AndroidImportContext, files: AndroidFolderFile[]): Promise<AndroidDriveCheck> {
+    const check: AndroidDriveCheck = { already: new Set<string>(), clashes: [] };
+    if (!files.length) return check;
     let matches: ImportLiveMatch[];
     try {
-        matches = await importFindExisting(ctx.driveId, ctx.parentID, files.map((file) => liveEntryFor(ctx, file)));
+        // The folders go too, so a copy is never suggested under a name the import is about to create.
+        matches = await importFindExisting(ctx.driveId, ctx.parentID, [
+            ...files.map((file) => liveEntryFor(ctx, file)),
+            ...ctx.dirs.map((dir) => folderLiveEntryFor(ctx, dir)),
+        ]);
     } catch (err) {
         console.error('Live existence check failed; every file will upload:', err);
-        return already;
+        return check;
     }
-    const matched = matches.map((match) => files[match.index]).filter((file): file is AndroidFolderFile => Boolean(file));
-    if (!matched.length) return already;
-    let vetoed: boolean[];
+    const sameContent: { file: AndroidFolderFile; match: ImportLiveMatch }[] = [];
+    for (const match of matches) {
+        const file = files[match.index];
+        if (!file) continue;
+        if (match.name_taken) check.clashes.push(clashFor(file, match));
+        else sameContent.push({ file, match });
+    }
+    if (!sameContent.length) return check;
+    let vetoed: boolean[] | null = null;
     try {
-        vetoed = await importLedgerVeto(ctx.driveId, ctx.parentID, matched.map((file) => ledgerEntryFor(ctx, file)));
+        vetoed = await importLedgerVeto(ctx.driveId, ctx.parentID, sameContent.map(({ file }) => ledgerEntryFor(ctx, file)));
     } catch (err) {
         console.error('Import ledger check failed; matches will upload:', err);
-        vetoed = matched.map(() => true);
     }
-    matched.forEach((file, index) => {
-        if (!vetoed[index]) already.add(file.id);
+    sameContent.forEach(({ file, match }, index) => {
+        // Without a ledger answer nothing is proven, so the file uploads as it always has.
+        if (vetoed === null) return;
+        if (vetoed[index]) check.clashes.push(clashFor(file, match));
+        else check.already.add(file.id);
     });
-    return already;
+    return check;
+}
+
+// clashFor describes a name clash from the live answer for its file.
+function clashFor(file: AndroidFolderFile, match: ImportLiveMatch): AndroidClash {
+    return { file, existingMsgID: match.existing_msg_id, existingSize: match.existing_size, keptName: match.suggested_name };
 }
 
 // recordAndroidUploads remembers the files whose staged bytes uploaded, and
@@ -1176,7 +1274,7 @@ async function androidAlreadyOnDrive(ctx: AndroidImportContext, files: AndroidFo
 async function recordAndroidUploads(ctx: AndroidImportContext, files: AndroidFolderFile[]): Promise<void> {
     if (!files.length) return;
     try {
-        await importLedgerRecord(ctx.driveId, ctx.parentID, files.map((file) => ledgerEntryFor(ctx, file)));
+        await importLedgerRecord(ctx.driveId, ctx.parentID, files.map((file) => ledgerEntryFor(ctx, file, settledNameFor(ctx, file))));
     } catch (err) {
         console.error('Import ledger record failed:', err);
     }
@@ -1245,16 +1343,32 @@ async function runAndroidImport(parentID: string, manifest: AndroidFolderManifes
     }
 
     importFailureReasons.length = 0;
-    const ctx: AndroidImportContext = { root: manifest.root, parentID, folderIds: new Map(), encrypt, driveId };
+    const ctx: AndroidImportContext = { root: manifest.root, parentID, folderIds: new Map(), encrypt, driveId, dirs: manifest.dirs, clashPlan: new Map() };
     const outcome = await runAndroidJob(ctx, files, manifest.skipped, emptyCount);
     finishAndroidJob(outcome, ctx);
 }
 
+// askAndroidClashes asks what to do with each name clash before anything is sent.
+// The answer is keyed by the clash's position in the list. null means the user canceled.
+function askAndroidClashes(clashes: AndroidClash[]): Promise<Map<number, NameClashChoice> | null> {
+    return openNameClashModal(clashes.map((clash, index) => ({
+        index,
+        name: clash.file.rel,
+        incomingSize: clash.file.size,
+        existingSize: clash.existingSize,
+        keptName: clash.keptName,
+    })));
+}
+
 // runAndroidJob is the one pipeline for an import and for a retry: live check,
-// veto, folder resolve, then windowed uploads. Anything already on the drive
-// creates no folder and starts no window.
+// the user's answer to each name clash, veto, folder resolve, then windowed
+// uploads. Anything already on the drive creates no folder and starts no window,
+// unless the manifest lists empty folders, which are created even when no file
+// goes into them. The picked folder itself is created the same way when nothing
+// under it is on the drive yet, even when the manifest is empty.
 async function runAndroidJob(ctx: AndroidImportContext, files: AndroidFolderFile[], ignored: number, empty = 0): Promise<AndroidJobOutcome> {
     const counts = emptyAndroidCounts(ignored, empty);
+    const nameTakenFiles: string[] = [];
     const failures: AndroidFileFailure[] = [];
     let omitted = 0;
     let fatalError = '';
@@ -1267,25 +1381,50 @@ async function runAndroidJob(ctx: AndroidImportContext, files: AndroidFolderFile
         else omitted += 1;
     };
 
+    // Each run settles its own clashes, so a retry asks again.
+    ctx.clashPlan = new Map();
     try {
-        const already = await androidAlreadyOnDrive(ctx, files);
-        counts.already = already.size;
-        work = files.filter((file) => !already.has(file.id));
-        if (!work.length) return { counts, failures, omitted, fatalError, driveChanged };
+        const check = await androidAlreadyOnDrive(ctx, files);
+        counts.already = check.already.size;
+        const answers = check.clashes.length ? await askAndroidClashes(check.clashes) : new Map<number, NameClashChoice>();
+        // Canceling at the prompt stops the import before anything is sent.
+        if (!answers) return { counts, nameTakenFiles, failures, omitted, fatalError, driveChanged, canceled: true };
+        const skipped = new Set<string>();
+        check.clashes.forEach((clash, index) => {
+            const choice = answers.get(index) ?? 'skip';
+            // A copy needs a free name, so a clash without one can only be skipped.
+            if (choice === 'skip' || clash.keptName === '') {
+                skipped.add(clash.file.id);
+                counts.nameTaken += 1;
+                nameTakenFiles.push(clash.file.rel);
+                return;
+            }
+            ctx.clashPlan.set(clash.file.id, {
+                choice,
+                uploadName: clash.keptName,
+                replaceMsgID: choice === 'replace' ? clash.existingMsgID : 0,
+                settledName: clash.keptName,
+            });
+        });
+        const held = new Set([...check.already, ...skipped]);
+        work = files.filter((file) => !held.has(file.id));
+        // Something held on the drive means the picked folder is there already. Otherwise it is created, even empty.
+        if (!work.length && !ctx.dirs.length && held.size > 0) return { counts, nameTakenFiles, failures, omitted, fatalError, driveChanged };
 
         if (!androidJobActive(ctx.driveId)) {
             driveChanged = state.activeChannel?.id !== ctx.driveId;
             counts.notAttempted = work.length;
-            return { counts, failures, omitted, fatalError, driveChanged };
+            return { counts, nameTakenFiles, failures, omitted, fatalError, driveChanged };
         }
         updateTransferName({ id: IMPORT_TRANSFER_ID, direction: 'up', name: 'Creating folders…' });
         // Reuse and create happen in the backend so a second import finds the
         // folders the first one made, instead of creating "Camera (1)".
-        const resolved = await importResolveFolders(ctx.driveId, ctx.parentID, folderPathsFor({ root: ctx.root, files: work, skipped: 0 }));
+        const resolved = await importResolveFolders(ctx.driveId, ctx.parentID, folderPathsFor({ root: ctx.root, files: work, dirs: ctx.dirs, skipped: 0 }));
         ctx.folderIds = resolved;
         invalidateTransferCaches();
         appActions().refreshFiles();
         updateTransferName({ id: IMPORT_TRANSFER_ID, direction: 'up', name: ctx.root || 'Folder' });
+        if (!work.length) return { counts, nameTakenFiles, failures, omitted, fatalError, driveChanged };
 
         const totalBytes = knownBytes(work);
         let itemsSettled = 0;
@@ -1327,6 +1466,9 @@ async function runAndroidJob(ctx: AndroidImportContext, files: AndroidFolderFile
             const recorded = windowOutcome.uploaded.filter((file) => !windowOutcome.changed.has(file.id));
             counts.uploaded += windowOutcome.uploaded.length;
             counts.changed += windowOutcome.changed.size;
+            counts.kept += windowOutcome.kept.length;
+            counts.replaced += windowOutcome.replaced.length;
+            counts.replaceFailed += windowOutcome.replaceFailed.length;
             for (const file of windowOutcome.uploaded) uploadedBytes += Math.max(0, file.size);
             counts.uploadedBytes = uploadedBytes;
             counts.notAttempted += windowOutcome.notAttempted;
@@ -1344,7 +1486,7 @@ async function runAndroidJob(ctx: AndroidImportContext, files: AndroidFolderFile
         setTransferDirectionActive('upload', false);
         if (windowsRan) await flushAndroidLedger(ctx);
     }
-    return { counts, failures, omitted, fatalError, driveChanged };
+    return { counts, nameTakenFiles, failures, omitted, fatalError, driveChanged };
 }
 
 // uploadAndroidWindow copies one window out of the document tree, uploads it,
@@ -1352,7 +1494,7 @@ async function runAndroidJob(ctx: AndroidImportContext, files: AndroidFolderFile
 // notAttempted exactly once.
 async function uploadAndroidWindow(files: AndroidFolderFile[], ctx: AndroidImportContext): Promise<AndroidWindowOutcome> {
     const ids = files.map((file) => file.id);
-    const outcome: AndroidWindowOutcome = { uploaded: [], changed: new Set(), failures: [], notAttempted: 0 };
+    const outcome: AndroidWindowOutcome = { uploaded: [], changed: new Set(), failures: [], notAttempted: 0, kept: [], replaced: [], replaceFailed: [] };
     try {
         const materialized = await materializeAndroidFiles(ids);
         const sent: AndroidFolderFile[] = [];
@@ -1382,13 +1524,17 @@ async function uploadAndroidWindow(files: AndroidFolderFile[], ctx: AndroidImpor
             outcome.notAttempted += sent.length;
             return outcome;
         }
-        const upload = await uploadToDriveFs(paths, parentIDs, ctx.encrypt);
+        // Names go to the backend only when a file here is a clash; the rest keep their own.
+        const uploadNames = sent.map((file) => uploadNameFor(ctx, file));
+        const named = sent.some((file) => ctx.clashPlan.has(file.id));
+        const upload = await uploadImportToDriveFs(paths, parentIDs, named ? uploadNames : null, ctx.encrypt);
         const canceled = !upload.result.ok && upload.result.error.code === 'canceled';
         if (canceled) state.cancelingUpload = true;
         const split = splitAndroidUpload(sent, upload, canceled);
         outcome.uploaded = split.uploaded;
         outcome.failures.push(...split.failures);
         outcome.notAttempted += split.notAttempted.length;
+        await settleClashUploads(ctx, split.uploaded, sent, parentIDs, uploadNames, upload.files, outcome);
         return outcome;
     } finally {
         // Cache stays bounded only if every window is released, including the
@@ -1398,6 +1544,43 @@ async function uploadAndroidWindow(files: AndroidFolderFile[], ctx: AndroidImpor
             await releaseAndroidFiles(ids);
         } catch (err) {
             console.error('ReleaseFiles failed:', err);
+        }
+    }
+}
+
+// settleClashUploads puts each replaced file in place of its old one, once its
+// bytes are on the drive under their copy name. The swap trashes the old file and
+// renames the new one. If the swap fails the new file stays where it landed, under
+// its copy name, so nothing is lost. A kept copy needs no swap.
+async function settleClashUploads(
+    ctx: AndroidImportContext,
+    uploaded: AndroidFolderFile[],
+    sent: AndroidFolderFile[],
+    parentIDs: string[],
+    uploadNames: string[],
+    newFiles: FileItem[],
+    outcome: AndroidWindowOutcome,
+): Promise<void> {
+    const landed = new Set(uploaded.map((file) => file.id));
+    for (const [index, file] of sent.entries()) {
+        const plan = ctx.clashPlan.get(file.id);
+        if (!plan || !landed.has(file.id)) continue;
+        if (plan.choice === 'keep_both') {
+            outcome.kept.push(file);
+            continue;
+        }
+        const fresh = newFiles.find((item) => item.parentId === parentIDs[index] && item.name === uploadNames[index]);
+        if (!fresh) {
+            outcome.replaceFailed.push(file);
+            continue;
+        }
+        try {
+            await importReplaceFile(ctx.driveId, plan.replaceMsgID, fresh.msgId, leafNameOf(file));
+            plan.settledName = leafNameOf(file);
+            outcome.replaced.push(file);
+        } catch (err) {
+            console.error('Import replace failed; the new file keeps its copy name:', err);
+            outcome.replaceFailed.push(file);
         }
     }
 }
@@ -1443,17 +1626,31 @@ function splitAndroidUpload(
     return { uploaded, failures, notAttempted };
 }
 
+// clashNoteLines names what happened to the name clashes that did upload. The
+// skipped ones are reported by name in their own line.
+function clashNoteLines(counts: AndroidJobCounts): string[] {
+    const notes: string[] = [];
+    if (counts.replaced > 0) notes.push(t('messages.import_clash_replaced', { count: counts.replaced }));
+    if (counts.kept > 0) notes.push(t('messages.import_clash_kept', { count: counts.kept }));
+    if (counts.replaceFailed > 0) notes.push(t('messages.import_clash_replace_failed', { count: counts.replaceFailed }));
+    return notes;
+}
+
 // finishAndroidJob settles the row, the failed list and the single history
 // entry for the job. Nothing is reported twice.
 function finishAndroidJob(outcome: AndroidJobOutcome, ctx: AndroidImportContext) {
-    const { counts, failures, omitted, fatalError, driveChanged } = outcome;
-    const canceled = state.cancelingUpload;
-    const everythingOnDrive = counts.uploaded === 0 && counts.failed === 0 && counts.notAttempted === 0 && counts.already > 0;
+    const { counts, nameTakenFiles, failures, omitted, fatalError, driveChanged } = outcome;
+    const canceled = state.cancelingUpload || outcome.canceled === true;
+    const everythingOnDrive = counts.uploaded === 0 && counts.failed === 0 && counts.notAttempted === 0 && counts.already > 0 && counts.nameTaken === 0;
     // Empty files are a note on the summary, never a failure, so they do not change its status.
     const emptyPart = counts.empty > 0 ? ` · ${t('messages.import_empty_skipped', { count: counts.empty })}` : '';
+    // A name clash the user skipped is skipped on purpose, not failed: the summary names the count and the history names the files.
+    const nameTakenPart = counts.nameTaken > 0 ? ` · ${t('messages.import_name_taken', { count: counts.nameTaken })}` : '';
+    const clashNotes = clashNoteLines(counts);
+    const clashPart = clashNotes.map((note) => ` · ${note}`).join('');
     const resultLabel = everythingOnDrive
         ? `${t('messages.import_everything_on_drive')}${emptyPart}`
-        : `${formatImportResultLabel(counts.uploaded, counts.failed, counts.already)}${emptyPart}`;
+        : `${formatImportResultLabel(counts.uploaded, counts.failed, counts.already)}${nameTakenPart}${clashPart}${emptyPart}`;
     const failedStatus = Boolean(fatalError || driveChanged || counts.failed > 0);
     updateTransferName({
         id: IMPORT_TRANSFER_ID,
@@ -1486,6 +1683,12 @@ function finishAndroidJob(outcome: AndroidJobOutcome, ctx: AndroidImportContext)
         if (!lines.includes(entry)) lines.push(entry);
     }
     if (counts.already > 0) lines.push(t('messages.import_already_on_drive', { count: counts.already }));
+    if (counts.nameTaken > 0) {
+        const listed = nameTakenFiles.slice(0, MAX_NAME_TAKEN_LISTED).join(', ');
+        const more = nameTakenFiles.length - MAX_NAME_TAKEN_LISTED;
+        lines.push(`${t('messages.import_name_taken', { count: counts.nameTaken })}: ${listed}${more > 0 ? ` +${more}` : ''}`);
+    }
+    lines.push(...clashNotes);
     if (counts.ignored > 0) lines.push(t('messages.import_temp_skipped', { count: counts.ignored }));
     if (counts.changed > 0) lines.push(t('messages.import_changed_while_copying', { count: counts.changed }));
     if (counts.notAttempted > 0) lines.push(t('messages.import_not_attempted', { count: counts.notAttempted }));

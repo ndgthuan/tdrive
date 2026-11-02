@@ -72,6 +72,7 @@ describe("asking Android for a folder", () => {
         await expect(picked).resolves.toEqual({
             root: "Holiday",
             files: [{ id: "doc:1", rel: "sub/a.jpg", size: 12345, modified: 0 }],
+            dirs: [],
             skipped: 0,
         });
     });
@@ -88,6 +89,7 @@ describe("asking Android for a folder", () => {
         await expect(picked).resolves.toEqual({
             root: "Camera",
             files: [{ id: "doc:1", rel: "VID_1.mp4", size: 9, modified: 1700000000000 }],
+            dirs: [],
             skipped: 2,
         });
     });
@@ -110,6 +112,7 @@ describe("asking Android for a folder", () => {
         await expect(picked).resolves.toEqual({
             root: "Camera",
             files: [{ id: "doc:3", rel: "VID_20261026_170351.mp4", size: 5, modified: 1 }],
+            dirs: [],
             skipped: 3,
         });
     });
@@ -135,6 +138,7 @@ describe("asking Android for a folder", () => {
         await expect(picked).resolves.toEqual({
             root: "Holiday",
             files: [{ id: "doc:3", rel: "b.jpg", size: -1, modified: 0 }],
+            dirs: [],
             skipped: 0,
         });
     });
@@ -160,7 +164,7 @@ describe("asking Android for a folder", () => {
         expect(runtime).toHaveBeenCalledWith("some-other-call", "result", null);
 
         answer(lastCall().id, JSON.stringify({ root: "Holiday", files: [] }));
-        await expect(picked).resolves.toEqual({ root: "Holiday", files: [], skipped: 0 });
+        await expect(picked).resolves.toEqual({ root: "Holiday", files: [], dirs: [], skipped: 0 });
         // Ours was handled by us, not passed down.
         expect(runtime).toHaveBeenCalledTimes(1);
     });
@@ -177,7 +181,7 @@ describe("asking Android for a folder", () => {
         const second = pickAndroidFolder();
         expect(host._wailsAndroidCallback).toBe(chained);
         answer(lastCall().id, JSON.stringify({ root: "B", files: [] }));
-        await expect(second).resolves.toEqual({ root: "B", files: [], skipped: 0 });
+        await expect(second).resolves.toEqual({ root: "B", files: [], dirs: [], skipped: 0 });
     });
 
     it("forgets a picker once it has answered", async () => {
@@ -253,6 +257,7 @@ describe("the folder tree a manifest implies", () => {
                 { id: "3", rel: "a/z.jpg", size: 1, modified: 0 },
                 { id: "4", rel: "top.jpg", size: 1, modified: 0 },
             ],
+            dirs: [],
             skipped: 0,
         });
 
@@ -272,7 +277,26 @@ describe("the folder tree a manifest implies", () => {
     });
 
     it("keeps the picked folder itself even when it holds nothing", () => {
-        expect(folderPathsFor({ root: "Empty", files: [], skipped: 0 })).toEqual(["Empty"]);
+        expect(folderPathsFor({ root: "Empty", files: [], dirs: [], skipped: 0 })).toEqual(["Empty"]);
+    });
+
+    it("creates the folders the bridge lists even when no file lies inside them", () => {
+        const paths = folderPathsFor({
+            root: "Holiday",
+            files: [{ id: "1", rel: "a/zero.jpg", size: 0, modified: 0 }],
+            dirs: ["a", "empty", "trip/empty"],
+            skipped: 0,
+        });
+
+        expect(paths).toEqual(["Holiday", "Holiday/a", "Holiday/empty", "Holiday/trip", "Holiday/trip/empty"]);
+    });
+
+    it("keeps the folders the bridge lists, empty ones included", async () => {
+        installBridge();
+        const picked = pickAndroidFolder();
+
+        answer(lastCall().id, JSON.stringify({ root: "Holiday", files: [], dirs: ["empty", "trip/empty"] }));
+        await expect(picked).resolves.toEqual({ root: "Holiday", files: [], dirs: ["empty", "trip/empty"], skipped: 0 });
     });
 
     it("places a file against the directory it came from", () => {

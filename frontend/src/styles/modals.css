@@ -242,6 +242,44 @@ html:not(.mobile) .modal-card {
     font-size: var(--type-sm);
     line-height: var(--leading-normal);
 }
+
+/* Name clashes: one file per row with its two sizes in muted text and the choice
+   on the right. The list scrolls so a long batch keeps the actions in view. */
+.name-clash-apply { display: flex; justify-content: flex-end; margin-bottom: var(--space-2); }
+.name-clash-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: min(50vh, 360px);
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.name-clash-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    border: 1px solid var(--color-border-soft);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+}
+.name-clash-info { flex: 1; min-width: 0; }
+.name-clash-name {
+    display: block;
+    overflow-wrap: anywhere;
+    font-size: var(--type-base);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-snug);
+}
+.name-clash-info small {
+    display: block;
+    margin-top: var(--space-1);
+    color: var(--text-muted);
+    font-size: var(--type-sm);
+    line-height: var(--leading-normal);
+}
+.name-clash-row .select-field { flex: 0 1 45%; min-width: 0; }
 .modal-error {
     margin: 0;
     font-size: var(--type-sm);

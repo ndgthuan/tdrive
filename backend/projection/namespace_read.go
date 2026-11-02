@@ -43,6 +43,53 @@ func LiveDirentByName(db *sql.DB, channelID int64, parentID, name string) (Diren
 	`, channelID, parentID, key))
 }
 
+// LiveFolderNamedUnder finds the live folder called name under parentID, using
+// the same canonical comparison as LiveDirentByName. A folder whose namespace
+// entry took a collision alias when it was synced is still listed under
+// parentID, but its entry no longer carries name, so LiveDirentByName misses
+// it. Matching on the folder's own name and requiring a live entry under
+// parentID finds that folder without accepting one the drive does not show.
+func LiveFolderNamedUnder(db *sql.DB, channelID int64, parentID, name string) (string, bool, error) {
+	if db == nil {
+		return "", false, fmt.Errorf("projection: live folder named under: db is nil")
+	}
+	if channelID == 0 || (parentID != RootParent && !IsFolderID(parentID)) {
+		return "", false, fmt.Errorf("projection: live folder named under: invalid parent")
+	}
+	key, err := CanonicalNameKey(name)
+	if err != nil {
+		return "", false, err
+	}
+	rows, err := db.Query(`
+		SELECT f.id, f.name
+		FROM folders f
+		JOIN dirents d ON d.channel_id = f.channel_id AND d.object_id = f.id
+		WHERE f.channel_id = ? AND f.parent_id = ? AND f.tombstoned = 0
+		  AND d.parent_id = ? AND d.object_kind = 'folder' AND d.tombstoned = 0
+	`, channelID, parentID, parentID)
+	if err != nil {
+		return "", false, fmt.Errorf("projection: live folder named under: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, folderName string
+		if err := rows.Scan(&id, &folderName); err != nil {
+			return "", false, fmt.Errorf("projection: scan live folder: %w", err)
+		}
+		folderKey, err := CanonicalNameKey(folderName)
+		if err != nil {
+			continue
+		}
+		if folderKey == key {
+			return id, true, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return "", false, fmt.Errorf("projection: iterate live folders: %w", err)
+	}
+	return "", false, nil
+}
+
 func scanDirent(scanner sqlScanner) (Dirent, bool, error) {
 	var entry Dirent
 	var tombstoned int

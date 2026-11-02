@@ -49,6 +49,7 @@
         confirmImportOptions,
         replanImportOptions,
     } from '../../modules/modals/import_options';
+    import { cancelNameClash, confirmNameClash } from '../../modules/modals/name_clash';
     import { submitJoinDrive } from '../../modules/modals/join_drive';
     import { reloadJoinRequests, resolveRequest } from '../../modules/modals/join_requests';
     import { confirmLeaveDrive } from '../../modules/modals/leave_drive';
@@ -78,6 +79,7 @@
     import LeaveDriveModal from '../modals/leave_drive_modal.svelte';
     import LogoutModal from '../modals/logout_modal.svelte';
     import MoveModal from '../modals/move_modal.svelte';
+    import NameClashModal from '../modals/name_clash_modal.svelte';
     import NewDriveModal from '../modals/new_drive_modal.svelte';
     import RenameModal from '../modals/rename_modal.svelte';
     import ShareDriveModal from '../modals/share_drive_modal.svelte';
@@ -223,6 +225,9 @@
             onConfirm={confirmImportOptions}
             onToggle={replanImportOptions}
         />
+    </div>
+    <div id="name-clash-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
+        <NameClashModal onCancel={cancelNameClash} onConfirm={confirmNameClash} />
     </div>
     <div id="logout-modal" class="modal-overlay" style="display: none;" aria-hidden="true">
         <LogoutModal onConfirm={confirmLogout} />

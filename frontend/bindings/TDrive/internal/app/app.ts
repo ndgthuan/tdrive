@@ -281,6 +281,15 @@ export function ImportPaths(paths: string[] | null, parentID: string, encrypt: b
 }
 
 /**
+ * ImportReplaceFile puts a file the import just uploaded in place of the older
+ * file of the same name: the older one goes to the trash and the new one takes
+ * its name. See fileservice.ReplaceImported.
+ */
+export function ImportReplaceFile(driveID: number, oldMsgID: number, newMsgID: number, name: string): $CancellablePromise<void> {
+    return $Call.ByID(3370574001, driveID, oldMsgID, newMsgID, name);
+}
+
+/**
  * ImportResolveFolders returns the drive folder id for each folder path under
  * parentID, reusing live folders with the same canonical name and creating the
  * rest. A name taken by a file is a conflict.
@@ -644,6 +653,15 @@ export function SyncChannel(channelID: number): $CancellablePromise<void> {
 
 export function UnmountDrive(): $CancellablePromise<$models.MountView> {
     return $Call.ByID(1851039664);
+}
+
+/**
+ * UploadImportToDriveFS uploads an import's files, each under its own drive
+ * name: names is aligned with filePaths, and an empty entry keeps the base name.
+ * A kept copy takes a free "name_N" name so it lands beside the file it clashes with.
+ */
+export function UploadImportToDriveFS(filePaths: string[] | null, parentIDs: string[] | null, names: string[] | null, encrypt: boolean): $CancellablePromise<$models.UploadResult> {
+    return $Call.ByID(3656311568, filePaths, parentIDs, names, encrypt);
 }
 
 /**
