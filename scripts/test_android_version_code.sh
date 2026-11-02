@@ -33,6 +33,7 @@ expect_code v3.1.5 3001005
 expect_code v3.1.6 3001006
 expect_code v3.1.7 3001007
 expect_code v3.1.8 3001008
+expect_code v3.1.9 3001009
 expect_code v0.0.1 1
 
 reject_tag 2.0.0
